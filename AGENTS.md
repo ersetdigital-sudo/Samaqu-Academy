@@ -2,15 +2,42 @@
 
 Read this before changing code. This is an internal customer-service academy for Samaqu.
 
+## Rules of engagement (owner's standing instructions)
+
+These are durable working rules. Follow them without re-asking.
+
+1. **Definition of done → auto-commit.** When `npm run typecheck` passes with 0 errors *and*
+   the requested tests pass, commit and push immediately. Do not ask for permission.
+2. **Stop conditions.** Halt and report instead of improvising when:
+   - a check fails (typecheck, build, migration, live test), or
+   - the work would touch the **production database** (writes, DDL, deletes), or
+   - a deploy is needed but was not explicitly authorized.
+3. **Never read or reuse secrets from disk.** `.owner-credentials.txt` holds a real production
+   owner password. Do not use it to log in unless the owner explicitly authorizes it for that
+   run. Never print, commit, or copy secret values.
+4. **Report cap: 10–15 lines.** Prefer one small text diagram over prose.
+5. **No unrequested actions.** Do not deploy, do not build frontend, do not `git commit` outside
+   rule 1, and do not run destructive SQL as a shortcut.
+6. **Verify before claiming.** Reproduce bugs (browser/CLI) before fixing; show the evidence.
+   If a diagnosis turns out wrong, say so plainly and correct it.
+7. **Modular by default.** Split by concern (see `features/ai-admin` and `_shared/knowledge-*`);
+   keep orchestrator files thin.
+8. **Admit uncertainty.** State assumptions explicitly; when the owner corrects a diagnosis,
+   verify the correction against the code before proceeding.
+
 ## Project snapshot
 
 - Live app: https://academy.samaqu.id
 - GitHub: https://github.com/ersetdigital-sudo/Samaqu-Academy (public repo — no secrets or PII in tracked files)
 - Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase Auth/Postgres/Storage/Edge Functions
 - Deployment: Vercel, **fully static export** (`output: 'export'`)
+- Vercel account: `oosshop01-2847` → project `academy`. The `ersetdigital-sudo` Vercel account
+  does **not** contain this project — checking the wrong account gives false "not found" results.
 - Supabase project ref: `rbjxjdgqtcwwbvuwtlpg`
 - Owner login: Google OAuth is enabled; the owner Gmail is in Supabase `allowed_emails` and the local gitignored `.owner-credentials.txt` (fallback password). Do not put the owner email or password in this repo.
 - Legacy reference app: `legacy/index.html` (do not serve it; kept as reference)
+- HTML mockup source of truth for UI: outside this repo. Do not copy it into the project root —
+  a stray `pages/` folder collides with the App Router and breaks `next build`.
 
 ## Quick start
 
@@ -229,3 +256,74 @@ If testing against live Supabase, use unique test IDs and remove only the rows y
 - `styles/base.css` — global link/underline rules.
 - `supabase/migrations/` — schema/RLS/allowlist/AI source of truth.
 - `scripts/` — seed/owner/audit/preview tooling.
+
+## Work log
+
+Durable record of what has been built and fixed. Append new entries; do not rewrite history.
+
+### 2026-11-03 — Samaqu AI brain (MiMo)
+
+- Added `ai` and `ai-admin` Edge Functions with MiMo (OpenAI-compatible) proxy, rate limits,
+  usage logging, and graceful `not_configured` responses.
+- Owner-only `/settings/ai` (provider, models, behavior, usage) and `/settings/memory`
+  (organizational memory). Schema in `0003_ai.sql`, `0004_ai_pricing.sql`.
+- Split knowledge retrieval into `_shared/knowledge-{labels,documents,ranking,conversations}.ts`
+  with `knowledge.ts` as a thin orchestrator.
+- Split `features/ai-admin` memory UI into `MemoryView` (orchestrator), `MemoryCard`,
+  `MemoryForm`, `memory-repository`, `memory-labels`.
+- Encryption key set in Supabase function secrets (value never stored in the repo).
+
+### 2026-11-03 — MiMo parameter corrections (verified against official docs)
+
+Docs contradicted the original assumptions. Authoritative findings:
+
+| Topic | Correct per docs |
+|---|---|
+| Output limit | `max_completion_tokens` (not `max_tokens`) on `/v1/chat/completions` |
+| Thinking | `thinking: {type: 'enabled' \| 'disabled'}`; **on by default** for all v2.6 models |
+| Reasoning | separate `message.reasoning_content` — never `<think>` tags in `content` |
+| Valid model IDs | `mimo-v2.6-pro`, `mimo-v2.6-flash`, `mimo-v2.6-pro-ultraspeed` (no bare `mimo-v2.6`) |
+| Retired IDs | `mimo-v2.5`, `mimo-v2.5-pro` — dead since 21 Oct 2026 |
+| Auth | both `Authorization: Bearer` and `api-key` accepted |
+
+- `_shared/mimo.ts`: sends `max_completion_tokens`, `thinking` (default `disabled`), returns
+  `reasoningContent` and `finishReason`, and raises a clear error on empty content when
+  `finish_reason === 'length'`.
+- Per-feature thinking: `ai_settings.feature_thinking` (migration `0005`), `resolveThinking()`
+  defaults to `disabled`. `save_models` tolerates the column being absent.
+- Migration `0005_ai_thinking.sql` is atomic (`begin…commit`) and idempotent. Note: `CASE`
+  branches must share one type — wrap text literals with `to_jsonb(...)` when the other branch
+  is `jsonb`, otherwise Postgres raises `22P02`.
+
+### 2026-11-03 — Simulator role fix
+
+- Symptom: simulated customer sometimes replied like CS ("Ukuran M ready ya kak?").
+- Root cause: prompt injected `Tujuan pelatihan admin` (the CS goal), so the model adopted the
+  admin viewpoint when the trainee's reply was thin. Message role mapping was correct.
+- Fix: prompt now carries only persona + situation + what the customer wants, plus an explicit
+  ban on offering products or asking sizing questions. Completion marker changed from `DONE`
+  to `[[SELESAI_SIMULASI]]` (`SIMULATOR_DONE` in `prompts.ts`).
+
+### 2026-11-03 — Guidelines page crash
+
+- Symptom: `/guidelines` rendered "This page couldn't load" for any guide row whose
+  `points`/`dos`/`donts`/`pairs` were `NULL`.
+- Root cause: migration regression. Both `legacy/index.html` and the HTML mockup guard with
+  `(g.points || [])`; the React rewrite dropped the guard and read `.length` on `null`.
+- Fix: `GuideSection` fields are optional/nullable in `lib/types.ts`; `?? []` restored in
+  `GuidelinesView.tsx` (4 sites) and `lib/ai/assistant.ts`. Data was left untouched.
+
+## Operational notes
+
+- **Migration history is not recorded remotely.** `supabase migration list` shows an empty
+  remote column while the tables exist, so `supabase db push` would try to re-apply everything.
+  Apply migrations with `supabase db query --file <path> --remote=<ref> --yes` instead.
+- **Test migrations safely.** Dry-run with the file's trailing `commit;` swapped for `rollback;`
+  before touching production, and re-run once afterwards to prove idempotency.
+- **`npx supabase db query` quoting.** Inline SQL through PowerShell/cmd mangles quotes. Write the
+  statement to a file and use `--file`.
+- **Deployed function versions:** `npx supabase functions list --remote=<ref>`.
+- **Verify UI changes in a real browser.** `agent-browser` (installed globally) reproduces
+  client-side crashes that a 200 response hides. The app requires owner login first.
+- **`next build` is stricter than `tsc --noEmit`** in this project. Run the build, not just the
+  typecheck, before claiming a UI change is safe.
