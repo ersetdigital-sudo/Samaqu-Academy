@@ -1,0 +1,1796 @@
+{
+  "content": {
+    "materials": [
+      {
+        "id": "mat_1",
+        "title": "Mengenal Samaqu",
+        "category": "Introduction to Samaqu",
+        "description": "Sejarah singkat, visi misi, dan nilai pelayanan Samaqu.",
+        "durationMinutes": 10,
+        "objectives": [
+          "Mengenal identitas dan nilai pelayanan Samaqu",
+          "Memahami peran admin sebagai wajah brand"
+        ],
+        "body": "## Tujuan\nAdmin memahami identitas brand Samaqu sebelum melayani customer.\n\n## Poin Utama\n- Samaqu adalah brand busana muslim (isi profil resmi perusahaan di sini).\n- Nilai pelayanan: ramah, jujur, cepat, dan solutif.\n- Admin adalah wajah pertama brand di mata customer.\n\n## Catatan\nLengkapi bagian ini dengan dokumen company profile resmi.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_2",
+        "title": "Tone of Voice Samaqu",
+        "category": "Communication Guidelines",
+        "description": "Cara berbicara yang hangat, sopan, dan natural dengan customer.",
+        "durationMinutes": 15,
+        "objectives": [
+          "Menggunakan tone of voice Samaqu",
+          "Menghindari jawaban menggantung"
+        ],
+        "body": "## Prinsip Komunikasi\n- Gunakan sapaan \"Kak\" secara konsisten.\n- Kalimat singkat, jelas, dan tidak kaku.\n- Hindari jawaban menggantung seperti \"kita usahakan ya\".\n- Selalu tawarkan langkah berikutnya.\n\n## Contoh\n**Kurang tepat:** \"Ready ka.\"\n**Lebih baik:** \"Ready, Kak 😊 Untuk ukuran berapa yang Kakak cari? Kami bantu cek stoknya.\"",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_3",
+        "title": "Dasar Pelayanan Pelanggan",
+        "category": "Customer Service Fundamentals",
+        "description": "Empati, active listening, dan respons cepat.",
+        "durationMinutes": 20,
+        "objectives": [
+          "Menerapkan empati dan active listening",
+          "Membalas tepat waktu"
+        ],
+        "body": "## Tiga Pilar Pelayanan\n- **Empati** — pahami perasaan customer sebelum memberi solusi.\n- **Active listening** — baca seluruh pesan, tangkap kebutuhan sebenarnya.\n- **Respons tepat waktu** — ikuti SLA balasan yang ditetapkan tim.\n\n## Latihan\nCoba praktikkan di AI Chat Simulator dengan skenario \"Customer baru bertanya produk\".",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_4",
+        "title": "Mengenal Lini Produk",
+        "category": "Product Knowledge",
+        "description": "Ringkasan kategori Thobe, Gamis, Koko, dan koleksi bahan.",
+        "durationMinutes": 25,
+        "objectives": [
+          "Mengenal kategori produk",
+          "Tahu di mana mencari data produk resmi"
+        ],
+        "body": "## Kategori Produk\n- Thobe\n- Gamis\n- Koko\n- Fabric Collection\nDetail spesifikasi lengkap ada di halaman **Product Knowledge**. Gunakan hanya informasi resmi dari tim produk.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_5",
+        "title": "Alur Order & Pembayaran",
+        "category": "Ordering & Payment Process",
+        "description": "Langkah membantu customer dari checkout hingga konfirmasi bayar.",
+        "durationMinutes": 15,
+        "objectives": [
+          "Memahami alur order sampai konfirmasi bayar"
+        ],
+        "body": "## Langkah\n- Konfirmasi produk, ukuran, dan jumlah.\n- Kirim ringkasan pesanan.\n- Informasikan metode pembayaran resmi.\n- Verifikasi bukti pembayaran.\n- Kirim konfirmasi order.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_6",
+        "title": "Informasi Pengiriman",
+        "category": "Shipping & Delivery",
+        "description": "Menjelaskan estimasi, ekspedisi, dan resi dengan jelas.",
+        "durationMinutes": 12,
+        "objectives": [
+          "Menjelaskan pengiriman tanpa janji berlebihan"
+        ],
+        "body": "## Poin Utama\n- Jangan menjanjikan tanggal tiba tanpa kepastian.\n- Bagikan nomor resi segera setelah tersedia.\n- Ekspedisi & estimasi mengikuti SOP gudang (isi data resmi).",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_7",
+        "title": "Menangani Komplain",
+        "category": "Complaint Handling",
+        "description": "Kerangka HEARD untuk meredakan dan menyelesaikan keluhan.",
+        "durationMinutes": 20,
+        "objectives": [
+          "Menerapkan kerangka HEARD"
+        ],
+        "body": "## Kerangka HEARD\n- **Hear** — dengarkan sampai selesai.\n- **Empathize** — akui perasaan customer.\n- **Apologize** — minta maaf atas ketidaknyamanan.\n- **Resolve** — tawarkan solusi sesuai SOP.\n- **Diagnose** — catat akar masalah untuk tim.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "mat_8",
+        "title": "Layanan Purna Jual",
+        "category": "After Sales Service",
+        "description": "Follow up, tukar ukuran, dan menjaga hubungan customer.",
+        "durationMinutes": 10,
+        "objectives": [
+          "Melakukan follow up dan menjaga hubungan customer"
+        ],
+        "body": "## Poin Utama\n- Follow up setelah barang diterima.\n- Proses tukar/retur mengikuti kebijakan resmi.\n- Minta ulasan dengan sopan.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "scripts": [
+      {
+        "id": "scr_seed0",
+        "title": "Sapaan pembuka chat baru",
+        "category": "Greeting & Opening",
+        "situation": "Chat pertama dari customer baru.",
+        "response": "Assalamu'alaikum, Kak. Terima kasih sudah menghubungi Samaqu 😊 Ada yang bisa kami bantu hari ini?",
+        "variants": [
+          "Halo Kak, selamat datang di Samaqu. Kakak sedang mencari produk apa?",
+          "Terima kasih sudah mampir, Kak. Silakan ceritakan kebutuhannya, kami bantu carikan."
+        ],
+        "notes": "Sesuaikan salam dengan cara customer menyapa. Kalau customer langsung bertanya, jawab dulu pertanyaannya.",
+        "tags": [
+          "salam",
+          "pembuka"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed1",
+        "title": "Menanyakan ketersediaan produk",
+        "category": "Product Inquiry",
+        "situation": "Customer menanyakan ketersediaan produk.",
+        "response": "Untuk produk tersebut, kami bantu cek stoknya dulu ya, Kak. Boleh info warna dan ukuran yang Kakak inginkan?",
+        "variants": [
+          "Siap, Kak. Kakak tertarik warna apa? Kami cek ketersediaannya sekarang."
+        ],
+        "notes": "Pastikan cek stok dulu sebelum bilang ready.",
+        "tags": [
+          "stok",
+          "ready"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed2",
+        "title": "Membantu menentukan ukuran",
+        "category": "Size Consultation",
+        "situation": "Customer bingung memilih ukuran.",
+        "response": "Agar ukurannya pas, boleh info tinggi dan berat badan Kakak? Nanti kami cocokkan dengan size chart Samaqu.",
+        "variants": [
+          "Kakak biasa pakai ukuran berapa untuk kemeja? Ini bisa jadi patokan awal, lalu kami cek size chart."
+        ],
+        "notes": "Selalu rujuk Size Chart resmi. Jangan menebak ukuran.",
+        "tags": [
+          "ukuran",
+          "size chart"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed3",
+        "title": "Menjelaskan bahan",
+        "category": "Fabric Inquiry",
+        "situation": "Customer bertanya soal bahan (panas/adem/tebal).",
+        "response": "Untuk bahan [kode bahan], karakteristiknya [isi dari data resmi]. Apakah Kakak lebih suka bahan yang adem atau yang lebih tebal?",
+        "variants": [
+          "Kami kirimkan foto detail bahannya ya, Kak, supaya lebih jelas teksturnya."
+        ],
+        "notes": "Hanya sampaikan karakteristik bahan dari data resmi.",
+        "tags": [
+          "bahan",
+          "kain"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed4",
+        "title": "Menjawab pertanyaan harga",
+        "category": "Price Inquiry",
+        "situation": "Customer menanyakan harga.",
+        "response": "Harga untuk produk ini Rp[harga], Kak. Sudah termasuk [benefit resmi]. Mau kami bantu cek ukurannya sekalian?",
+        "variants": [
+          "Untuk saat ini harganya Rp[harga], Kak. Kebetulan ada [promo resmi bila ada]."
+        ],
+        "notes": "Sebut harga dengan jelas, lalu arahkan ke langkah berikutnya.",
+        "tags": [
+          "harga"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed5",
+        "title": "Menjelaskan program Create Your Price",
+        "category": "Create Your Price",
+        "situation": "Customer ingin tahu program Create Your Price.",
+        "response": "Create Your Price adalah program [isi penjelasan resmi], Kak. Kami bantu jelaskan langkahnya satu per satu, ya.",
+        "variants": [
+          "Singkatnya, Kakak bisa [mekanisme resmi]. Mau kami bantu mulai?"
+        ],
+        "notes": "Gunakan penjelasan resmi program. Jelaskan bertahap, jangan sekaligus panjang.",
+        "tags": [
+          "program",
+          "cyp"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed6",
+        "title": "Ringkasan pesanan",
+        "category": "Ordering",
+        "situation": "Customer siap order.",
+        "response": "Berikut ringkasan pesanan Kakak:\n- Produk: [nama]\n- Ukuran: [ukuran]\n- Jumlah: [qty]\n- Alamat: [alamat]\nMohon dicek kembali ya, Kak.",
+        "variants": [
+          "Sebelum kami proses, boleh dicek lagi detail pesanannya, Kak?"
+        ],
+        "notes": "Konfirmasi ulang ukuran dan alamat sebelum diproses.",
+        "tags": [
+          "order",
+          "ringkasan"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed7",
+        "title": "Konfirmasi pembayaran diterima",
+        "category": "Payment Confirmation",
+        "situation": "Customer sudah mengirim bukti transfer.",
+        "response": "Terima kasih, Kak. Pembayaran sudah kami terima dan pesanan segera kami proses. Resi akan kami kabarkan setelah tersedia.",
+        "variants": [
+          "Alhamdulillah pembayarannya sudah masuk, Kak. Pesanan langsung kami teruskan ke tim gudang."
+        ],
+        "notes": "Cek mutasi dulu sebelum konfirmasi diterima.",
+        "tags": [
+          "bayar",
+          "transfer"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed8",
+        "title": "Follow up customer yang belum jadi beli",
+        "category": "Follow Up",
+        "situation": "Customer tidak membalas setelah bertanya.",
+        "response": "Halo Kak, kemarin sempat tanya [produk]. Apakah masih ada yang ingin ditanyakan? Kami siap bantu 😊",
+        "variants": [
+          "Kak, stok ukuran yang Kakak tanyakan masih tersedia. Mau kami bantu amankan?"
+        ],
+        "notes": "Follow up secukupnya, jangan terkesan memaksa.",
+        "tags": [
+          "follow up"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed9",
+        "title": "Respons awal komplain",
+        "category": "Complaint Handling",
+        "situation": "Customer menyampaikan keluhan.",
+        "response": "Mohon maaf atas ketidaknyamanannya, Kak. Boleh dikirimkan foto produk dan nomor pesanannya? Kami bantu cek dan carikan solusi secepatnya.",
+        "variants": [
+          "Kami paham ini mengecewakan, Kak. Kami tindak lanjuti sekarang, ya."
+        ],
+        "notes": "Dengarkan dulu, minta maaf, baru minta data. Jangan menyalahkan pihak lain.",
+        "tags": [
+          "komplain",
+          "maaf"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed10",
+        "title": "Menjawab permintaan percepatan kirim",
+        "category": "Shipping Information",
+        "situation": "Customer menanyakan jadwal atau minta pengiriman dipercepat.",
+        "response": "Baik, Kak. Kami bantu cek jadwal pengirimannya dulu, ya. Nanti kami kabari kembali setelah ada kepastian.",
+        "variants": [
+          "Kami koordinasikan dengan tim gudang dulu ya, Kak, supaya informasinya akurat."
+        ],
+        "notes": "Jangan menjanjikan tanggal tiba tanpa kepastian dari gudang.",
+        "tags": [
+          "kirim",
+          "resi"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scr_seed11",
+        "title": "Follow up setelah barang diterima",
+        "category": "After Sales",
+        "situation": "Setelah barang diterima customer.",
+        "response": "Halo Kak, paket dari Samaqu sudah diterima? Semoga produknya sesuai harapan. Jika ada kendala ukuran, kabari kami, ya 😊",
+        "variants": [
+          "Terima kasih sudah berbelanja, Kak. Boleh minta ulasan singkatnya? Sangat membantu kami."
+        ],
+        "notes": "Tanyakan kepuasan dengan santai, minta ulasan kalau suasananya pas.",
+        "tags": [
+          "purna jual",
+          "ulasan"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "cases": [
+      {
+        "id": "case_seed1",
+        "title": "Customer ragu antara ukuran M dan L",
+        "category": "Size Consultation",
+        "mark": "Materi Pembelajaran",
+        "situation": "Customer baru, tinggi 170 cm dan berat 68 kg, bingung memilih ukuran thobe.",
+        "customerMessage": "Kak aku 170/68, ambil M atau L ya?\nTakut kekecilan soalnya.",
+        "adminPrevious": "L aja kak, aman.",
+        "finding": "Admin menjawab asal tanpa melihat size chart.",
+        "cause": "Admin ingin membalas cepat, tapi tidak menggali preferensi customer (pas badan atau longgar).",
+        "recommendation": "Terima kasih infonya, Kak 😊 Dari size chart kami, 170 cm / 68 kg ada di antara M dan L. Kalau Kakak suka pas badan bisa M, kalau suka lebih longgar kami sarankan L. Kakak biasanya nyaman yang mana?",
+        "lesson": "Rekomendasi ukuran harus berdasarkan size chart dan preferensi customer, bukan tebakan.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "case_seed2",
+        "title": "Customer membandingkan harga dengan toko lain",
+        "category": "Price Inquiry",
+        "mark": "Perlu Perbaikan",
+        "situation": "Customer menganggap harga Samaqu lebih mahal dibanding produk serupa di marketplace.",
+        "customerMessage": "Kok mahal ya kak? Di toko sebelah lebih murah.",
+        "adminPrevious": "Ya beda kualitas ka.",
+        "finding": "Respons terkesan defensif dan tidak menjelaskan nilai produk.",
+        "cause": "Admin merasa diserang, lalu membalas singkat tanpa empati.",
+        "recommendation": "Wajar banget Kakak bandingin dulu 😊 Untuk produk ini harganya sudah termasuk [keunggulan resmi]. Kalau mau, kami kirim foto detail bahan dan jahitannya ya, biar Kakak bisa bandingin langsung.",
+        "lesson": "Keberatan harga dijawab dengan empati dan bukti nilai, bukan dengan membantah.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "case_seed3",
+        "title": "Customer minta paket sampai besok",
+        "category": "Shipping Information",
+        "mark": "Perlu Perbaikan",
+        "situation": "Customer butuh produk untuk acara lusa, admin belum tahu jadwal gudang.",
+        "customerMessage": "Kak bisa sampai besok gak? Buat acara lusa.",
+        "adminPrevious": "Kita usahakan ya ka.",
+        "finding": "Jawaban menggantung dan tidak memberi kepastian.",
+        "cause": "Admin belum cek jadwal pengiriman tapi tetap ingin terdengar positif.",
+        "recommendation": "Baik, Kak. Kami paham produknya mau dipakai lusa. Kami cek jadwal pengiriman dan opsi ekspedisi tercepat dulu, ya. Nanti kami kabari lagi setelah ada kepastian.",
+        "lesson": "Lebih baik memberi langkah konkret daripada janji yang belum pasti.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "case_seed4",
+        "title": "Jahitan lepas saat barang diterima",
+        "category": "Complaint Handling",
+        "mark": "Materi Pembelajaran",
+        "situation": "Customer kecewa karena jahitan produk lepas dan menulis dengan nada marah.",
+        "customerMessage": "Kak barangku jahitannya lepas! Kecewa banget, baru dibuka.",
+        "adminPrevious": "Mungkin kena saat pengiriman ka, bukan dari kami.",
+        "finding": "Admin menyalahkan pihak lain sebelum mengecek.",
+        "cause": "Refleks membela diri, belum menerapkan langkah HEARD.",
+        "recommendation": "Mohon maaf banget, Kak 🙏 Kami paham ini bikin kecewa. Boleh kirim foto bagian jahitannya dan nomor pesanan? Kami bantu proses segera sesuai kebijakan Samaqu.",
+        "lesson": "Saat komplain: dengarkan, akui perasaan customer, minta maaf, baru cari solusi.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "case_seed5",
+        "title": "Follow up customer yang sempat menghilang",
+        "category": "Follow Up",
+        "mark": "Contoh Praktik Baik",
+        "situation": "Customer tanya harga kemarin lalu tidak membalas.",
+        "customerMessage": "Harganya berapa kak?\nA: Rp[harga], Kak.\n(customer tidak membalas)",
+        "adminPrevious": "Halo Kak, kemarin sempat tanya [produk] 😊 Kalau masih ada yang mau ditanyakan soal ukuran atau bahannya, kami siap bantu ya.",
+        "finding": "Follow up ramah, relevan, dan tidak memaksa.",
+        "cause": "Admin memberi jeda yang wajar dan menawarkan bantuan spesifik.",
+        "recommendation": "Halo Kak, kemarin sempat tanya [produk] 😊 Kalau masih ada yang mau ditanyakan soal ukuran atau bahannya, kami siap bantu ya.",
+        "lesson": "Follow up yang baik menawarkan bantuan, bukan menagih keputusan.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "case_seed6",
+        "title": "Customer minta refund karena kebesaran",
+        "category": "After Sales",
+        "mark": "Perlu Perbaikan",
+        "situation": "Produk sudah diterima, customer merasa kebesaran dan ingin uang kembali.",
+        "customerMessage": "Kak kebesaran, bisa refund aja gak?",
+        "adminPrevious": "Gak bisa refund ka.",
+        "finding": "Admin langsung menolak tanpa empati dan tanpa solusi.",
+        "cause": "Admin tidak menawarkan opsi lain sesuai kebijakan (misalnya tukar ukuran).",
+        "recommendation": "Yah, maaf ukurannya belum pas, Kak. Kami cek dulu sesuai kebijakan retur Samaqu, ya. Boleh kirim nomor pesanannya? Biasanya kami bisa bantu tukar ukuran biar tetap bisa dipakai.",
+        "lesson": "Jangan langsung menolak. Cek kebijakan dan tawarkan opsi yang tersedia.",
+        "anonymized": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "beforeAfter": [
+      {
+        "id": "ba_seed0",
+        "title": "Customer minta pengiriman dipercepat",
+        "category": "Shipping Information",
+        "before": "Kita usahakan ya ka.",
+        "after": "Baik, Kak. Kami bantu cek jadwal pengirimannya dulu, ya. Nanti kami kabari kembali setelah ada kepastian.",
+        "why": "Respons kedua memberi langkah konkret (cek jadwal), menetapkan ekspektasi (akan dikabari), dan menggunakan bahasa yang sopan serta lengkap. Respons pertama menggantung dan terkesan tidak pasti.",
+        "notes": "Hindari kata \"usahakan\" kalau belum ada kepastian.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "ba_seed1",
+        "title": "Customer tanya stok",
+        "category": "Product Inquiry",
+        "before": "Ready.",
+        "after": "Ready, Kak 😊 Untuk ukuran berapa yang Kakak cari? Kami bantu cek stoknya.",
+        "why": "Menambahkan sapaan, keramahan, dan pertanyaan lanjutan sehingga percakapan terus bergerak ke arah pembelian.",
+        "notes": "Tambahkan pertanyaan lanjutan supaya chat terus jalan.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "ba_seed2",
+        "title": "Customer minta refund",
+        "category": "After Sales",
+        "before": "Gak bisa refund ka.",
+        "after": "Mohon maaf, Kak. Untuk kasus ini kami bantu cek dulu sesuai kebijakan retur Samaqu, ya. Boleh dikirimkan nomor pesanannya?",
+        "why": "Tidak langsung menolak, menunjukkan empati, dan mengacu pada kebijakan resmi.",
+        "notes": "Selalu rujuk kebijakan resmi sebelum menjawab.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "flow": [
+      {
+        "id": "flow_1",
+        "no": 1,
+        "title": "Greeting & First Response",
+        "description": "Menyambut customer dengan ramah, merespons pertanyaan pertama, dan memahami apa yang sedang dicari.",
+        "goal": "Memberi kesan pertama yang hangat sekaligus langsung menjawab apa yang ditanyakan customer.",
+        "whenToUse": "Saat customer pertama kali menghubungi Samaqu, baik hanya menyapa maupun langsung bertanya produk.",
+        "info": [
+          "Pertanyaan utama di pesan pertama",
+          "Sumber chat (WhatsApp, Instagram, marketplace)",
+          "Nama customer bila disebutkan",
+          "Produk atau link yang dikirim customer"
+        ],
+        "steps": [
+          "Baca pesan pertama sampai selesai",
+          "Balas salam sesuai cara customer menyapa",
+          "Jawab pertanyaan utama terlebih dahulu",
+          "Tambahkan satu pertanyaan lanjutan yang relevan",
+          "Balas secepatnya sesuai standar kecepatan respons tim (isi dari SOP)"
+        ],
+        "example": "C: Assalamu'alaikum kak, thobe putih masih ada?\nA: Wa'alaikumussalam, Kak 😊 Thobe putihnya masih ada. Kakak cari untuk ukuran berapa?",
+        "avoid": [
+          "Greeting panjang yang sama persis di setiap chat",
+          "Hanya membalas salam tanpa menjawab pertanyaan",
+          "Membiarkan chat pertama lama tidak dibalas",
+          "Membalas satu kata seperti \"ada\""
+        ],
+        "nextStep": "Need Identification",
+        "scriptCategories": [
+          "Greeting & Opening",
+          "Product Inquiry"
+        ],
+        "problemIds": [],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_2",
+        "no": 2,
+        "title": "Need Identification",
+        "description": "Menggali kebutuhan customer untuk memahami produk yang benar-benar dicari.",
+        "goal": "Memahami produk yang benar-benar dibutuhkan customer sebelum memberi rekomendasi.",
+        "whenToUse": "Setelah sapaan pertama, atau saat customer belum jelas mencari produk apa.",
+        "info": [
+          "Tujuan pembelian (dipakai sendiri atau hadiah)",
+          "Produk yang dicari",
+          "Preferensi warna dan seri",
+          "Tinggi dan berat badan",
+          "Acara atau kebutuhan pemakaian"
+        ],
+        "steps": [
+          "Tanyakan satu atau dua hal paling penting dulu",
+          "Gunakan jawaban customer untuk pertanyaan berikutnya",
+          "Jangan menanyakan info yang sudah disebutkan",
+          "Rangkum kebutuhan customer sebelum merekomendasikan"
+        ],
+        "example": "C: Mau cari baju buat lebaran kak\nA: Siap, Kak 😊 Untuk dipakai sendiri atau keluarga? Biar kami bantu cari model yang pas.\nC: Buat saya sendiri, tinggi 172 berat 70\nA: Noted, Kak. Kakak suka warna yang kalem atau yang lebih cerah?",
+        "avoid": [
+          "Memberi banyak pertanyaan sekaligus seperti formulir",
+          "Menebak kebutuhan tanpa bertanya",
+          "Langsung kirim katalog tanpa konteks"
+        ],
+        "nextStep": "Product Consultation",
+        "scriptCategories": [
+          "Product Inquiry",
+          "Size Consultation"
+        ],
+        "problemIds": [],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_3",
+        "no": 3,
+        "title": "Product Consultation",
+        "description": "Membantu customer memahami produk dan memberikan rekomendasi yang relevan.",
+        "goal": "Memberi rekomendasi produk yang relevan berdasarkan kebutuhan customer dan data resmi.",
+        "whenToUse": "Saat kebutuhan customer sudah cukup jelas, atau customer bertanya detail produk, bahan, dan ukuran.",
+        "info": [
+          "Stok terbaru",
+          "Bahan dan karakteristiknya (data resmi)",
+          "Seri produk yang relevan",
+          "Ukuran sesuai size chart"
+        ],
+        "steps": [
+          "Cek stok sebelum menyebut ready",
+          "Rekomendasikan 1–2 pilihan yang paling sesuai",
+          "Jelaskan keunggulan dengan data dari Product Knowledge",
+          "Cocokkan ukuran dengan size chart",
+          "Tawarkan foto atau video detail bila perlu"
+        ],
+        "example": "C: Bahannya panas gak kak?\nA: Untuk seri ini bahannya [kode bahan], Kak. Karakteristiknya [info resmi]. Kami kirimkan foto detail bahannya ya biar lebih kebayang.",
+        "avoid": [
+          "Mengarang karakteristik bahan",
+          "Menyebut stok tanpa mengecek",
+          "Merekomendasikan terlalu banyak produk sekaligus"
+        ],
+        "nextStep": "Purchase Assistance",
+        "scriptCategories": [
+          "Product Inquiry",
+          "Fabric Inquiry",
+          "Size Consultation"
+        ],
+        "problemIds": [
+          "prb_stock"
+        ],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_4",
+        "no": 4,
+        "title": "Purchase Assistance",
+        "description": "Membantu customer menentukan pilihan dan mengatasi keraguan sebelum membeli.",
+        "goal": "Membantu customer yakin dengan pilihannya tanpa merasa dipaksa.",
+        "whenToUse": "Saat customer ragu, membandingkan harga, atau belum memutuskan warna/seri.",
+        "info": [
+          "Apa yang membuat customer ragu",
+          "Warna dan seri yang sedang dipertimbangkan",
+          "Promo resmi yang berlaku"
+        ],
+        "steps": [
+          "Tanyakan apa yang membuat customer ragu",
+          "Jawab keberatan dengan informasi dan bukti visual",
+          "Jelaskan Create Your Price bila relevan (pakai penjelasan resmi)",
+          "Beri ruang customer untuk memutuskan",
+          "Arahkan ke langkah order dengan natural"
+        ],
+        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Dua-duanya cocok buat acara formal, Kak 😊 Kalau mau kesan lebih kalem, navy biasanya jadi favorit. Mau kami kirimkan foto real keduanya?",
+        "avoid": [
+          "Memaksa customer segera membeli",
+          "Membantah keberatan harga",
+          "Menjanjikan promo yang tidak resmi"
+        ],
+        "nextStep": "Checkout & Payment",
+        "scriptCategories": [
+          "Price Inquiry",
+          "Create Your Price"
+        ],
+        "problemIds": [],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_5",
+        "no": 5,
+        "title": "Checkout & Payment",
+        "description": "Membantu customer menyelesaikan pemesanan dan pembayaran dengan mudah.",
+        "goal": "Memastikan pesanan tercatat benar dan customer mudah menyelesaikan pembayaran.",
+        "whenToUse": "Saat customer sudah memutuskan untuk membeli.",
+        "info": [
+          "Nama dan nomor penerima",
+          "Alamat lengkap",
+          "Produk, warna, ukuran, dan jumlah",
+          "Pilihan ekspedisi",
+          "Metode pembayaran"
+        ],
+        "steps": [
+          "Minta data penerima dalam satu pesan yang rapi",
+          "Cek kembali produk, warna, ukuran, dan jumlah",
+          "Periksa kelengkapan alamat",
+          "Hitung ongkir sesuai ekspedisi",
+          "Kirim invoice / ringkasan pesanan",
+          "Jelaskan cara pembayaran resmi",
+          "Hindari mengulang informasi yang sudah dikirim"
+        ],
+        "example": "C: Oke kak aku ambil yang navy L\nA: Siap, Kak 😊 Boleh dibantu isi data ini ya: Nama penerima / No. HP / Alamat lengkap / Ekspedisi\nC: (customer mengirim data)\nA: Terima kasih, Kak. Ini ringkasan pesanannya, mohon dicek dulu ya.",
+        "avoid": [
+          "Meminta data satu per satu sampai berulang",
+          "Lupa konfirmasi ukuran dan alamat",
+          "Mengirim informasi pembayaran yang tidak resmi"
+        ],
+        "nextStep": "Order Confirmation",
+        "scriptCategories": [
+          "Ordering",
+          "Payment Confirmation"
+        ],
+        "problemIds": [
+          "prb_payment"
+        ],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_6",
+        "no": 6,
+        "title": "Order Confirmation",
+        "description": "Memberikan kepastian bahwa pembayaran diterima dan pesanan diproses.",
+        "goal": "Memberi kepastian bahwa pembayaran diterima dan pesanan sedang diproses.",
+        "whenToUse": "Setelah customer mengirim bukti pembayaran.",
+        "info": [
+          "Bukti transfer dan nominal",
+          "Nomor pesanan",
+          "Estimasi proses dari gudang"
+        ],
+        "steps": [
+          "Verifikasi pembayaran di mutasi",
+          "Kirim konfirmasi pesanan diproses",
+          "Teruskan pesanan ke tim gudang",
+          "Update status pesanan ke customer",
+          "Kirim nomor resi setelah tersedia"
+        ],
+        "example": "C: Kak sudah transfer ya\nA: Terima kasih, Kak. Kami cek dulu pembayarannya ya.\nA: Pembayaran sudah kami terima 😊 Pesanan langsung kami proses, nanti resinya kami kirim ke sini.",
+        "avoid": [
+          "Konfirmasi diterima sebelum cek mutasi",
+          "Lupa mengirim resi",
+          "Memberi estimasi tanpa info dari gudang"
+        ],
+        "nextStep": "After Sales",
+        "scriptCategories": [
+          "Payment Confirmation",
+          "Shipping Information"
+        ],
+        "problemIds": [
+          "prb_payment",
+          "prb_late"
+        ],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_7",
+        "no": 7,
+        "title": "After Sales",
+        "description": "Memastikan customer mendapatkan pengalaman belanja yang baik setelah pembelian.",
+        "goal": "Memastikan pengalaman belanja customer baik sampai produk diterima dan dipakai.",
+        "whenToUse": "Setelah paket diterima customer.",
+        "info": [
+          "Kondisi paket saat diterima",
+          "Kesesuaian ukuran",
+          "Kepuasan customer"
+        ],
+        "steps": [
+          "Follow up setelah paket diterima",
+          "Tanyakan apakah produk sesuai",
+          "Bantu bila ada kendala sesuai SOP",
+          "Minta ulasan dengan natural",
+          "Bangun repeat order dengan info koleksi yang relevan"
+        ],
+        "example": "A: Halo Kak, paketnya sudah sampai? Semoga ukurannya pas ya 😊\nC: Sudah kak, pas banget\nA: Alhamdulillah, ikut senang, Kak. Kalau berkenan, boleh bantu kasih ulasan singkat ya 🙏",
+        "avoid": [
+          "Menghilang setelah transaksi",
+          "Meminta ulasan dengan memaksa",
+          "Follow up berulang dalam waktu dekat"
+        ],
+        "nextStep": "Repeat order: kembali ke Greeting & First Response",
+        "scriptCategories": [
+          "After Sales",
+          "Follow Up"
+        ],
+        "problemIds": [
+          "prb_size",
+          "prb_exchange"
+        ],
+        "special": false,
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "flow_8",
+        "no": 8,
+        "title": "Complaint Handling",
+        "description": "Menangani keluhan customer secara profesional dan solutif. Bisa terjadi di tahap mana pun.",
+        "goal": "Menyelesaikan keluhan customer secara tenang, empatik, dan sesuai SOP.",
+        "whenToUse": "Kapan saja customer menyampaikan keluhan, sebelum, saat, atau setelah pembelian.",
+        "info": [
+          "Apa masalahnya dan kapan terjadi",
+          "Nomor pesanan",
+          "Bukti foto/video",
+          "Harapan customer"
+        ],
+        "steps": [
+          "Hear: dengarkan keluhan sampai selesai",
+          "Empathize: tunjukkan empati",
+          "Apologize: minta maaf bila diperlukan",
+          "Kumpulkan informasi dan bukti",
+          "Periksa SOP yang berlaku",
+          "Resolve: beri solusi sesuai kewenangan",
+          "Eskalasi ke supervisor bila di luar kewenangan",
+          "Diagnose: kabari perkembangan dan catat akar masalah"
+        ],
+        "example": "C: Kak barangku jahitannya lepas, kecewa banget\nA: Mohon maaf banget, Kak 🙏 Kami paham ini bikin kecewa. Boleh kirim foto bagian jahitannya dan nomor pesanannya? Kami cek segera.",
+        "avoid": [
+          "Menyalahkan customer atau ekspedisi",
+          "Menjanjikan refund/tukar sebelum cek SOP",
+          "Membalas dengan template yang tidak menjawab keluhan"
+        ],
+        "nextStep": "Kembali ke tahap journey sebelumnya setelah masalah selesai",
+        "scriptCategories": [
+          "Complaint Handling",
+          "After Sales",
+          "Shipping Information"
+        ],
+        "problemIds": [
+          "prb_defect",
+          "prb_wrong",
+          "prb_angry",
+          "prb_refund",
+          "prb_courier"
+        ],
+        "special": true,
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "guides": [
+      {
+        "id": "gd_1",
+        "no": 1,
+        "title": "Samaqu Communication Character",
+        "summary": "Cara kami ngobrol dengan customer: hangat seperti teman yang paham produk, tapi tetap profesional.",
+        "points": [
+          "Friendly: menyapa dengan hangat dan tulus",
+          "Natural: menulis seperti ngobrol, bukan membaca template",
+          "Professional: informasinya akurat dan sopan",
+          "Helpful: selalu menawarkan langkah berikutnya",
+          "Conversational: dua arah, ada pertanyaan balik",
+          "Tidak terlalu formal: hindari bahasa surat resmi",
+          "Tidak robotik: jangan terdengar seperti mesin atau AI"
+        ],
+        "dos": [
+          "Halo Kak, ada yang bisa kami bantu? 😊",
+          "Siap, kami cek dulu ya, Kak"
+        ],
+        "donts": [
+          "Dengan hormat, kami informasikan bahwa...",
+          "Pesan Anda telah kami terima dan akan segera diproses."
+        ],
+        "pairs": [],
+        "example": "C: Kak mau tanya dong\nA: Boleh banget, Kak 😊 Mau tanya soal apa?",
+        "takeaway": "Tulis seperti sedang membantu teman, dengan informasi yang bisa dipertanggungjawabkan.",
+        "kind": "",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "gd_2",
+        "no": 2,
+        "title": "Tone of Voice",
+        "summary": "Pilihan kata kecil yang membuat chat terasa konsisten dan ramah.",
+        "points": [
+          "Sapaan \"Kak\": dipakai konsisten untuk semua customer",
+          "Kata ganti \"Kami\": mewakili Samaqu, bukan \"saya\" atau \"kita\"",
+          "Bahasa percakapan: santai tapi tetap sopan",
+          "Kalimat pendek dan jelas: satu ide per kalimat",
+          "Emoji secukupnya: 😊 🙏 untuk kehangatan, bukan dekorasi"
+        ],
+        "dos": [
+          "Kami bantu cek stoknya ya, Kak 😊"
+        ],
+        "donts": [
+          "Saya cek dulu ya gan",
+          "Kita usahakan ya ka 🙏🙏🙏✨"
+        ],
+        "pairs": [],
+        "example": "C: Ini ready kak?\nA: Ready, Kak 😊 Mau ukuran berapa? Kami cek sekalian.",
+        "takeaway": "Kak + Kami + kalimat pendek + emoji secukupnya.",
+        "kind": "",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "gd_3",
+        "no": 3,
+        "title": "Understanding Context",
+        "summary": "Sebelum membalas, pahami dulu apa yang sebenarnya diminta customer.",
+        "points": [
+          "Baca seluruh percakapan: bukan hanya pesan terakhir",
+          "Pahami kebutuhan: cari maksud di balik pertanyaan",
+          "Jawab yang utama dulu: pertanyaan inti dijawab di kalimat pertama",
+          "Hindari template salah tempat: jangan pakai template yang sama untuk pertanyaan berbeda",
+          "Jangan bertanya ulang: hindari menanyakan info yang sudah diberikan"
+        ],
+        "dos": [
+          "(Customer sudah sebut tinggi 170 cm) \"Untuk tinggi 170 cm, kami sarankan L, Kak.\""
+        ],
+        "donts": [
+          "(Customer sudah sebut tinggi 170 cm) \"Boleh info tinggi badannya, Kak?\""
+        ],
+        "pairs": [],
+        "example": "C: Kak tinggiku 170 berat 68, ukuran apa ya? Mau buat acara lusa\nA: Untuk 170/68 biasanya pas di L, Kak 😊 Karena mau dipakai lusa, kami cek juga jadwal kirimnya ya.",
+        "takeaway": "Jawab yang ditanya, ingat yang sudah diceritakan.",
+        "kind": "",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "gd_4",
+        "no": 4,
+        "title": "Natural Conversation Techniques",
+        "summary": "Alur ngobrol yang enak dari pembuka sampai penutup.",
+        "points": [
+          "Opening: sapa singkat, lalu langsung bantu",
+          "Penjelasan produk: ringkas, pakai data resmi, tawarkan foto",
+          "Pertanyaan lanjutan: satu pertanyaan relevan per pesan",
+          "Rekomendasi: maksimal 1–2 pilihan beserta alasannya",
+          "Closing: tawarkan bantuan lain dengan santai",
+          "Tahu kapan berhenti: kalau customer sudah pamit, cukup tutup sekali"
+        ],
+        "dos": [
+          "Sama-sama, Kak 😊 Kalau ada yang mau ditanyakan lagi, kabari kami ya."
+        ],
+        "donts": [
+          "Membalas \"oke kak\", lalu \"baik kak\", lalu \"siap kak\" setelah customer pamit"
+        ],
+        "pairs": [],
+        "example": "C: Oke kak makasih infonya\nA: Sama-sama, Kak 😊 Semoga cocok ya, kabari kami kalau mau order.",
+        "takeaway": "Setiap pesan punya tujuan: menjawab, menggali, merekomendasikan, atau menutup.",
+        "kind": "",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "gd_5",
+        "no": 5,
+        "title": "Professional Communication Mistakes",
+        "summary": "Kebiasaan kecil yang membuat chat terasa kaku atau kurang meyakinkan, beserta perbaikannya.",
+        "points": [],
+        "dos": [],
+        "donts": [],
+        "pairs": [
+          "Oke baik Kak. Oke baik Kak, kami cek. || Siap, Kak. Kami cek dulu ya. || Frasa yang diulang terdengar seperti template.",
+          "Mohon ditunggu. (lalu) Mohon ditunggu ya Kak. || Kami cek stoknya dulu ya, Kak. Sekitar 5 menit kami kabari. || Beri tahu apa yang sedang dilakukan dan kapan dikabari.",
+          "Kita usahakan ya ka. || Kami cek jadwal pengirimannya dulu ya, Kak. Nanti kami kabari setelah ada kepastian. || Hindari janji yang menggantung.",
+          "Maaf ya kak, maaf banget, mohon maaf sekali lagi. || Mohon maaf atas ketidaknyamanannya, Kak. Kami bantu cek sekarang. || Satu permintaan maaf yang tulus cukup, lanjutkan dengan solusi.",
+          "(Ditanya ukuran) Kami juga ada promo gamis lho kak! || Untuk ukurannya, boleh info tinggi dan berat badan Kakak? || Jawab yang ditanyakan dulu.",
+          "Pasti sampai besok kok kak! || Kami cek estimasi dari ekspedisi dulu ya, Kak. || Jangan menjanjikan hal yang belum bisa dipastikan.",
+          "Siap kak 😊🙏✨🥰👍 || Siap, Kak 😊 || Emoji berlebihan mengurangi kesan profesional.",
+          "(Satu pesan 10 baris berisi semua info produk) || Sampaikan inti jawabannya, lalu tawarkan detail tambahan bila customer butuh. || Pesan panjang sulit dibaca di WhatsApp."
+        ],
+        "example": "",
+        "takeaway": "Kurangi pengulangan, ganti janji dengan langkah konkret, dan tetap ringkas.",
+        "kind": "",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "gd_6",
+        "no": 6,
+        "title": "Before & After Examples",
+        "summary": "Contoh perbaikan respons dari Script Library. Pelajari polanya, bukan hafalkan kalimatnya.",
+        "points": [],
+        "dos": [],
+        "donts": [],
+        "pairs": [],
+        "example": "",
+        "takeaway": "Respons yang baik memberi kepastian, empati, dan langkah berikutnya.",
+        "kind": "ba",
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "problems": [
+      {
+        "id": "prb_late",
+        "title": "Customer komplain pengiriman terlambat",
+        "group": "Pengiriman",
+        "severity": "Sedang",
+        "situation": "Paket belum sampai melewati estimasi yang diinformasikan.",
+        "concern": "Customer khawatir paketnya hilang atau tidak sampai tepat waktu.",
+        "understand": "Customer butuh kepastian posisi paket, bukan sekadar permintaan maaf.",
+        "collect": [
+          "Nomor pesanan",
+          "Nomor resi",
+          "Tanggal pengiriman",
+          "Estimasi yang sebelumnya diinformasikan"
+        ],
+        "process": [
+          "Akui kekhawatiran customer",
+          "Cek status resi di sistem ekspedisi",
+          "Sampaikan posisi paket apa adanya",
+          "Hubungi ekspedisi bila status tidak bergerak",
+          "Kabari perkembangan secara berkala"
+        ],
+        "checks": [
+          "Status resi terbaru",
+          "Tanggal paket diserahkan gudang",
+          "Catatan kendala dari ekspedisi"
+        ],
+        "example": "C: Kak paketku kok belum sampai? Katanya 3 hari\nA: Mohon maaf ya, Kak, paketnya belum sampai sesuai estimasi. Kami cek resinya sekarang.\nA: Posisi paket saat ini di [lokasi dari resi]. Kami bantu follow up ke ekspedisi dan kabari Kakak lagi hari ini.",
+        "avoid": [
+          "Menyalahkan ekspedisi tanpa mengecek",
+          "Menjanjikan tanggal tiba baru tanpa info",
+          "Membalas \"sabar ya kak\" tanpa informasi"
+        ],
+        "escalation": "Eskalasi ke supervisor bila paket tidak bergerak melewati batas waktu di SOP atau dinyatakan hilang.",
+        "sop": "",
+        "scriptCategories": [
+          "Shipping Information",
+          "Complaint Handling"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_fast",
+        "title": "Customer minta pengiriman dipercepat",
+        "group": "Pengiriman",
+        "severity": "Rendah",
+        "situation": "Customer butuh produk untuk acara dalam waktu dekat.",
+        "concern": "Takut produk tidak sampai sebelum acara.",
+        "understand": "Yang dibutuhkan adalah kepastian. Jangan berjanji sebelum cek gudang dan ekspedisi.",
+        "collect": [
+          "Tanggal produk dibutuhkan",
+          "Kota tujuan",
+          "Status pesanan (sudah bayar/belum)"
+        ],
+        "process": [
+          "Tunjukkan bahwa kebutuhan customer dipahami",
+          "Cek jadwal proses gudang",
+          "Cek opsi ekspedisi tercepat dan biayanya",
+          "Sampaikan pilihan yang realistis",
+          "Biarkan customer memilih"
+        ],
+        "checks": [
+          "Jadwal cut-off pengiriman gudang",
+          "Layanan ekspedisi yang tersedia ke kota tujuan"
+        ],
+        "example": "C: Kak bisa sampai besok gak? Buat acara lusa\nA: Siap, Kak, kami paham mau dipakai lusa. Kami cek jadwal gudang dan ekspedisi tercepat ke kota Kakak dulu ya.\nA: Ada opsi [layanan] dengan estimasi [estimasi], ongkirnya [biaya]. Mau pakai yang ini, Kak?",
+        "avoid": [
+          "\"Kita usahakan ya ka\"",
+          "Menjanjikan pasti sampai",
+          "Diam tanpa kabar"
+        ],
+        "escalation": "Koordinasi dengan supervisor/gudang bila perlu proses di luar jadwal normal.",
+        "sop": "",
+        "scriptCategories": [
+          "Shipping Information"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_wrong",
+        "title": "Produk yang diterima salah atau kurang",
+        "group": "Produk",
+        "severity": "Tinggi",
+        "situation": "Customer menerima warna/ukuran/produk berbeda, atau jumlahnya kurang.",
+        "concern": "Kecewa dan butuh produk yang benar.",
+        "understand": "Fokus pada verifikasi dan solusi, bukan mencari siapa yang salah.",
+        "collect": [
+          "Nomor pesanan",
+          "Foto produk dan label yang diterima",
+          "Foto paket / video unboxing bila ada",
+          "Detail produk yang seharusnya"
+        ],
+        "process": [
+          "Minta maaf atas ketidaknyamanan",
+          "Minta bukti foto/video",
+          "Cocokkan dengan data pesanan",
+          "Cek SOP penggantian",
+          "Sampaikan solusi dan estimasi",
+          "Catat untuk evaluasi gudang"
+        ],
+        "checks": [
+          "Data pesanan di sistem",
+          "Catatan packing gudang",
+          "SOP penggantian barang salah kirim"
+        ],
+        "example": "C: Kak aku pesan navy kok yang datang hitam?\nA: Mohon maaf banget, Kak 🙏 Boleh kirim foto produk dan labelnya? Kami cocokkan dengan data pesanan sekarang.",
+        "avoid": [
+          "Meminta bukti berulang kali",
+          "Menjanjikan kirim ulang sebelum verifikasi",
+          "Menyalahkan customer salah pilih tanpa cek"
+        ],
+        "escalation": "Eskalasi ke supervisor untuk persetujuan penggantian sesuai SOP.",
+        "sop": "",
+        "scriptCategories": [
+          "Complaint Handling",
+          "After Sales"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_defect",
+        "title": "Produk cacat atau jahitan lepas",
+        "group": "Produk",
+        "severity": "Tinggi",
+        "situation": "Produk diterima dengan cacat produksi, misalnya jahitan lepas atau noda.",
+        "concern": "Kecewa dengan kualitas dan ingin solusi.",
+        "understand": "Customer perlu merasa didengar dulu. Validasi perasaannya sebelum meminta data.",
+        "collect": [
+          "Nomor pesanan",
+          "Foto/video bagian yang cacat",
+          "Tanggal produk diterima"
+        ],
+        "process": [
+          "Hear: biarkan customer menjelaskan",
+          "Empathize & Apologize",
+          "Minta foto/video bukti",
+          "Cek SOP klaim produk cacat",
+          "Resolve sesuai kewenangan",
+          "Diagnose: laporkan ke tim produksi/QC"
+        ],
+        "checks": [
+          "SOP klaim & batas waktu klaim",
+          "Riwayat pesanan"
+        ],
+        "example": "C: Kak jahitannya lepas! Baru dibuka\nA: Mohon maaf banget, Kak 🙏 Kami paham ini bikin kecewa. Boleh kirim foto bagian jahitannya dan nomor pesanannya? Kami bantu proses sesuai kebijakan Samaqu.",
+        "avoid": [
+          "\"Mungkin kena saat pengiriman\"",
+          "Langsung menolak klaim",
+          "Menjanjikan refund sebelum cek SOP"
+        ],
+        "escalation": "Eskalasi ke supervisor bila klaim di luar kewenangan admin atau customer meminta kompensasi.",
+        "sop": "",
+        "scriptCategories": [
+          "Complaint Handling"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_size",
+        "title": "Ukuran tidak sesuai",
+        "group": "Produk",
+        "severity": "Sedang",
+        "situation": "Produk kekecilan atau kebesaran saat dipakai.",
+        "concern": "Ingin produk yang pas.",
+        "understand": "Cari tahu penyebabnya: salah pilih ukuran, beda dengan size chart, atau ekspektasi fit.",
+        "collect": [
+          "Nomor pesanan",
+          "Ukuran yang dipesan",
+          "Tinggi & berat badan",
+          "Bagian yang tidak pas"
+        ],
+        "process": [
+          "Tunjukkan empati",
+          "Cek ukuran pesanan & size chart",
+          "Cek SOP tukar ukuran",
+          "Jelaskan opsi yang tersedia",
+          "Bantu proses bila memenuhi syarat"
+        ],
+        "checks": [
+          "Size chart resmi",
+          "SOP tukar ukuran",
+          "Kondisi produk (label, belum dicuci)"
+        ],
+        "example": "C: Kak kebesaran nih\nA: Yah, maaf belum pas ya, Kak. Boleh info ukuran yang dipesan dan bagian mana yang kebesaran? Kami cek opsi tukarnya sesuai kebijakan.",
+        "avoid": [
+          "Menyalahkan customer salah pilih",
+          "Menjanjikan tukar tanpa cek syarat"
+        ],
+        "escalation": "Tanyakan supervisor bila kasus di luar syarat tukar ukuran.",
+        "sop": "",
+        "scriptCategories": [
+          "Size Consultation",
+          "After Sales"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_exchange",
+        "title": "Customer minta tukar barang",
+        "group": "Pengembalian",
+        "severity": "Sedang",
+        "situation": "Customer ingin menukar produk dengan warna, ukuran, atau model lain.",
+        "concern": "Ingin produk yang lebih sesuai.",
+        "understand": "Penukaran mengikuti kebijakan resmi. Jika belum ada di SOP, jangan memutuskan sendiri.",
+        "collect": [
+          "Nomor pesanan",
+          "Alasan tukar",
+          "Produk pengganti yang diinginkan",
+          "Kondisi produk"
+        ],
+        "process": [
+          "Tanyakan alasan tukar",
+          "Cek kebijakan penukaran",
+          "Cek stok produk pengganti",
+          "Jelaskan proses & biaya (jika ada) sesuai SOP",
+          "Konfirmasi sebelum diproses"
+        ],
+        "checks": [
+          "SOP penukaran",
+          "Stok pengganti"
+        ],
+        "example": "C: Kak bisa tukar warna gak?\nA: Bisa kami bantu cek, Kak 😊 Boleh info nomor pesanan dan warna yang diinginkan? Kami cek ketentuan tukar dan stoknya dulu.",
+        "avoid": [
+          "Mengarang kebijakan penukaran",
+          "Menjanjikan gratis ongkir tanpa dasar"
+        ],
+        "escalation": "Verifikasi ke supervisor bila kebijakan tukar belum tercantum di SOP.",
+        "sop": "",
+        "scriptCategories": [
+          "After Sales"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_refund",
+        "title": "Customer minta refund",
+        "group": "Pengembalian",
+        "severity": "Tinggi",
+        "situation": "Customer meminta uang kembali.",
+        "concern": "Ingin uangnya kembali karena kecewa atau berubah pikiran.",
+        "understand": "Refund adalah keputusan berbasis kebijakan. Admin tidak boleh menjanjikan atau menolak sebelum cek SOP.",
+        "collect": [
+          "Nomor pesanan",
+          "Alasan refund",
+          "Bukti pendukung"
+        ],
+        "process": [
+          "Tunjukkan empati",
+          "Pahami alasan refund",
+          "Cek SOP refund",
+          "Tawarkan alternatif bila sesuai kebijakan",
+          "Eskalasi untuk persetujuan"
+        ],
+        "checks": [
+          "SOP refund",
+          "Status pembayaran & pengiriman"
+        ],
+        "example": "C: Kak aku mau refund aja\nA: Baik, Kak, kami bantu ya. Boleh ceritakan kendalanya dan kirim nomor pesanannya? Kami cek dulu sesuai kebijakan Samaqu.",
+        "avoid": [
+          "\"Gak bisa refund ka\"",
+          "Menjanjikan refund sebelum disetujui",
+          "Meminta data rekening sebelum ada persetujuan"
+        ],
+        "escalation": "Semua permintaan refund dieskalasi ke supervisor untuk keputusan.",
+        "sop": "",
+        "scriptCategories": [
+          "After Sales",
+          "Complaint Handling"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_payment",
+        "title": "Kendala verifikasi pembayaran",
+        "group": "Pembayaran",
+        "severity": "Sedang",
+        "situation": "Customer sudah transfer, tapi pembayaran belum terverifikasi.",
+        "concern": "Takut uangnya tidak masuk.",
+        "understand": "Customer butuh kepastian. Jangan konfirmasi sebelum dana benar-benar tercek.",
+        "collect": [
+          "Bukti transfer",
+          "Nominal & bank pengirim",
+          "Waktu transfer",
+          "Nomor pesanan"
+        ],
+        "process": [
+          "Terima kasih atas bukti transfernya",
+          "Cek mutasi",
+          "Jika belum masuk, jelaskan dengan tenang dan beri waktu cek ulang",
+          "Cocokkan nominal",
+          "Konfirmasi setelah terverifikasi"
+        ],
+        "checks": [
+          "Mutasi rekening resmi",
+          "Nominal sesuai invoice"
+        ],
+        "example": "C: Kak sudah transfer kok belum dikonfirmasi?\nA: Terima kasih buktinya, Kak. Kami cek mutasinya sekarang ya.\nA: Sudah masuk, Kak 😊 Pesanan langsung kami proses.",
+        "avoid": [
+          "Konfirmasi tanpa cek mutasi",
+          "Menuduh customer belum transfer"
+        ],
+        "escalation": "Eskalasi ke tim keuangan/supervisor bila dana tidak ditemukan setelah pengecekan.",
+        "sop": "",
+        "scriptCategories": [
+          "Payment Confirmation"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_stock",
+        "title": "Produk habis",
+        "group": "Produk",
+        "severity": "Rendah",
+        "situation": "Produk yang diinginkan customer habis.",
+        "concern": "Kecewa karena produk incaran tidak tersedia.",
+        "understand": "Tawarkan alternatif yang relevan, jangan hanya bilang habis.",
+        "collect": [
+          "Produk, warna, ukuran yang dicari",
+          "Kapan dibutuhkan"
+        ],
+        "process": [
+          "Sampaikan stok dengan jujur",
+          "Tawarkan alternatif warna/seri/ukuran",
+          "Informasikan restock hanya bila ada info resmi",
+          "Tawarkan dikabari saat tersedia"
+        ],
+        "checks": [
+          "Stok terbaru",
+          "Info restock resmi"
+        ],
+        "example": "C: Yang navy L ada kak?\nA: Yah, navy L lagi kosong, Kak. Kalau mau, warna [alternatif] ukuran L masih ada dan modelnya sama. Mau kami kirim fotonya?",
+        "avoid": [
+          "Menjanjikan restock tanpa info",
+          "Hanya membalas \"habis kak\""
+        ],
+        "escalation": "Tanyakan tim produk untuk info restock.",
+        "sop": "",
+        "scriptCategories": [
+          "Product Inquiry"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_angry",
+        "title": "Customer marah atau kecewa",
+        "group": "Emosi Customer",
+        "severity": "Tinggi",
+        "situation": "Customer menulis dengan nada marah, huruf kapital, atau kata kasar.",
+        "concern": "Merasa tidak dihargai atau dirugikan.",
+        "understand": "Jangan terpancing. Emosi customer biasanya muncul karena masalah yang belum selesai.",
+        "collect": [
+          "Masalah utama",
+          "Riwayat percakapan sebelumnya",
+          "Harapan customer"
+        ],
+        "process": [
+          "Tetap tenang dan sopan",
+          "Akui perasaan customer tanpa defensif",
+          "Fokus pada masalahnya",
+          "Beri langkah konkret dan waktu kabar",
+          "Eskalasi bila perlu"
+        ],
+        "checks": [
+          "Riwayat chat & pesanan"
+        ],
+        "example": "C: KECEWA BANGET!! DARI KEMARIN GAK ADA KABAR\nA: Mohon maaf, Kak, kami paham Kakak kecewa karena belum ada kabar. Kami cek sekarang dan kabari Kakak dalam 30 menit ya.",
+        "avoid": [
+          "Membalas dengan nada yang sama",
+          "Mengabaikan pesan",
+          "Membela diri panjang lebar"
+        ],
+        "escalation": "Eskalasi ke supervisor bila customer meminta bicara dengan atasan atau masalah tidak bisa diselesaikan admin.",
+        "sop": "",
+        "scriptCategories": [
+          "Complaint Handling"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "prb_courier",
+        "title": "Kendala kurir atau ekspedisi",
+        "group": "Pengiriman",
+        "severity": "Sedang",
+        "situation": "Paket tertahan, alamat tidak ditemukan, atau status \"gagal kirim\".",
+        "concern": "Paket tidak kunjung diterima.",
+        "understand": "Butuh koordinasi tiga pihak: customer, admin, dan ekspedisi.",
+        "collect": [
+          "Nomor resi",
+          "Alamat & patokan",
+          "Nomor penerima yang aktif"
+        ],
+        "process": [
+          "Cek status & catatan kurir",
+          "Konfirmasi alamat ke customer",
+          "Hubungi ekspedisi",
+          "Kabari solusi sesuai SOP (kirim ulang/ambil di agen)"
+        ],
+        "checks": [
+          "Tracking resi",
+          "Kebijakan biaya kirim ulang (SOP)"
+        ],
+        "example": "C: Kak kok statusnya gagal kirim?\nA: Kami cek ya, Kak. Kurir mencatat alamat belum ditemukan. Boleh dibantu patokan alamat dan nomor yang bisa dihubungi?",
+        "avoid": [
+          "Melempar masalah sepenuhnya ke ekspedisi",
+          "Menjanjikan kirim ulang gratis tanpa SOP"
+        ],
+        "escalation": "Eskalasi ke supervisor bila paket dinyatakan hilang atau perlu klaim ke ekspedisi.",
+        "sop": "",
+        "scriptCategories": [
+          "Shipping Information"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "scn_new",
+        "title": "Customer baru bertanya produk",
+        "category": "Product Inquiry",
+        "level": "Mudah",
+        "situation": "Customer baru pertama kali chat, menanyakan ketersediaan thobe putih.",
+        "objective": "Menyapa dengan hangat, menjawab pertanyaan utama, lalu menggali kebutuhan.",
+        "messages": [
+          "Halo kak, mau tanya thobe yang warna putih masih ada?",
+          "Oh gitu. Bedanya sama yang abu apa ya kak?",
+          "Oke kak, kalau mau order caranya gimana?",
+          "Siap kak, makasih ya infonya!"
+        ],
+        "materialId": "mat_2",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scn_size",
+        "title": "Customer bingung menentukan ukuran",
+        "category": "Size Consultation",
+        "level": "Mudah",
+        "situation": "Customer bingung memilih ukuran M atau L.",
+        "objective": "Membantu memilih ukuran berdasarkan size chart dan preferensi fit.",
+        "messages": [
+          "Kak, aku bingung mau ambil ukuran M atau L 😅",
+          "Tinggiku 170, berat 68 kg kak.",
+          "Kalau nanti kekecilan bisa tukar gak?",
+          "Oke deh kak, aku ikut saran kakak."
+        ],
+        "materialId": "mat_4",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scn_price",
+        "title": "Customer keberatan dengan harga",
+        "category": "Price Inquiry",
+        "level": "Sedang",
+        "situation": "Customer merasa harga lebih mahal dari toko lain.",
+        "objective": "Menjawab keberatan harga dengan empati dan menjelaskan nilai produk.",
+        "messages": [
+          "Kak, kok harganya lumayan mahal ya dibanding toko lain?",
+          "Hmm, emang apa bedanya sama yang lebih murah?",
+          "Ada diskon gak kak?",
+          "Oke deh, aku pertimbangkan dulu ya."
+        ],
+        "materialId": "mat_3",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scn_ship",
+        "title": "Customer meminta pengiriman dipercepat",
+        "category": "Shipping Information",
+        "level": "Sedang",
+        "situation": "Customer ingin pesanan dikirim hari ini untuk acara lusa.",
+        "objective": "Mengelola ekspektasi tanpa janji yang belum pasti.",
+        "messages": [
+          "Kak, pesananku bisa dikirim hari ini gak? Mau dipakai lusa.",
+          "Kalau gak bisa hari ini, paling cepat kapan?",
+          "Tolong banget ya kak, penting soalnya.",
+          "Oke kak, ditunggu kabarnya."
+        ],
+        "materialId": "mat_6",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scn_doubt",
+        "title": "Customer belum yakin untuk membeli",
+        "category": "Product Inquiry",
+        "level": "Sedang",
+        "situation": "Customer ragu membeli karena takut bahan tidak sesuai foto.",
+        "objective": "Membangun kepercayaan dengan bukti visual dan informasi yang jujur.",
+        "messages": [
+          "Aku masih ragu sih kak mau beli atau nggak.",
+          "Takut bahannya gak sesuai foto.",
+          "Ada testimoni atau foto real gak?",
+          "Oke kak, nanti aku kabari lagi."
+        ],
+        "materialId": "mat_4",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "scn_complain",
+        "title": "Customer menyampaikan komplain",
+        "category": "Complaint Handling",
+        "level": "Sulit",
+        "situation": "Customer menerima produk dengan jahitan lepas.",
+        "objective": "Menerapkan HEARD dan mengumpulkan informasi sebelum memberi solusi.",
+        "messages": [
+          "Kak, barangku datang tapi jahitannya ada yang lepas! Kecewa banget.",
+          "Ini nomor pesananku #SMQ-1023. Terus gimana?",
+          "Prosesnya lama gak kak?",
+          "Oke, aku tunggu ya kak."
+        ],
+        "materialId": "mat_7",
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "quiz": [
+      {
+        "id": "q_seed0",
+        "type": "Multiple choice",
+        "category": "Customer Service Fundamentals",
+        "question": "Apa langkah pertama setelah customer mengirim pesan pertama?",
+        "options": [
+          "Langsung mengirim katalog harga",
+          "Menyapa dengan hangat dan menawarkan bantuan",
+          "Menanyakan alamat pengiriman",
+          "Menunggu customer bertanya lagi"
+        ],
+        "correct": 2,
+        "explanation": "Greeting membangun kesan pertama yang baik sebelum masuk ke kebutuhan customer.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "q_seed1",
+        "type": "Multiple choice",
+        "category": "Complaint Handling",
+        "question": "Kerangka apa yang digunakan untuk menangani komplain?",
+        "options": [
+          "AIDA",
+          "SWOT",
+          "HEARD",
+          "SMART"
+        ],
+        "correct": 3,
+        "explanation": "HEARD: Hear, Empathize, Apologize, Resolve, Diagnose.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "q_seed2",
+        "type": "Studi kasus",
+        "category": "Product Knowledge",
+        "question": "Customer: \"Tinggiku 170 cm, berat 68 kg, ambil ukuran apa ya?\" Apa tindakan terbaik?",
+        "options": [
+          "Langsung jawab \"L aja kak\"",
+          "Cocokkan dengan size chart resmi lalu jelaskan rekomendasinya",
+          "Minta customer cek sendiri",
+          "Bilang semua ukuran pasti muat"
+        ],
+        "correct": 2,
+        "explanation": "Rekomendasi harus berdasarkan size chart resmi dan dijelaskan agar customer yakin.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "q_seed3",
+        "type": "Studi kasus",
+        "category": "Shipping & Delivery",
+        "question": "Customer meminta paket tiba besok, tapi admin belum tahu jadwal gudang. Apa yang dilakukan?",
+        "options": [
+          "Menjanjikan pasti sampai besok",
+          "Bilang \"kita usahakan ya\"",
+          "Cek jadwal dulu dan kabari kembali setelah ada kepastian",
+          "Mengabaikan permintaan"
+        ],
+        "correct": 3,
+        "explanation": "Jangan menjanjikan hal yang belum pasti; beri langkah konkret dan ekspektasi yang jelas.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "q_seed4",
+        "type": "Pilih respons terbaik",
+        "category": "Product Knowledge",
+        "question": "Customer: \"Bahannya panas gak kak?\" Pilih respons terbaik.",
+        "options": [
+          "\"Engga kok ka.\"",
+          "\"Bahannya [kode], karakteristiknya [info resmi]. Kami kirimkan foto detailnya ya, Kak.\"",
+          "\"Tergantung kakak sih.\"",
+          "\"Coba beli dulu aja ka.\""
+        ],
+        "correct": 2,
+        "explanation": "Jawaban merujuk informasi resmi dan memberi bukti visual, bukan klaim tanpa dasar.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "q_seed5",
+        "type": "Pilih respons terbaik",
+        "category": "Complaint Handling",
+        "question": "Customer komplain jahitan lepas. Pilih respons pembuka terbaik.",
+        "options": [
+          "\"Itu bukan salah kami ka.\"",
+          "\"Mohon maaf atas ketidaknyamanannya, Kak. Boleh kirim foto dan nomor pesanan? Kami bantu cek segera.\"",
+          "\"Ok.\"",
+          "\"Silakan hubungi ekspedisi.\""
+        ],
+        "correct": 2,
+        "explanation": "Empati + permintaan data + komitmen tindak lanjut.",
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ],
+    "products": [
+      {
+        "id": "seed_th1",
+        "category": "Thobe",
+        "name": "Thobe [Nama Produk 1]",
+        "code": "TH-001",
+        "series": "Seri [Nama Seri]",
+        "status": "Tersedia",
+        "description": "Data contoh. Ganti dengan deskripsi resmi produk.",
+        "fabric": "B-01",
+        "colors": "[warna 1], [warna 2]",
+        "sizes": "S, M, L, XL, XXL",
+        "price": "",
+        "advantages": "[Keunggulan resmi 1]\n[Keunggulan resmi 2]",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_th2",
+        "category": "Thobe",
+        "name": "Thobe [Nama Produk 2]",
+        "code": "TH-002",
+        "series": "",
+        "status": "Pre-order",
+        "description": "Data contoh. Ganti dengan deskripsi resmi produk.",
+        "fabric": "A-02",
+        "colors": "[warna]",
+        "sizes": "S, M, L, XL",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_gm1",
+        "category": "Gamis",
+        "name": "Gamis [Nama Produk 1]",
+        "code": "GM-001",
+        "series": "",
+        "status": "Tersedia",
+        "description": "Data contoh. Ganti dengan deskripsi resmi produk.",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_kk1",
+        "category": "Koko",
+        "name": "Koko [Nama Produk 1]",
+        "code": "KK-001",
+        "series": "",
+        "status": "Stok Terbatas",
+        "description": "Data contoh. Ganti dengan deskripsi resmi produk.",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_fb1",
+        "category": "Fabric Collection",
+        "name": "Bahan B-01",
+        "code": "B-01",
+        "series": "",
+        "status": "",
+        "description": "",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "Belum tersedia. Isi dari data resmi tim produk.",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_fb2",
+        "category": "Fabric Collection",
+        "name": "Bahan A-02",
+        "code": "A-02",
+        "series": "",
+        "status": "",
+        "description": "",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "Belum tersedia. Isi dari data resmi tim produk.",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_sc1",
+        "category": "Size Chart",
+        "name": "Size Chart Thobe",
+        "code": "SC-TH",
+        "series": "",
+        "status": "",
+        "description": "",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "Ukuran | Panjang (cm) | Lingkar Dada (cm)\nS | [isi] | [isi]\nM | [isi] | [isi]\nL | [isi] | [isi]\nXL | [isi] | [isi]",
+        "measurement": "[Isi cara pengukuran resmi]",
+        "guide": "Cocokkan tinggi & berat badan customer dengan tabel ini.",
+        "memberIds": [],
+        "sample": true,
+        "updatedAt": 1793688992906
+      },
+      {
+        "id": "seed_sr1",
+        "category": "Product Series",
+        "name": "Seri [Nama Seri]",
+        "code": "SR-01",
+        "series": "",
+        "status": "",
+        "description": "Data contoh. Penjelasan seri diisi oleh tim produk.",
+        "fabric": "",
+        "colors": "",
+        "sizes": "",
+        "price": "",
+        "advantages": "",
+        "extra": "",
+        "composition": "",
+        "gsm": "",
+        "characteristics": "",
+        "table": "",
+        "measurement": "",
+        "guide": "",
+        "memberIds": [
+          "seed_th1"
+        ],
+        "sample": true,
+        "updatedAt": 1793688992906
+      }
+    ]
+  },
+  "progress": {
+    "materials": {
+      "mat_1": {
+        "status": "done",
+        "progress": 100,
+        "updatedAt": 1793688992906
+      },
+      "mat_2": {
+        "status": "done",
+        "progress": 100,
+        "updatedAt": 1793688992906
+      },
+      "mat_3": {
+        "status": "progress",
+        "progress": 60,
+        "updatedAt": 1793688992906
+      },
+      "mat_4": {
+        "status": "progress",
+        "progress": 35,
+        "updatedAt": 1793688992906
+      }
+    },
+    "guides": {},
+    "problems": {},
+    "flow": {},
+    "visitedProducts": false
+  },
+  "activity": [
+    {
+      "id": "h_seed0",
+      "type": "scenario",
+      "title": "Customer bingung menentukan ukuran",
+      "score": 82,
+      "refId": "",
+      "createdAt": 1793516192906,
+      "sample": true
+    },
+    {
+      "id": "h_seed1",
+      "type": "scenario",
+      "title": "Customer baru bertanya produk",
+      "score": 76,
+      "refId": "",
+      "createdAt": 1793429792906,
+      "sample": true
+    },
+    {
+      "id": "h_seed2",
+      "type": "review",
+      "title": "AI Chat Reviewer — Chat IG",
+      "score": 68,
+      "refId": "",
+      "createdAt": 1793343392906,
+      "sample": true
+    }
+  ],
+  "attempts": [],
+  "settings": {
+    "passMark": 75
+  },
+  "images": {}
+}

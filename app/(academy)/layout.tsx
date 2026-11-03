@@ -1,0 +1,10 @@
+import { AppShell } from '@/components/layout/AppShell';
+import { Providers } from '@/components/providers/Providers';
+
+export default function AcademyLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Providers>
+      <AppShell>{children}</AppShell>
+    </Providers>
+  );
+}

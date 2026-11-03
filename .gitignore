@@ -1,0 +1,8 @@
+node_modules/
+.next/
+out/
+.env*
+!.env.example
+.owner-credentials.txt
+*.tsbuildinfo
+next-env.d.ts
