@@ -1,5 +1,6 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { decryptSecret } from './crypto.ts';
+import type { ThinkingMode } from './mimo.ts';
 import { mergeBehavior, type AiBehavior } from './prompts.ts';
 
 export type AiFeature = 'assistant' | 'reviewer' | 'simulator';
@@ -20,6 +21,7 @@ export interface AiSettingsRow {
   api_key_last4: string | null;
   default_model: string;
   feature_models: Record<string, string> | null;
+  feature_thinking: Record<string, ThinkingMode> | null;
   behavior: Record<string, unknown> | null;
   pricing: AiPricing | null;
   updated_at: string | null;
@@ -33,6 +35,7 @@ export interface PublicAiSettings {
   apiKeyLast4: string | null;
   defaultModel: string;
   featureModels: Record<string, string>;
+  featureThinking: Record<string, ThinkingMode>;
   behavior: AiBehavior;
   pricing: AiPricing;
   updatedAt: string | null;
@@ -72,6 +75,22 @@ export async function loadSettings(service: SupabaseClient): Promise<AiSettingsR
   return data as AiSettingsRow;
 }
 
+/**
+ * True when the optional `feature_thinking` column exists. Migration 0005 may
+ * not have been applied yet, in which case every feature is treated as
+ * disabled instead of throwing.
+ */
+export async function hasFeatureThinking(
+  service: SupabaseClient,
+): Promise<boolean> {
+  const { error } = await service
+    .from('ai_settings')
+    .select('feature_thinking')
+    .eq('id', 1)
+    .maybeSingle();
+  return !error;
+}
+
 export async function apiKeyFor(row: AiSettingsRow): Promise<string | null> {
   if (!row.api_key_ciphertext || !row.api_key_iv) return null;
   try {
@@ -93,6 +112,7 @@ export function publicSettings(row: AiSettingsRow): PublicAiSettings {
     apiKeyLast4: row.api_key_last4,
     defaultModel: row.default_model,
     featureModels: row.feature_models ?? {},
+    featureThinking: row.feature_thinking ?? {},
     behavior: mergeBehavior(row.behavior),
     pricing: row.pricing ?? {},
     updatedAt: row.updated_at,
@@ -102,6 +122,14 @@ export function publicSettings(row: AiSettingsRow): PublicAiSettings {
 export function resolveModel(row: AiSettingsRow, feature: AiFeature): string {
   const specific = row.feature_models?.[feature];
   return (specific && String(specific).trim()) || row.default_model;
+}
+
+export function resolveThinking(
+  row: AiSettingsRow,
+  feature: AiFeature | 'admin_test',
+): ThinkingMode {
+  const value = row.feature_thinking?.[feature];
+  return value === 'enabled' ? 'enabled' : 'disabled';
 }
 
 export function estimateCost(usage: TokenUsage, pricing: AiPricing | null): number | null {

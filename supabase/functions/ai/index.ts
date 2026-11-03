@@ -22,6 +22,7 @@ import {
   loadSettings,
   logUsage,
   resolveModel,
+  resolveThinking,
   type AiSettingsRow,
 } from '../_shared/settings.ts';
 
@@ -133,6 +134,7 @@ async function handleAssistant(
       messages: chatMessages,
       temperature: behavior.temperature,
       maxTokens: behavior.maxTokens,
+      thinking: resolveThinking(row, 'assistant'),
     });
   } catch (error) {
     const message = errorMessage(error);
@@ -304,6 +306,7 @@ async function handleReviewer(
       ],
       temperature: Math.min(behavior.temperature, 0.3),
       maxTokens: Math.min(2200, Math.max(1400, behavior.maxTokens)),
+      thinking: resolveThinking(row, 'reviewer'),
     });
   } catch (error) {
     const message = errorMessage(error);
@@ -416,6 +419,7 @@ async function handleSimulator(
       messages: chatMessages,
       temperature: Math.min(0.9, Math.max(0.5, behavior.temperature + 0.25)),
       maxTokens: 180,
+      thinking: resolveThinking(row, 'simulator'),
     });
   } catch (error) {
     const message = errorMessage(error);

@@ -8,6 +8,8 @@ export interface MimoMessage {
   content: string;
 }
 
+export type ThinkingMode = 'enabled' | 'disabled';
+
 export interface MimoChatOptions {
   apiKey: string;
   baseUrl: string;
@@ -15,11 +17,14 @@ export interface MimoChatOptions {
   messages: MimoMessage[];
   temperature?: number;
   maxTokens?: number;
+  thinking?: ThinkingMode;
   timeoutMs?: number;
 }
 
 export interface MimoChatResult {
   content: string;
+  reasoningContent: string | null;
+  finishReason: string | null;
   usage: TokenUsage;
   model: string;
 }
@@ -132,7 +137,8 @@ export async function mimoChat(options: MimoChatOptions): Promise<MimoChatResult
         model: options.model,
         messages: options.messages,
         temperature: options.temperature ?? 0.4,
-        max_tokens: options.maxTokens ?? 900,
+        max_completion_tokens: options.maxTokens ?? 900,
+        thinking: { type: options.thinking ?? 'disabled' },
         stream: false,
       }),
     },
@@ -144,10 +150,26 @@ export async function mimoChat(options: MimoChatOptions): Promise<MimoChatResult
   const data = await response.json();
   const choice = Array.isArray(data?.choices) ? data.choices[0] : null;
   const content = contentText(choice?.message?.content ?? choice?.text ?? '').trim();
-  if (!content) throw new Error('Provider AI mengembalikan jawaban kosong.');
+  const rawReasoning = choice?.message?.reasoning_content;
+  const reasoningContent =
+    typeof rawReasoning === 'string' && rawReasoning.trim() ? rawReasoning.trim() : null;
+  const finishReason = typeof choice?.finish_reason === 'string' ? choice.finish_reason : null;
+  const usage = usageFrom(data?.usage);
+
+  if (!content) {
+    if (finishReason === 'length') {
+      throw new Error(
+        'Jawaban AI terpotong karena mencapai batas token. Naikkan batas token atau pendekkan pertanyaan.',
+      );
+    }
+    throw new Error('Provider AI mengembalikan jawaban kosong.');
+  }
+
   return {
     content,
-    usage: usageFrom(data?.usage),
+    reasoningContent,
+    finishReason,
+    usage,
     model: String(data?.model ?? options.model),
   };
 }

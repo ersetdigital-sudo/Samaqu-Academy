@@ -119,8 +119,12 @@ export function SimulatorView() {
     } else {
       setMode('local');
       nextMessage = await nextCustomerMessage(scenario, nextTurn);
+      console.warn('[simulator] remote gagal', remote.code, remote.error);
       if (remote.code !== 'not_configured') {
-        showToast('Mimo tidak tersedia. Memakai alur skenario lokal.', 'err');
+        showToast(
+          remote.error || 'Mimo tidak tersedia. Memakai alur skenario lokal.',
+          'err',
+        );
       }
     }
     setSimulator((previous) => {
@@ -155,8 +159,12 @@ export function SimulatorView() {
         scripts: snapshot.content.scripts,
         cases: snapshot.content.cases,
       });
+      console.warn('[simulator] remote gagal', remote.code, remote.error);
       if (remote.code !== 'not_configured') {
-        showToast('Mimo tidak tersedia. Evaluasi memakai skor heuristik lokal.', 'err');
+        showToast(
+          remote.error || 'Mimo tidak tersedia. Evaluasi memakai skor heuristik lokal.',
+          'err',
+        );
       }
     }
     setSimulator((previous) =>

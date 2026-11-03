@@ -18,10 +18,12 @@ import {
   apiKeyFor,
   enforceRateLimit,
   estimateCost,
+  hasFeatureThinking,
   loadSettings,
   logUsage,
   publicSettings,
   resolveModel,
+  resolveThinking,
   type AiPricing,
   type AiSettingsRow,
 } from '../_shared/settings.ts';
@@ -272,6 +274,7 @@ Deno.serve(async (req) => {
             ],
             temperature: 0,
             maxTokens: 16,
+            thinking: resolveThinking(row, 'admin_test'),
             timeoutMs: 30_000,
           });
           await logUsage(service, {
@@ -320,14 +323,30 @@ Deno.serve(async (req) => {
           if (model) featureModels[feature] = model;
         });
 
+        const rawFeatureThinking =
+          body.featureThinking && typeof body.featureThinking === 'object'
+            ? (body.featureThinking as Record<string, unknown>)
+            : {};
+        const featureThinking: Record<string, 'enabled'> = {};
+        FEATURES.forEach((feature) => {
+          if (rawFeatureThinking[feature] === 'enabled') {
+            featureThinking[feature] = 'enabled';
+          }
+        });
+
+        const update: Record<string, unknown> = {
+          default_model: defaultModel,
+          feature_models: featureModels,
+          pricing: parsePricing(body.pricing),
+          updated_by: user.id,
+        };
+        if (await hasFeatureThinking(service)) {
+          update.feature_thinking = featureThinking;
+        }
+
         const { data, error } = await service
           .from('ai_settings')
-          .update({
-            default_model: defaultModel,
-            feature_models: featureModels,
-            pricing: parsePricing(body.pricing),
-            updated_by: user.id,
-          })
+          .update(update)
           .eq('id', 1)
           .select('*')
           .single();
@@ -402,6 +421,7 @@ Deno.serve(async (req) => {
             ],
             temperature: behavior.temperature,
             maxTokens: Math.min(400, behavior.maxTokens),
+            thinking: resolveThinking(row, 'admin_test'),
             timeoutMs: 30_000,
           });
           await logUsage(service, {
