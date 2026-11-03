@@ -239,9 +239,9 @@ export function GuidelinesView() {
             </div>
             <p className="lead mt1">{guide.summary}</p>
 
-            {guide.points.length ? (
+            {(guide.points ?? []).length ? (
               <div className="mt2">
-                {guide.points.map((point, pointIndex) => {
+                {(guide.points ?? []).map((point, pointIndex) => {
                   const separator = point.indexOf(':');
                   const title = separator > 0 ? point.slice(0, separator) : point;
                   const body = separator > 0 ? point.slice(separator + 1).trim() : '';
@@ -258,7 +258,7 @@ export function GuidelinesView() {
               </div>
             ) : null}
 
-            {guide.dos.length || guide.donts.length ? (
+            {(guide.dos ?? []).length || (guide.donts ?? []).length ? (
               <div className="mt2">
                 <div className="kh">
                   <Icon name="scale" />
@@ -267,7 +267,7 @@ export function GuidelinesView() {
                 <div className="dd">
                   <div className="do">
                     <div className="lbl">Do</div>
-                    {guide.dos.map((item) => (
+                    {(guide.dos ?? []).map((item) => (
                       <div style={{ marginTop: 4 }} key={item}>
                         “{item}”
                       </div>
@@ -275,7 +275,7 @@ export function GuidelinesView() {
                   </div>
                   <div className="dont">
                     <div className="lbl">Don&apos;t</div>
-                    {guide.donts.map((item) => (
+                    {(guide.donts ?? []).map((item) => (
                       <div style={{ marginTop: 4 }} key={item}>
                         “{item}”
                       </div>
@@ -285,13 +285,13 @@ export function GuidelinesView() {
               </div>
             ) : null}
 
-            {guide.pairs.length ? (
+            {(guide.pairs ?? []).length ? (
               <div className="mt2">
                 <div className="kh">
                   <Icon name="repeat" />
                   <h3>Contoh Praktis</h3>
                 </div>
-                {guide.pairs.map((pair, pairIndex) => {
+                {(guide.pairs ?? []).map((pair, pairIndex) => {
                   const [bad, good, reason] = pair.split('||').map((part) => (part || '').trim());
                   return (
                     <div className="card flat mt" style={{ padding: 16 }} key={pairIndex}>

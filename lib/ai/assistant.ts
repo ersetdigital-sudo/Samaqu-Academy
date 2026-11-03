@@ -264,7 +264,7 @@ export function answerQuestion(question: string, context: AssistantContext): Ass
       guide,
       score: relevanceScore(
         question,
-        [guide.title, guide.summary, guide.points.join(' '), guide.pairs.join(' ')].join(' '),
+        [guide.title, guide.summary, (guide.points ?? []).join(' '), (guide.pairs ?? []).join(' ')].join(' '),
       ),
     }))
     .filter((entry) => entry.score >= 2)

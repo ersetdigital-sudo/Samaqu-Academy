@@ -80,12 +80,12 @@ export interface GuideSection extends BaseContent {
   no: number;
   title: string;
   summary: string;
-  points: string[];
-  dos: string[];
-  donts: string[];
-  pairs: string[];
-  example: string;
-  takeaway: string;
+  points?: string[] | null;
+  dos?: string[] | null;
+  donts?: string[] | null;
+  pairs?: string[] | null;
+  example?: string | null;
+  takeaway?: string | null;
   kind?: 'ba' | '';
 }
 
