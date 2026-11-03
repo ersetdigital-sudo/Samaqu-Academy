@@ -7,6 +7,8 @@ import { NAV_GROUPS } from '@/lib/constants';
 
 interface TopbarProps {
   onMenu: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 function currentLabel(pathname: string): string {
@@ -17,7 +19,7 @@ function currentLabel(pathname: string): string {
   return match?.label ?? 'Samaqu CS Academy';
 }
 
-export function Topbar({ onMenu }: TopbarProps) {
+export function Topbar({ onMenu, collapsed, onToggleCollapsed }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [query, setQuery] = useState('');
@@ -31,8 +33,18 @@ export function Topbar({ onMenu }: TopbarProps) {
 
   return (
     <header className="top">
-      <button className="icb menu" onClick={onMenu} aria-label="Buka menu">
+      <button className="icb menu" onClick={onMenu} aria-label="Buka menu" type="button">
         <Icon name="menu" />
+      </button>
+      <button
+        className="icb top-collapse"
+        onClick={onToggleCollapsed}
+        aria-label={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+        aria-expanded={!collapsed}
+        title={collapsed ? 'Buka sidebar' : 'Ciutkan sidebar'}
+        type="button"
+      >
+        <Icon name="panel-left" size={16} />
       </button>
       <div className="crumb">{currentLabel(pathname)}</div>
       <div className="gs">

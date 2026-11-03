@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   open: boolean;
+  collapsed: boolean;
   onClose: () => void;
 }
 
@@ -27,30 +28,35 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
-export function Sidebar({ open, onClose }: SidebarProps) {
+export function Sidebar({ open, collapsed, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { role, profile, signOut } = useRole();
   const { user } = useAuth();
   const name = profile?.fullName || user?.email?.split('@')[0] || 'User';
 
   return (
-    <aside className={`sb${open ? ' open' : ''}`} id="sb">
-      <Link
-        href="/"
-        className="brand"
-        onClick={onClose}
-        style={{ textDecoration: 'none', color: 'inherit' }}
-      >
-        <div className="logo">S</div>
-        <div>
-          <b>Samaqu CS Academy</b>
-          <small>Internal Learning Platform</small>
-        </div>
-      </Link>
+    <aside className={`sb${open ? ' open' : ''}${collapsed ? ' min' : ''}`} id="sb">
+      <div className="brand">
+        <Link href="/" className="brand-id" onClick={onClose} title="Samaqu CS Academy">
+          <div className="logo">S</div>
+          <div className="brand-tx">
+            <b>Samaqu CS Academy</b>
+            <small>Internal Learning Platform</small>
+          </div>
+        </Link>
+        <button
+          className="icb sb-burger"
+          onClick={onClose}
+          aria-label="Tutup menu"
+          type="button"
+        >
+          <Icon name="x" size={16} />
+        </button>
+      </div>
 
       <nav className="nav" id="nav" aria-label="Navigasi utama">
         {NAV_GROUPS.filter((group) => !group.ownerOnly || role === 'owner').map((group) => (
-          <div key={group.label}>
+          <div key={group.label} className="nav-group">
             <div className="ng">{group.label}</div>
             {group.items.map((item) => {
               const active = isActive(pathname, item.href);
@@ -60,10 +66,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   href={item.href}
                   className={`ni${active ? ' on' : ''}`}
                   aria-current={active ? 'page' : undefined}
+                  title={item.label}
                   onClick={onClose}
                 >
                   <Icon name={item.icon} size={17} />
-                  {item.label}
+                  <span className="ni-lb">{item.label}</span>
                 </Link>
               );
             })}
@@ -72,7 +79,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       </nav>
 
       <div className="prof">
-        <div className="av">{initialsOf(name)}</div>
+        <div className="av" title={name}>
+          {initialsOf(name)}
+        </div>
         <div className="in">
           <b>{name}</b>
           <div className="xs muted" style={{ fontSize: 11.5 }}>
