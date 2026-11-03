@@ -17,6 +17,11 @@ const supabase = createClient(url, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+const { error: allowlistError } = await supabase
+  .from('allowed_emails')
+  .upsert({ email, role: 'owner' }, { onConflict: 'email' });
+if (allowlistError) throw allowlistError;
+
 const users = await supabase.auth.admin.listUsers({ page: 1, perPage: 100 });
 if (users.error) throw users.error;
 const existing = users.data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());

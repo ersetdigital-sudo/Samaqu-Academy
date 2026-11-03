@@ -267,6 +267,50 @@
   margin-bottom: 5px;
 }
 
+.auth-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-top: 20px;
+  border: 1px solid var(--b);
+  border-radius: 9px;
+  background: var(--w);
+  color: var(--t);
+  font-weight: 600;
+  font-size: 13.5px;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.auth-google:hover {
+  background: var(--gl);
+  border-color: var(--b2);
+}
+
+.auth-google:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: var(--t3);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: var(--b);
+}
+
 .auth-error {
   margin-top: 14px;
 }
