@@ -13,6 +13,7 @@ import {
   buildSimulatorSystemPrompt,
   mergeBehavior,
   normalizeReviewResult,
+  SIMULATOR_DONE,
 } from '../_shared/prompts.ts';
 import {
   AiError,
@@ -435,7 +436,7 @@ async function handleSimulator(
     return featureError('upstream_error', message);
   }
 
-  const done = /^\s*done[\s.!]*$/i.test(result.content);
+  const done = result.content.trim().includes(SIMULATOR_DONE);
   await logUsage(service, {
     userId: user.id,
     userEmail: user.email ?? null,

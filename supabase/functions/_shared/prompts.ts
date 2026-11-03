@@ -152,6 +152,8 @@ export function buildReviewerSystemPrompt(context: string): string {
   ].join('\n');
 }
 
+export const SIMULATOR_DONE = '[[SELESAI_SIMULASI]]';
+
 export function buildSimulatorSystemPrompt(scenario: {
   title?: string;
   category?: string;
@@ -160,17 +162,13 @@ export function buildSimulatorSystemPrompt(scenario: {
   objective?: string;
 }): string {
   return [
-    'Kamu adalah customer dalam simulasi pelatihan Customer Service Samaqu.',
-    'Tetaplah berperan sebagai customer, bukan admin, dan jangan menjelaskan bahwa ini simulasi.',
-    'Tulis SATU pesan customer berikutnya dalam bahasa Indonesia yang natural dan singkat (1-2 kalimat).',
-    'Pesan harus konsisten dengan skenario dan percakapan sebelumnya, dan boleh menantang admin secara wajar.',
-    'Jika alur customer sudah selesai (admin sudah menangani kebutuhan dengan tuntas), balas tepat: DONE',
-    '',
-    `Judul skenario: ${scenario.title ?? '-'}`,
-    `Kategori: ${scenario.category ?? '-'}`,
-    `Tingkat: ${scenario.level ?? '-'}`,
-    `Situasi: ${scenario.situation ?? '-'}`,
-    `Tujuan pelatihan admin: ${scenario.objective ?? '-'}`,
+    'Kamu berperan sebagai CUSTOMER di chat WhatsApp dengan admin toko Samaqu.',
+    'Jangan pernah menjelaskan bahwa ini simulasi.',
+    `Situasi: ${scenario.situation || '-'}`,
+    'Kamu tahu apa yang kamu inginkan dan kapan kamu merasa puas.',
+    'Kamu HANYA menulis sebagai customer. Jangan pernah menawarkan produk, menanyakan ukuran/kebutuhan, atau menjawab pertanyaan seperti admin.',
+    'Balas singkat 1-2 kalimat, gaya chat WhatsApp.',
+    `Jika kamu sudah puas dan tidak butuh apa-apa lagi, balas tepat: ${SIMULATOR_DONE}`,
   ].join('\n');
 }
 
