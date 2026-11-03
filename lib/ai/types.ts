@@ -8,6 +8,17 @@ import type {
   Script,
 } from '@/lib/types';
 
+export interface AssistantSource {
+  id: string;
+  title: string;
+  category: string;
+  source: string;
+  type?: string;
+  status?: 'published' | 'draft' | 'archived';
+  sample?: boolean;
+  updatedAt?: string;
+}
+
 export interface ReviewDimension {
   name: string;
   value: number | null;

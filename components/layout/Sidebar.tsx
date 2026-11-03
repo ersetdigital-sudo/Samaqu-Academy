@@ -49,7 +49,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       </Link>
 
       <nav className="nav" id="nav" aria-label="Navigasi utama">
-        {NAV_GROUPS.map((group) => (
+        {NAV_GROUPS.filter((group) => !group.ownerOnly || role === 'owner').map((group) => (
           <div key={group.label}>
             <div className="ng">{group.label}</div>
             {group.items.map((item) => {

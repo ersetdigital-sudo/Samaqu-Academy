@@ -247,4 +247,10 @@ export interface AssistantEntry {
   role: 'user' | 'assistant';
   question?: string;
   answer?: import('./ai/types').AssistantAnswer;
+  text?: string;
+  sources?: import('./ai/types').AssistantSource[];
+  provider?: string;
+  model?: string;
+  fallback?: boolean;
+  note?: string;
 }

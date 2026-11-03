@@ -6,7 +6,7 @@ Read this before changing code. This is an internal customer-service academy for
 
 - Live app: https://academy.samaqu.id
 - GitHub: https://github.com/ersetdigital-sudo/Samaqu-Academy (public repo — no secrets or PII in tracked files)
-- Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase Auth/Postgres/Storage
+- Stack: Next.js 16 (App Router), React 19, TypeScript, Supabase Auth/Postgres/Storage/Edge Functions
 - Deployment: Vercel, **fully static export** (`output: 'export'`)
 - Supabase project ref: `rbjxjdgqtcwwbvuwtlpg`
 - Owner login: Google OAuth is enabled; the owner Gmail is in Supabase `allowed_emails` and the local gitignored `.owner-credentials.txt` (fallback password). Do not put the owner email or password in this repo.
@@ -30,7 +30,7 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Vercel needs exactly those two variables. `.env.vercel` is the local import file and is gitignored. Do not add the service-role key or Google client secret to Vercel/client env.
+Vercel needs exactly those two variables. `.env.vercel` is the local import file and is gitignored. Do not add the service-role key, MiMo API key, `AI_SETTINGS_ENCRYPTION_KEY`, or Google client secret to Vercel/client env. AI secrets belong to Supabase Edge Functions only.
 
 ## Architecture
 
@@ -48,10 +48,13 @@ features/                    one folder per domain view
 lib/
   supabase/client.ts         browser Supabase singleton
   data/                      repository interface + Supabase/local adapters + seed
-  ai/                        local heuristic reviewer/assistant/simulator
+  ai/                        remote Edge Function client + local fallback logic
   types.ts, constants.ts, training.ts, product-schema.ts, form-schemas.ts
 styles/                      tokens, base, layout, components, pages
-supabase/migrations/         applied schema/RLS/allowlist
+supabase/migrations/         applied schema/RLS/allowlist/AI
+supabase/functions/ai/       authenticated assistant/reviewer/simulator proxy
+supabase/functions/ai-admin/ owner-only provider/model/behavior/usage API
+supabase/functions/_shared/  MiMo client, encryption, prompts, retrieval, settings
 scripts/                     seed, owner creation, bundle audit, static preview
 fonts/                       original Inter TTFs (archive only)
 app/fonts/                   subset WOFF2 actually used at runtime
@@ -86,6 +89,8 @@ Applied migrations:
 
 - `supabase/migrations/0001_init.sql` — content_items, progress, activity_history, assessment_attempts, assessment_settings, profiles, RLS, storage bucket/policies, triggers.
 - `supabase/migrations/0002_allowed_emails.sql` — `allowed_emails` + signup allowlist trigger.
+- `supabase/migrations/0003_ai.sql` — ai_settings (service-role only), ai_usage_logs, ai_conversations, ai_messages, memory_items, RLS.
+- `supabase/migrations/0004_ai_pricing.sql` — optional pricing + per-user `ai_user_settings` retention.
 
 Key rules:
 
@@ -109,6 +114,27 @@ OWNER_EMAIL=... SUPABASE_SERVICE_ROLE_KEY=... npm run owner:create
 - Seed is idempotent (`ignoreDuplicates`); it will not overwrite edited content.
 - `owner:create` upserts `allowed_emails`, creates/promotes the user, and writes local `.owner-credentials.txt`. Back up that file first if it contains older credentials.
 - Never run destructive SQL against live content/progress without a unique test row and a rollback plan.
+
+### Samaqu AI Brain
+
+- Provider: Xiaomi MiMo, OpenAI-compatible base `https://api.xiaomimimo.com/v1` (`/chat/completions`, `/models`). Token Plan/custom base URLs are supported.
+- All MiMo calls run in Supabase Edge Functions. Never call MiMo from the browser and never expose the API key to client code.
+- API key storage: AES-GCM encrypted in `ai_settings` (service-role only). Encryption secret is the server-only `AI_SETTINGS_ENCRYPTION_KEY` (32 random bytes, base64).
+- `ai-admin` is owner-only (`app_metadata.role = 'owner'`). `ai` is available to authenticated users; `verify_jwt = false` only because both functions validate the bearer token themselves so CORS preflight works.
+- Knowledge retrieval: `content_items` with `data.knowledgeStatus = 'draft' | 'archived'` excluded; seed/sample content is flagged `[DATA CONTOH]`. Only `memory_items.status = 'published'` is used as organizational memory.
+- Conversations/messages persist in `ai_conversations` / `ai_messages` (own-row RLS). The browser reads/writes them directly; the AI function persists successful exchanges.
+- Fallbacks: assistant/reviewer/simulator keep local heuristic fallback when MiMo is not configured or unavailable. The UI labels fallback explicitly; do not claim MiMo integration when in fallback.
+- Prompt defaults live in `supabase/functions/_shared/prompts.ts`; behavior overrides are stored centrally in `ai_settings.behavior`. Do not scatter system prompts across the app.
+- Rate limits are per user/feature via recent `ai_usage_logs`; usage logs never contain API keys or message content.
+
+Deploy AI functions (requires `SUPABASE_ACCESS_TOKEN` in the shell):
+
+```bash
+npx supabase secrets set AI_SETTINGS_ENCRYPTION_KEY="<32-byte-base64>" --remote=rbjxjdgqtcwwbvuwtlpg --yes
+npx supabase functions deploy ai ai-admin --use-api --no-verify-jwt --remote=rbjxjdgqtcwwbvuwtlpg --yes
+```
+
+Supabase injects `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` into functions; the code prefers `AI_SERVICE_ROLE_KEY` if set, then falls back to the injected service role.
 
 ### Google OAuth
 
@@ -161,8 +187,12 @@ Browser checks:
 - Material progress persists across reload.
 - Product image upload goes to Storage and survives reload.
 - Assessment attempt/activity persists.
+- Owner can open `/settings/ai`: save/replace/delete API key, masked last4 only, test connection, load models, test model, save per-feature models, save/reset/preview behavior, view usage logs.
+- CS role cannot open `/settings/ai` or `/settings/memory`; direct API calls to `ai-admin` return 403.
+- Assistant: conversation persists across refresh/login, new/delete/resume works, retention deletes old history, fallback is labeled.
+- Memory: owner CRUD + search + status; Draft/Archived never appear as official AI knowledge.
 - Mobile 390px has no horizontal overflow.
-- No new console errors.
+- No new console errors (expected provider-test failures appear as HTTP errors in the console).
 
 If testing against live Supabase, use unique test IDs and remove only the rows you created.
 
@@ -176,6 +206,9 @@ If testing against live Supabase, use unique test IDs and remove only the rows y
 - Nav underline reset and `.content` article underline exception.
 - Subset fonts and explicit icon imports.
 - Private Storage bucket + signed URLs.
+- AI key encryption, owner-only `ai-admin`, server-side MiMo calls, and the `AI_SETTINGS_ENCRYPTION_KEY` secret.
+- Draft knowledge exclusion and Published-only organizational memory.
+- Static export plus Supabase Edge Functions (do not move AI to Vercel Functions).
 
 ## Useful files
 
@@ -185,6 +218,14 @@ If testing against live Supabase, use unique test IDs and remove only the rows y
 - `lib/data/supabase-repository.ts` — DB/Storage adapter.
 - `features/auth/LoginView.tsx` — Google + email login UI.
 - `components/layout/Sidebar.tsx` — nav/role/logout.
+- `components/providers/SessionProvider.tsx` — AI conversation state, persistence, retention, local fallback.
+- `lib/ai/remote.ts` — `functions.invoke` client and response envelopes.
+- `features/ai-admin/` — AI settings tabs + organizational memory UI (`MemoryView` orchestrates; `MemoryCard`, `MemoryForm`, `memory-repository`, `memory-labels` split by concern).
+- `supabase/functions/_shared/prompts.ts` — central system prompts and behavior schema.
+- `supabase/functions/_shared/knowledge.ts` — `buildAiContext` orchestrator (published-only retrieval + org memory).
+- `supabase/functions/_shared/knowledge-documents.ts` — row → document/source mapping and field labels.
+- `supabase/functions/_shared/knowledge-ranking.ts` — tokenizer, synonyms, scoring/ranking.
+- `supabase/functions/_shared/knowledge-conversations.ts` — older-conversation context retrieval.
 - `styles/base.css` — global link/underline rules.
-- `supabase/migrations/` — schema/RLS/allowlist source of truth.
+- `supabase/migrations/` — schema/RLS/allowlist/AI source of truth.
 - `scripts/` — seed/owner/audit/preview tooling.

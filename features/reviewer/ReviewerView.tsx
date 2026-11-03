@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { ScoreBars } from '@/components/ui/ScoreBars';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { analyzeConversation } from '@/lib/ai/reviewer';
+import { invokeAi, type ReviewerRemoteResult } from '@/lib/ai/remote';
 import { REVIEW_SAMPLE } from '@/lib/ai/sample';
 import { REVIEW_ASPECTS } from '@/lib/constants';
 import type { ReviewMessage } from '@/lib/types';
@@ -23,6 +24,7 @@ export function ReviewerView() {
   const { review, setReview } = useSession();
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+  const [mode, setMode] = useState<'idle' | 'remote' | 'local'>('idle');
 
   const updateMessages = (messages: ReviewMessage[]) => {
     setReview((previous) => ({ ...previous, messages, result: undefined }));
@@ -62,13 +64,37 @@ export function ReviewerView() {
       return;
     }
     setReview((previous) => ({ ...previous, analyzing: true }));
+    const remote = await invokeAi<ReviewerRemoteResult>('reviewer', {
+      messages: filled.map((message) => ({ role: message.role, text: message.text })),
+    });
+
+    const aiResult = remote.data;
+    if (remote.ok && aiResult) {
+      setMode('remote');
+      setReview((previous) => ({
+        ...previous,
+        analyzing: false,
+        result: aiResult.result,
+      }));
+      void logActivity('review', 'AI Chat Reviewer', aiResult.result.overall);
+      showToast(`Dianalisis dengan Xiaomi MiMo (${aiResult.model})`);
+      return;
+    }
+
     const result = await analyzeConversation(filled, {
       products: snapshot.content.products,
       scripts: snapshot.content.scripts,
       cases: snapshot.content.cases,
     });
+    setMode('local');
     setReview((previous) => ({ ...previous, analyzing: false, result }));
     void logActivity('review', 'AI Chat Reviewer', result.overall);
+    showToast(
+      remote.code === 'not_configured'
+        ? 'AI belum dikonfigurasi. Memakai penilaian heuristik lokal.'
+        : 'Mimo tidak tersedia. Memakai penilaian heuristik lokal.',
+      'err',
+    );
   };
 
   const copyRecommendation = async () => {
@@ -99,19 +125,35 @@ export function ReviewerView() {
         title="AI Chat Reviewer"
         subtitle="Tempel percakapan customer, pisahkan pesan customer dan admin, lalu dapatkan evaluasi dan saran perbaikan."
         actions={
-          <span className="tag demo">
-            <Icon name="flask-conical" />
-            Simulasi lokal · skor heuristik
+          <span className={`tag ${mode === 'local' ? 'yl' : 'gr'}`}>
+            <Icon name={mode === 'local' ? 'flask-conical' : 'bot'} />
+            {mode === 'remote'
+              ? 'Xiaomi MiMo'
+              : mode === 'local'
+                ? 'Fallback lokal · heuristik'
+                : 'Xiaomi MiMo + fallback'}
           </span>
         }
       />
 
       <div style={{ marginBottom: 18 }}>
-        <Note variant="neutral">
-          Evaluasi dihitung dengan aturan sederhana di browser (kata kunci, panjang pesan, pola
-          respons). Ini <b>bukan penilaian AI sungguhan</b>. Gunakan sebagai bahan diskusi dengan
-          senior.
-        </Note>
+        {mode === 'local' ? (
+          <Note variant="warn" icon="shield-alert">
+            Mimo belum tersedia atau belum dikonfigurasi. Evaluasi ini dihitung dengan aturan
+            sederhana di browser (kata kunci, panjang pesan, pola respons), <b>bukan penilaian AI</b>.
+            Owner dapat mengaktifkan MiMo di <b>Pengaturan AI</b>.
+          </Note>
+        ) : mode === 'remote' ? (
+          <Note variant="green" icon="shield-check">
+            Evaluasi dihasilkan Xiaomi MiMo berdasarkan knowledge Samaqu yang berstatus Published.
+            Gunakan hasil sebagai bahan pelatihan, bukan satu-satunya dasar penilaian.
+          </Note>
+        ) : (
+          <Note variant="neutral">
+            Reviewer memakai Xiaomi MiMo bila sudah dikonfigurasi. Bila layanan AI tidak tersedia,
+            aplikasi otomatis memakai penilaian heuristik lokal sebagai fallback.
+          </Note>
+        )}
       </div>
 
       <div className="split">

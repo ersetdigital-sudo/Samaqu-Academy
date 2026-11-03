@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useSession } from '@/components/providers/SessionProvider';
 import { Icon } from '@/components/ui/Icon';
 import { NAV_GROUPS } from '@/lib/constants';
 
@@ -21,15 +20,13 @@ function currentLabel(pathname: string): string {
 export function Topbar({ onMenu }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { askAssistant } = useSession();
   const [query, setQuery] = useState('');
 
   const submit = () => {
     const trimmed = query.trim();
     if (!trimmed) return;
-    askAssistant(trimmed);
     setQuery('');
-    if (pathname !== '/assistant') router.push('/assistant');
+    router.push(`/assistant?q=${encodeURIComponent(trimmed)}`);
   };
 
   return (

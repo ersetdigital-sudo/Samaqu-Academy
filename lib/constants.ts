@@ -14,6 +14,7 @@ export interface NavItem {
 export interface NavGroup {
   label: string;
   items: NavItem[];
+  ownerOnly?: boolean;
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -45,6 +46,14 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'AI Chat Reviewer', href: '/reviewer', icon: 'scan-search' },
       { label: 'AI Knowledge Assistant', href: '/assistant', icon: 'sparkles' },
+    ],
+  },
+  {
+    label: 'Admin',
+    ownerOnly: true,
+    items: [
+      { label: 'Pengaturan AI', href: '/settings/ai', icon: 'settings' },
+      { label: 'Memory Organisasi', href: '/settings/memory', icon: 'brain' },
     ],
   },
 ];

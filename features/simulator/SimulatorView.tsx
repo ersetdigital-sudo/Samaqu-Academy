@@ -14,9 +14,14 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { RecordForm } from '@/components/ui/RecordForm';
 import { ScoreBars } from '@/components/ui/ScoreBars';
 import { ScoreRing } from '@/components/ui/ScoreRing';
-import { DemoBadge, Note } from '@/components/ui/Note';
+import { Note } from '@/components/ui/Note';
 import { LevelTag } from '@/components/ui/badges';
 import { analyzeConversation } from '@/lib/ai/reviewer';
+import {
+  invokeAi,
+  type ReviewerRemoteResult,
+  type SimulatorRemoteResult,
+} from '@/lib/ai/remote';
 import { nextCustomerMessage } from '@/lib/ai/simulator';
 import { SCENARIO_ICONS, SCENARIO_LEVELS } from '@/lib/constants';
 import { scenarioFields } from '@/lib/form-schemas';
@@ -44,6 +49,7 @@ export function SimulatorView() {
   const [level, setLevel] = useState('Semua');
   const [input, setInput] = useState('');
   const [evaluating, setEvaluating] = useState(false);
+  const [mode, setMode] = useState<'idle' | 'remote' | 'local'>('idle');
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +81,7 @@ export function SimulatorView() {
       busy: false,
       done: false,
     });
+    setMode('idle');
     setInput('');
   };
 
@@ -91,7 +98,31 @@ export function SimulatorView() {
       busy: true,
     });
     setInput('');
-    const nextMessage = await nextCustomerMessage(scenario, nextTurn);
+    const history = [...current.log, ['a', value] as ['c' | 'a', string]].map(([role, text]) => ({
+      role,
+      text,
+    }));
+    const remote = await invokeAi<SimulatorRemoteResult>('simulator', {
+      scenario: {
+        title: scenario.title,
+        category: scenario.category,
+        level: scenario.level,
+        situation: scenario.situation,
+        objective: scenario.objective,
+      },
+      history,
+    });
+    let nextMessage: string | null;
+    if (remote.ok && remote.data) {
+      setMode('remote');
+      nextMessage = remote.data.done ? null : remote.data.message;
+    } else {
+      setMode('local');
+      nextMessage = await nextCustomerMessage(scenario, nextTurn);
+      if (remote.code !== 'not_configured') {
+        showToast('Mimo tidak tersedia. Memakai alur skenario lokal.', 'err');
+      }
+    }
     setSimulator((previous) => {
       if (!previous || previous.scenarioId !== scenario.id) return previous;
       const log = nextMessage
@@ -111,14 +142,23 @@ export function SimulatorView() {
       return;
     }
     setEvaluating(true);
-    const result = await analyzeConversation(
-      simulator.log.map(([role, text]) => ({ role, text })),
-      {
+    const messages = simulator.log.map(([role, text]) => ({ role, text }));
+    const remote = await invokeAi<ReviewerRemoteResult>('reviewer', { messages });
+    let result;
+    if (remote.ok && remote.data) {
+      setMode('remote');
+      result = remote.data.result;
+    } else {
+      setMode('local');
+      result = await analyzeConversation(messages, {
         products: snapshot.content.products,
         scripts: snapshot.content.scripts,
         cases: snapshot.content.cases,
-      },
-    );
+      });
+      if (remote.code !== 'not_configured') {
+        showToast('Mimo tidak tersedia. Evaluasi memakai skor heuristik lokal.', 'err');
+      }
+    }
     setSimulator((previous) =>
       previous && previous.scenarioId === scenario.id
         ? { ...previous, ended: true, busy: false, done: true, result }
@@ -290,7 +330,14 @@ export function SimulatorView() {
             Semua skenario
           </button>
           <div className="row">
-            <DemoBadge />
+            <span className={`tag ${mode === 'local' ? 'yl' : 'gr'}`}>
+              <Icon name={mode === 'local' ? 'flask-conical' : 'bot'} />
+              {mode === 'remote'
+                ? 'Customer: Xiaomi MiMo'
+                : mode === 'local'
+                  ? 'Fallback skenario lokal'
+                  : 'Xiaomi MiMo + fallback'}
+            </span>
             {simulator.ended ? null : (
               <button className="btn" onClick={endSim} disabled={evaluating || simulator.busy}>
                 <Icon name="square" />
@@ -376,7 +423,8 @@ export function SimulatorView() {
                   <div>
                     <h3>Evaluasi Simulasi</h3>
                     <p className="xs muted">
-                      {simulator.result.adminCount} balasan · skor heuristik lokal
+                      {simulator.result.adminCount} balasan ·{' '}
+                      {mode === 'remote' ? 'dinilai Xiaomi MiMo' : 'skor heuristik lokal'}
                     </p>
                     {attempts.length ? (
                       <p className="xs muted">
@@ -488,10 +536,13 @@ export function SimulatorView() {
       <PageHeader
         eyebrow="Learning & Service"
         title="Chat Scenario"
-        subtitle="Latihan percakapan: customer dimainkan oleh simulasi berbasis skenario, kamu berperan sebagai admin."
+        subtitle="Latihan percakapan: customer dimainkan oleh Xiaomi MiMo atau alur skenario, kamu berperan sebagai admin."
         actions={
           <>
-            <DemoBadge label="Simulasi lokal · bukan AI" />
+            <span className={`tag ${mode === 'local' ? 'yl' : 'gr'}`}>
+              <Icon name="bot" />
+              {mode === 'local' ? 'Fallback lokal' : 'Xiaomi MiMo + fallback'}
+            </span>
             {canManage ? (
               <button className="btn p" onClick={() => openScenarioForm()}>
                 <Icon name="plus" />
@@ -504,9 +555,9 @@ export function SimulatorView() {
 
       <div style={{ marginBottom: 18 }}>
         <Note variant="neutral">
-          Balasan customer diambil dari alur pesan yang sudah ditentukan per skenario, dan skornya
-          dihitung dengan aturan sederhana di browser. Ini mode demo sampai layanan AI server
-          dihubungkan.
+          Bila AI aktif, customer dimainkan oleh Xiaomi MiMo berdasarkan skenario dan evaluasi
+          dilakukan oleh model. Bila layanan AI tidak tersedia, aplikasi memakai alur pesan skenario
+          dan skor heuristik lokal sebagai fallback.
         </Note>
       </div>
 

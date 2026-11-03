@@ -1,0 +1,8 @@
+project_id = "rbjxjdgqtcwwbvuwtlpg"
+
+# Both functions verify the user JWT themselves so CORS preflight OPTIONS works.
+[functions.ai]
+verify_jwt = false
+
+[functions.ai-admin]
+verify_jwt = false
