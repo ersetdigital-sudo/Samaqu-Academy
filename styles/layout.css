@@ -163,6 +163,15 @@
   height: 16px;
 }
 
+.prof .logout {
+  color: var(--red);
+}
+
+.prof .logout:hover {
+  background: var(--redl);
+  border-color: #f2d5d0;
+}
+
 /* Main */
 .main {
   margin-left: 264px;

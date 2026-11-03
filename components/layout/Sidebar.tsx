@@ -80,12 +80,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
         </div>
         <button
-          className="icb"
-          title="Logout"
-          aria-label="Logout"
+          className="icb logout"
+          title="Keluar"
+          aria-label="Keluar dari akun"
           onClick={() => void signOut()}
         >
-          <Icon name="log-out" />
+          <Icon name="log-out" size={16} />
         </button>
       </div>
     </aside>
