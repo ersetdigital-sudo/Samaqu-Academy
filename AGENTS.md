@@ -313,6 +313,16 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Fix: `GuideSection` fields are optional/nullable in `lib/types.ts`; `?? []` restored in
   `GuidelinesView.tsx` (4 sites) and `lib/ai/assistant.ts`. Data was left untouched.
 
+### 2026-11-03 — Collapsible sidebar
+
+- Topbar gained a `panel-left` toggle; the sidebar collapses to a 76px icon rail on desktop
+  (`.sb.min`, `.sb-collapsed`, `.main` margin animates). Rail hides labels/groups, shows a
+  hover tooltip from the item's `title`.
+- Preference persists in `localStorage` (`samaqu:sidebar-collapsed`) and is restored after mount.
+- Mobile drawer unchanged in behaviour but now has a backdrop blur, an X button in the brand row,
+  and closes on Escape. `.sb-burger` (X) must stay `display:none` above 820px.
+- `prefers-reduced-motion` disables the transitions.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
