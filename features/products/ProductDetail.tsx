@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
+import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
 import { getProductFields } from '@/lib/product-schema';
@@ -120,6 +121,38 @@ export function ProductDetail({
   const fields = getProductFields(product.category).filter(
     (field) => !['name', 'description'].includes(String(field.key)),
   );
+  const isSizeChart = product.category === 'Size Chart';
+
+  const imageBlock = imageUrl ? (
+    <img
+      src={imageUrl}
+      alt=""
+      style={{
+        width: '100%',
+        maxHeight: 340,
+        objectFit: 'contain',
+        background: 'var(--gl2)',
+        borderRadius: 10,
+        marginTop: 14,
+      }}
+    />
+  ) : null;
+
+  const fieldsTable = (
+    <table>
+      <tbody>
+        {fields.map((field) => {
+          const value = renderValue(field.key);
+          return (
+            <tr key={String(field.key)}>
+              <th style={{ width: '38%', verticalAlign: 'top' }}>{field.label}</th>
+              <td>{value ?? <span className="muted">—</span>}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
 
   return (
     <>
@@ -133,20 +166,7 @@ export function ProductDetail({
         </button>
       </div>
 
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt=""
-          style={{
-            width: '100%',
-            maxHeight: 340,
-            objectFit: 'contain',
-            background: 'var(--gl2)',
-            borderRadius: 10,
-            marginTop: 14,
-          }}
-        />
-      ) : null}
+      {isSizeChart ? null : imageBlock}
 
       <h2 className="mt">{product.name}</h2>
       {product.description ? (
@@ -155,19 +175,14 @@ export function ProductDetail({
         </p>
       ) : null}
 
-      <table className="mt">
-        <tbody>
-          {fields.map((field) => {
-            const value = renderValue(field.key);
-            return (
-              <tr key={String(field.key)}>
-                <th style={{ width: '38%', verticalAlign: 'top' }}>{field.label}</th>
-                <td>{value ?? <span className="muted">—</span>}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {isSizeChart && imageUrl ? (
+        <div className="pd-split mt">
+          <ImageZoom src={imageUrl} label="Perbesar size chart" />
+          <div>{fieldsTable}</div>
+        </div>
+      ) : (
+        <div className="mt">{fieldsTable}</div>
+      )}
 
       <p className="sm muted mt">
         Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}

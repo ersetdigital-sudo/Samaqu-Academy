@@ -1158,6 +1158,109 @@ th {
   gap: 12px;
 }
 
+/* Size Chart detail: foto di samping tabel ukuran, bukan bertumpuk */
+.pd-split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.pd-split .shot-zoom img {
+  max-height: 560px;
+}
+
+@media (max-width: 760px) {
+  .pd-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Foto bisa dibuka layar penuh lalu di-zoom */
+.shot-zoom {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.shot-zoom img {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  background: var(--gl2);
+  border-radius: 10px;
+}
+
+.shot-zoom-hint {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(24, 26, 25, 0.72);
+  color: #fff;
+  font-size: 11.5px;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 24px;
+  overflow: auto;
+  background: rgba(16, 18, 17, 0.88);
+}
+
+/* margin auto: center saat masih muat, tetap bisa di-scroll saat di-zoom 100% */
+.lightbox img {
+  max-width: 100%;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: zoom-in;
+  margin: auto;
+}
+
+.lightbox img.zoomed {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.lightbox-x {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+}
+
+.lightbox-tip {
+  align-self: center;
+  color: #fff;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
 /* Two narrow columns are hard to read on a tablet: stack them sooner */
 @media (max-width: 980px) {
   .dd {
