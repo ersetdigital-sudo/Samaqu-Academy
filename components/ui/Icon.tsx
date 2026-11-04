@@ -1,8 +1,10 @@
 import type { CSSProperties } from 'react';
 import {
   Activity,
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   ArrowUpRight,
   Award,
   Ban,
@@ -99,8 +101,10 @@ const ICONS: Record<string, LucideIcon> = {
   activity: Activity,
   'alert-circle': CircleAlert,
   'alert-triangle': TriangleAlert,
+  'arrow-down': ArrowDown,
   'arrow-left': ArrowLeft,
   'arrow-right': ArrowRight,
+  'arrow-up': ArrowUp,
   'arrow-up-right': ArrowUpRight,
   award: Award,
   ban: Ban,

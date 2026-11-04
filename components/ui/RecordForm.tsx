@@ -13,7 +13,8 @@ export type RecordFieldType =
   | 'number'
   | 'check'
   | 'multi'
-  | 'tags';
+  | 'tags'
+  | 'list';
 
 export interface RecordFieldOption {
   value: string;
@@ -59,7 +60,7 @@ function optionOf(option: string | RecordFieldOption): RecordFieldOption {
 }
 
 function toFormValue(field: RecordField, raw: unknown): RecordValue {
-  if (field.type === 'multi') {
+  if (field.type === 'multi' || field.type === 'list') {
     return Array.isArray(raw) ? raw.map(String) : [];
   }
   if (field.type === 'check') return Boolean(raw);
@@ -75,6 +76,11 @@ function toFormValue(field: RecordField, raw: unknown): RecordValue {
 
 function toOutputValue(field: RecordField, value: RecordValue): RecordValue {
   if (field.type === 'multi') return Array.isArray(value) ? value : [];
+  if (field.type === 'list') {
+    return Array.isArray(value)
+      ? value.map((entry) => entry.trim()).filter(Boolean)
+      : [];
+  }
   if (field.type === 'check') return Boolean(value);
   if (field.type === 'lines' || field.type === 'chat') {
     return String(value)
@@ -239,6 +245,67 @@ export function RecordForm({
           />
           {field.placeholder || field.label}
         </label>
+      );
+    }
+
+    if (type === 'list') {
+      const rows = Array.isArray(value) ? value : [];
+      const update = (next: string[]) => setValue(field.key, next);
+      const move = (from: number, to: number) => {
+        if (to < 0 || to >= rows.length) return;
+        const next = [...rows];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        update(next);
+      };
+      return (
+        <div className="listfield" id={id}>
+          {rows.map((row, rowIndex) => (
+            <div className="listfield-row" key={rowIndex}>
+              <span className="listfield-no">{rowIndex + 1}</span>
+              <input
+                className="inp"
+                value={row}
+                placeholder={`${field.label} ${rowIndex + 1}`}
+                aria-label={`${field.label} ${rowIndex + 1}`}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  update(rows.map((entry, position) => (position === rowIndex ? next : entry)));
+                }}
+              />
+              <button
+                type="button"
+                className="icb"
+                aria-label="Naikkan urutan"
+                disabled={rowIndex === 0}
+                onClick={() => move(rowIndex, rowIndex - 1)}
+              >
+                <Icon name="arrow-up" />
+              </button>
+              <button
+                type="button"
+                className="icb"
+                aria-label="Turunkan urutan"
+                disabled={rowIndex === rows.length - 1}
+                onClick={() => move(rowIndex, rowIndex + 1)}
+              >
+                <Icon name="arrow-down" />
+              </button>
+              <button
+                type="button"
+                className="icb"
+                aria-label="Hapus baris"
+                onClick={() => update(rows.filter((_, position) => position !== rowIndex))}
+              >
+                <Icon name="trash-2" />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn sm" onClick={() => update([...rows, ''])}>
+            <Icon name="plus" />
+            Tambah baris
+          </button>
+        </div>
       );
     }
 
