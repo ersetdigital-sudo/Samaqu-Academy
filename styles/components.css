@@ -200,6 +200,30 @@ h3 {
   height: 12px;
 }
 
+/* Kredit penyusun materi (Learning Center) — chip "Disusun oleh <nama>". */
+.byline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--accl);
+  background: var(--acc2);
+  color: var(--acc);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.byline b {
+  font-weight: 700;
+}
+
+.byline.md {
+  padding: 4px 12px;
+  font-size: 12.5px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

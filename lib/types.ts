@@ -30,6 +30,40 @@ export interface Material extends BaseContent {
   sortOrder?: number;
   /** Durasi video YouTube, mis. "8:12" — opsional, hanya untuk badge. */
   videoDuration?: string;
+  /** Kredit penyusun materi (nama/kontributor) — opsional, tampil di kartu dan detail. */
+  contributor?: string;
+  /** Level belajar (kolom content_items.level_id) — null bila belum ditempatkan. */
+  levelId?: number | null;
+  /** Materi wajib (kolom content_items.is_required) — memengaruhi progres dan kunci level. */
+  isRequired?: boolean;
+}
+
+/** Satu level jalur belajar (tabel learning_levels). */
+export interface LearningLevel {
+  id: number;
+  title: string;
+  description: string;
+  sortOrder: number;
+}
+
+/** Soal kuis milik satu materi (tabel quiz_questions). */
+export interface MaterialQuizQuestion {
+  id: string;
+  materialId: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  sortOrder: number;
+}
+
+/** Percobaan kuis materi milik satu user (tabel quiz_attempts). */
+export interface QuizAttempt {
+  id: string;
+  materialId: string;
+  score: number;
+  answers: Record<string, number>;
+  createdAt: number;
 }
 
 export interface Script extends BaseContent {
@@ -214,6 +248,12 @@ export interface AssessmentSettings {
 
 export interface AcademySnapshot {
   content: ContentCollections;
+  /** Jalur belajar: level dari tabel learning_levels. */
+  levels: LearningLevel[];
+  /** Soal kuis per material_id. */
+  materialQuizzes: Record<string, MaterialQuizQuestion[]>;
+  /** Percobaan kuis user (terbaru lebih dulu). */
+  quizAttempts: QuizAttempt[];
   progress: ProgressState;
   activity: ActivityItem[];
   attempts: AssessmentAttempt[];

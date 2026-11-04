@@ -118,6 +118,7 @@ Applied migrations:
 - `supabase/migrations/0002_allowed_emails.sql` — `allowed_emails` + signup allowlist trigger.
 - `supabase/migrations/0003_ai.sql` — ai_settings (service-role only), ai_usage_logs, ai_conversations, ai_messages, memory_items, RLS.
 - `supabase/migrations/0004_ai_pricing.sql` — optional pricing + per-user `ai_user_settings` retention.
+- `supabase/migrations/0006_learning_path.sql` — `learning_levels`, `content_items.level_id`/`is_required`, `quiz_questions`, `quiz_attempts` + RLS.
 
 Key rules:
 
@@ -432,6 +433,44 @@ Docs contradicted the original assumptions. Authoritative findings:
   `"<label> <n>"`).
 - Script baru mulai dengan satu baris variasi kosong (`variants: ['']`); `ScriptsView` tetap
   menyimpan `variants` sebagai `string[]`, jadi format JSONB dan pembaca lama tidak berubah.
+
+### 2026-11-04 — Learning Center jadi jalur belajar (Fase 1)
+
+- Migration `0006_learning_path.sql` (atomic + idempotent): tabel `learning_levels` (5 level),
+  kolom `content_items.level_id` + `is_required`, tabel `quiz_questions` (25 soal; 5 per materi
+  2–6, hanya dari isi materi) dan `quiz_attempts`. RLS: level/soal dibaca semua user login,
+  ditulis owner; attempt hanya baris milik `auth.uid()`. Materi 1–3 → Level 1, 4–6 → Level 2;
+  "Teknik Komunikasi Efektif" pindah ke Communication Guidelines; progres lama 10% → 50%.
+- Konfigurasi belajar di `lib/learning.ts`: `LEARNING_CONFIG` (`passMark: 80`, `lockLevels: true`,
+  `openedProgress: 50`, `doneProgress: 100`) plus helper `groupMaterialsByLevel()`.
+- Status per user: belum dibuka = Belum; dibuka/ditonton = Sedang 50%; lulus kuis = Selesai 100%.
+  Materi tanpa kuis memakai tombol "Tandai Selesai"; materi berkuis tidak bisa ditandai manual.
+- `/learning` dikelompokkan per level (`LearningLevelSection`): header + "x/y selesai", level
+  kosong hanya "Segera hadir", level berikutnya terkunci (kartu redup, `aria-disabled`) sampai
+  materi wajib level sebelumnya selesai. Filter/search tetap jalan dan tidak mengubah hitungan kunci.
+- Kuis di akhir detail materi (`MaterialQuiz`): skor + pembahasan per soal, bisa diulang; attempt
+  disimpan lewat `saveQuizAttempt` di `DataProvider`/repository.
+- Form materi punya pilihan Level dan Wajib/Opsional (`MATERIAL_FIELDS`); level null jatuh ke
+  grup "Materi lain" agar materi tak hilang.
+- Verifikasi: `npm run typecheck`, `next build` (18 route static), dan preview: kuis 100% →
+  level 2 terbuka, "3/6 selesai". Attempt + progres uji dikembalikan ke kondisi awal.
+
+### 2026-11-04 — Fase 1 Learning Center: progres bersih, akses owner, review kuis
+
+- Migration `0007_learning_phase1_followup.sql`: baris progres materi hasil normalisasi 0006
+  (10% → 50%) dihapus, jadi semua materi kembali "Belum" 0%; progres hanya lahir dari aktivitas
+  user. Batas `updated_at < 2026-11-05` membuat migrasi aman dijalankan ulang.
+- Kebijakan tulis `content_items`, `learning_levels`, `quiz_questions` ditegaskan ulang
+  owner-only (`public.is_owner()`): admin CS diblokir di RLS, bukan hanya tombolnya disembunyikan.
+  Tidak ada role `leader` terpisah — owner adalah role pengelola.
+- Owner/leader tidak terkena kunci level: `groupMaterialsByLevel(..., { lockLevels })` dimatikan
+  saat `canManage`. CS tetap melihat level terkunci.
+- Halaman baru `/learning/quiz-review` (khusus owner, tautan "Review Kuis" di `/learning`):
+  semua soal per materi + jawaban benar + pembahasan, bisa ditambah/diubah/dihapus lewat
+  `QuizQuestionForm` → `saveQuizQuestion`/`deleteQuizQuestion` (repository + `DataProvider`).
+- Verifikasi: `npm run typecheck`, `next build` (19 route static), preview owner: 0 level
+  terkunci, progres 0/3, 25 soal tampil, simpan soal baru berhasil. Hapus soal lewat dialog
+  belum terverifikasi otomatis (tombol "Hapus" ganda), data uji dihapus manual.
 
 ## Operational notes
 

@@ -8,6 +8,7 @@ import {
   SCRIPT_CATEGORIES,
   SEVERITIES,
 } from './constants';
+import { DEFAULT_LEVELS } from './learning';
 import type { ContentCollections } from './types';
 
 export const MATERIAL_FIELDS: RecordField[] = [
@@ -28,6 +29,28 @@ export const MATERIAL_FIELDS: RecordField[] = [
     hint: 'Urutan materi di Learning Center. Materi baru otomatis dapat nomor terakhir.',
   },
   {
+    key: 'levelId',
+    label: 'Level',
+    type: 'select',
+    required: true,
+    options: DEFAULT_LEVELS.map((level) => ({
+      value: String(level.id),
+      label: `Level ${level.sortOrder} · ${level.title}`,
+    })),
+    hint: 'Level jalur belajar tempat materi ini tampil.',
+  },
+  {
+    key: 'isRequired',
+    label: 'Jenis Materi',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'true', label: 'Wajib' },
+      { value: 'false', label: 'Opsional' },
+    ],
+    hint: 'Materi wajib menentukan progres level dan kunci level berikutnya.',
+  },
+  {
     key: 'durationMinutes',
     label: 'Estimasi Waktu (menit)',
     type: 'number',
@@ -40,6 +63,13 @@ export const MATERIAL_FIELDS: RecordField[] = [
     type: 'textarea',
     required: true,
     rows: 2,
+    full: true,
+  },
+  {
+    key: 'contributor',
+    label: 'Kredit Penyusun',
+    placeholder: 'Contoh: Tim Training Samaqu',
+    hint: 'Opsional. Nama penyusun materi, tampil di kartu dan halaman materi.',
     full: true,
   },
   {

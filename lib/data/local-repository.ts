@@ -153,7 +153,16 @@ export const localRepository: AcademyRepository = {
     const activity = loadActivity(seed.activity);
     const attempts = loadAttempts();
     const settings = loadSettings(seed.settings);
-    return { content, progress, activity, attempts, settings };
+    return {
+      content,
+      levels: seed.levels,
+      materialQuizzes: seed.materialQuizzes,
+      quizAttempts: seed.quizAttempts,
+      progress,
+      activity,
+      attempts,
+      settings,
+    };
   },
 
   async upsertContent<K extends ContentCollectionKey>(
@@ -196,6 +205,18 @@ export const localRepository: AcademyRepository = {
 
   async saveAttempts(items: AssessmentAttempt[]): Promise<void> {
     persist(STORAGE_KEYS.attempts, items);
+  },
+
+  async saveQuizAttempt(): Promise<void> {
+    // Adapter lokal tidak aktif: attempt kuis hanya hidup di memory snapshot.
+  },
+
+  async saveQuizQuestion(): Promise<void> {
+    // Adapter lokal tidak aktif: bank soal hanya hidup di Supabase.
+  },
+
+  async deleteQuizQuestion(): Promise<void> {
+    // Adapter lokal tidak aktif: bank soal hanya hidup di Supabase.
   },
 
   async saveSettings(settings: AssessmentSettings): Promise<void> {
