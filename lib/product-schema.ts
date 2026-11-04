@@ -38,12 +38,24 @@ const GARMENT: ProductField[] = [
 ];
 
 export const SERIES_COLLARS = [
-  'Kerah Tegak',
+  'Kerah Bulat',
   'Kerah Kemeja',
-  'Kerah Kemeja Pin Collar',
+  'Kerah Kemeja + Pin Collar',
 ] as const;
 
-export const SERIES_PLACKETS = ['Polos', 'Kancing Diamond', 'Eyelet / Mata Ayam'] as const;
+export const SERIES_PLACKETS = ['Polos', 'Kancing Diamond', 'Eyelet Berlubang'] as const;
+
+// Rows saved before the official SAMAQU terms landed still carry the old wording.
+const LEGACY_SERIES_TERMS: Record<string, string> = {
+  'Kerah Tegak': 'Kerah Bulat',
+  'Kerah Kemeja Pin Collar': 'Kerah Kemeja + Pin Collar',
+  'Eyelet / Mata Ayam': 'Eyelet Berlubang',
+};
+
+export function normalizeSeriesTerm(value?: string): string {
+  const trimmed = (value ?? '').trim();
+  return LEGACY_SERIES_TERMS[trimmed] ?? trimmed;
+}
 
 export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
   Thobe: GARMENT,

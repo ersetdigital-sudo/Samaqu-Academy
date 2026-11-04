@@ -6,7 +6,12 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { PRODUCT_CATEGORIES, PRODUCT_PHOTO_LABELS, PRODUCT_STATUSES } from '@/lib/constants';
-import { getProductFields, isGarment, type ProductField } from '@/lib/product-schema';
+import {
+  getProductFields,
+  isGarment,
+  normalizeSeriesTerm,
+  type ProductField,
+} from '@/lib/product-schema';
 import type { Product, ProductCategory } from '@/lib/types';
 import { newId } from '@/lib/utils/id';
 
@@ -19,6 +24,9 @@ function initialValues(category: ProductCategory, product?: Product): FormValues
       values[field.key] = product?.memberIds ?? [];
     } else if (field.key === 'status' && !product) {
       values[field.key] = 'Tersedia';
+    } else if (field.key === 'collar' || field.key === 'placket') {
+      // Legacy wording maps onto the official option so the select preselects correctly.
+      values[field.key] = normalizeSeriesTerm(String(product?.[field.key] ?? ''));
     } else {
       values[field.key] = product ? String(product[field.key] ?? '') : '';
     }
