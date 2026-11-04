@@ -9,7 +9,6 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
-import { Note } from '@/components/ui/Note';
 import { PageHeader } from '@/components/ui/PageHeader';
 import type { Product, ProductCategory } from '@/lib/types';
 import { ProductCard } from './ProductCard';
@@ -268,11 +267,6 @@ export function ProductsView() {
         </div>
       ) : section ? (
         <>
-          <Note className="mt">
-            Klik kartu untuk melihat detail. Data bertanda <b>Contoh</b> adalah data dummy, bukan
-            informasi resmi Samaqu.
-          </Note>
-
           {section === 'series' ? (
             <SeriesMatrix series={sectionItems} images={snapshot.images} onOpen={openProductDetail} />
           ) : null}

@@ -58,7 +58,6 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
       <div className="row sp mt">
         <span className="tag">{product.category}</span>
         <span className="row" style={{ gap: 4 }}>
-          {product.sample ? <span className="tag">Contoh</span> : null}
           <ProductStatusTag status={product.status} />
         </span>
       </div>

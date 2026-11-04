@@ -27,7 +27,6 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
       <div className="row sp">
         <div className="row" style={{ gap: 6 }}>
           <span className="tag gr">{script.category}</span>
-          {script.sample ? <span className="tag">Contoh</span> : null}
         </div>
         <button className="icb" onClick={onClose} aria-label="Tutup">
           <Icon name="x" />

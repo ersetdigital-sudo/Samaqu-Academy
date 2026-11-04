@@ -421,11 +421,10 @@ function SourceList({ sources }: { sources: AssistantSource[] }) {
             <b>{source.title}</b>
             <div className="xs muted">
               {source.source} · {source.category}
-              {source.sample ? ' · Data contoh' : ''}
             </div>
           </div>
-          <span className={`tag ${source.sample ? 'yl' : 'gr'}`}>
-            {source.sample ? 'Contoh' : source.status === 'published' ? 'Published' : source.status}
+          <span className="tag gr">
+            {source.status === 'published' ? 'Published' : source.status}
           </span>
         </div>
       ))}
@@ -497,7 +496,6 @@ function SectionView({
             {section.product.name}
           </Link>{' '}
           <span className="tag">{section.product.category}</span>
-          {section.product.sample ? <span className="tag yl">Data contoh</span> : null}
         </div>
         <div className="answer-table">
           <table>

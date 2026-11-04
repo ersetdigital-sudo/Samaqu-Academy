@@ -457,7 +457,6 @@ export function ScriptsView() {
                           <div className="row mt1" style={{ gap: 6 }}>
                             <span className="tag gr">{ba.category}</span>
                             {ba.mark ? <CaseMarkTag mark={ba.mark} /> : null}
-                            {ba.sample ? <span className="tag">Contoh</span> : null}
                           </div>
                         </div>
                         <div className="row wrap">
@@ -549,7 +548,6 @@ export function ScriptsView() {
                         >
                           <div className="row sp">
                             <span className="tag gr">{script.category}</span>
-                            {script.sample ? <span className="tag">Contoh</span> : null}
                           </div>
                           <h3 className="mt">{script.title}</h3>
                           {script.situation ? (

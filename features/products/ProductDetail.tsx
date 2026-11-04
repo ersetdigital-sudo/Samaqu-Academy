@@ -126,7 +126,6 @@ export function ProductDetail({
       <div className="row sp">
         <div className="row">
           <span className="tag">{product.category}</span>
-          {product.sample ? <span className="tag">Contoh</span> : null}
           <ProductStatusTag status={product.status} />
         </div>
         <button className="icb" onClick={onClose} aria-label="Tutup">

@@ -364,17 +364,13 @@ export function answerQuestion(question: string, context: AssistantContext): Ass
     sections.unshift({ kind: 'text', text: knowledge.answer });
   }
 
-  const hasSampleData =
-    productAnswerPresent &&
-    hits.some((product) => product.sample) === true;
-
   return {
     sections,
     note: hasEmptyProductData
       ? 'Kolom bertanda — belum ada datanya. Jangan menebak; konfirmasi ke tim produk.'
       : undefined,
     source: productAnswerPresent
-      ? `Sumber: Product Knowledge (${productCount} data)${hasSampleData ? ' · berisi data contoh, bukan data resmi' : ''}. Jawaban disusun lokal di browser; selalu ikuti SOP resmi.`
+      ? `Sumber: Product Knowledge (${productCount} data). Jawaban disusun lokal di browser; selalu ikuti SOP resmi.`
       : 'Jawaban disusun dari data di browser (lokal). Selalu ikuti SOP dan informasi resmi perusahaan.',
   };
 }
