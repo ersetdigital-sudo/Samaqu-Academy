@@ -362,6 +362,22 @@ Docs contradicted the original assumptions. Authoritative findings:
   defaults unknown prefixes to customer, so an unprefixed text becomes one long customer bubble).
   `BEFORE_AFTER_FIELDS.hint` now states that rule on both fields.
 
+### 2026-11-04 — Product Knowledge split into focused sections
+
+- `/products` no longer has a "Semua" tab. It opens on four landing cards (Series, Bahan, Size
+  Chart, Produk) and each section shows only its own categories. Query param is
+  `?section=series|fabric|size|product`; legacy `?category=...` is mapped to its section by
+  `sectionForCategory()` and a bare `?open=id` gets the owning section added behind the modal.
+- New files: `product-sections.ts` (section meta + category mapping, single source of truth),
+  `ProductCard.tsx` (tile extracted from the old view), `ProductHubCards.tsx` (landing cards).
+  `ProductsView.tsx` is now only the orchestrator (section, search, form/delete modals).
+- The Produk chip filter is derived from `?category=` instead of local state, so the URL can
+  never disagree with the visible filter.
+- Search stays cross-category and shows the card's category tag; an empty query returns to the
+  active section. `SeriesMatrix` renders only in the Series section.
+- Style: `.hub-card`/`.hub-ic` added to `styles/pages.css`; no new dependency. `/products` JS
+  gzip 243.8 → 244.7 KB (+0.37%).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -38,6 +38,27 @@
   object-fit: cover;
 }
 
+/* Product Knowledge landing: one card per section */
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-card h3 {
+  font-size: 17px;
+}
+
+.hub-ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--gl2);
+  color: var(--acc);
+  display: grid;
+  place-items: center;
+}
+
 .app-loading {
   min-height: 60vh;
   display: grid;
