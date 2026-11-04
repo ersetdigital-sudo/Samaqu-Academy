@@ -11,7 +11,9 @@ import type {
   ContentCollectionKey,
   MaterialStatus,
   ProgressState,
+  QuizAttempt,
 } from '@/lib/types';
+import { LEARNING_CONFIG } from '@/lib/learning';
 import {
   createContext,
   useCallback,
@@ -45,6 +47,12 @@ interface DataContextValue {
   setVisitedProducts: () => Promise<void>;
   logActivity: (type: ActivityType, title: string, score: number | null, refId?: string) => Promise<void>;
   saveAttempt: (attempt: AssessmentAttempt) => Promise<void>;
+  /** Simpan hasil kuis materi; lulus di atas passMark otomatis menandai materi selesai. */
+  saveQuizAttempt: (
+    materialId: string,
+    score: number,
+    answers: Record<string, number>,
+  ) => Promise<void>;
   setPassMark: (value: number) => Promise<void>;
 }
 
@@ -158,7 +166,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!hydrated) return;
       const current = snapshotRef.current.progress.materials[id];
       const isDone = current?.status === 'done';
-      await setMaterialProgress(id, isDone ? 'progress' : 'done', isDone ? 50 : 100);
+      await setMaterialProgress(
+        id,
+        isDone ? 'progress' : 'done',
+        isDone ? LEARNING_CONFIG.openedProgress : LEARNING_CONFIG.doneProgress,
+      );
       if (isDone) {
         showToast('Materi ditandai belum selesai');
       } else {
@@ -223,6 +235,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     },
     [apply, hydrated, requireRepository, showToast],
+  );
+
+  const saveQuizAttempt = useCallback(
+    async (materialId: string, score: number, answers: Record<string, number>) => {
+      if (!hydrated) return;
+      const previous = snapshotRef.current;
+      const attempt: QuizAttempt = {
+        id: `qa_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+        materialId,
+        score: Math.max(0, Math.min(100, Math.round(score))),
+        answers,
+        createdAt: Date.now(),
+      };
+      apply({ ...previous, quizAttempts: [attempt, ...previous.quizAttempts] });
+      try {
+        await requireRepository().saveQuizAttempt(attempt);
+      } catch {
+        apply(previous);
+        showToast(progressErrorMessage, 'err');
+        return;
+      }
+
+      const status = snapshotRef.current.progress.materials[materialId]?.status ?? 'todo';
+      if (attempt.score >= LEARNING_CONFIG.passMark) {
+        if (status !== 'done') {
+          await setMaterialProgress(materialId, 'done', LEARNING_CONFIG.doneProgress);
+          const material = snapshotRef.current.content.materials.find(
+            (item) => item.id === materialId,
+          );
+          await logActivity(
+            'material',
+            `Lulus kuis: ${material?.title ?? ''}`,
+            attempt.score,
+            materialId,
+          );
+        }
+      } else if (status === 'todo') {
+        await setMaterialProgress(materialId, 'progress', LEARNING_CONFIG.openedProgress);
+      }
+    },
+    [apply, hydrated, logActivity, requireRepository, setMaterialProgress, showToast],
   );
 
   const setPassMark = useCallback(
@@ -312,6 +365,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setVisitedProducts,
       logActivity,
       saveAttempt,
+      saveQuizAttempt,
       setPassMark,
     }),
     [
@@ -329,6 +383,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setVisitedProducts,
       logActivity,
       saveAttempt,
+      saveQuizAttempt,
       setPassMark,
     ],
   );

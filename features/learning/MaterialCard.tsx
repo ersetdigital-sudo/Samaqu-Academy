@@ -22,7 +22,15 @@ export function MaterialStatusTag({ status }: { status: MaterialProgress['status
 }
 
 /** Thumbnail YouTube 16:9, atau placeholder netral setinggi yang sama. */
-function MaterialThumb({ material, order }: { material: Material; order?: number }) {
+function MaterialThumb({
+  material,
+  order,
+  locked,
+}: {
+  material: Material;
+  order?: number;
+  locked?: boolean;
+}) {
   const videoId = youtubeVideoId(material.videoUrl);
 
   return (
@@ -34,9 +42,15 @@ function MaterialThumb({ material, order }: { material: Material; order?: number
             alt={`Thumbnail video ${material.title}`}
             loading="lazy"
           />
-          <span className="mat-play" aria-hidden="true">
-            <Icon name="play" size={20} />
-          </span>
+          {locked ? (
+            <span className="mat-lock" aria-hidden="true">
+              <Icon name="lock" size={18} />
+            </span>
+          ) : (
+            <span className="mat-play" aria-hidden="true">
+              <Icon name="play" size={20} />
+            </span>
+          )}
           {material.videoDuration ? <span className="mat-dur">{material.videoDuration}</span> : null}
         </>
       ) : (
@@ -55,6 +69,8 @@ interface MaterialCardProps {
   progress: MaterialProgress;
   /** Nomor urut belajar (1, 2, …) — kosongkan untuk tidak menampilkan badge. */
   order?: number;
+  /** Level belum terbuka: kartu tampil redup dan tidak bisa dibuka. */
+  locked?: boolean;
   canManage?: boolean;
   hideOwnerActions?: boolean;
   onEdit?: () => void;
@@ -65,19 +81,24 @@ export function MaterialCard({
   material,
   progress,
   order,
+  locked = false,
   canManage = false,
   hideOwnerActions = false,
   onEdit,
   onDelete,
 }: MaterialCardProps) {
   const router = useRouter();
-  const open = () => router.push(`/learning?id=${encodeURIComponent(material.id)}`);
+  const open = () => {
+    if (locked) return;
+    router.push(`/learning?id=${encodeURIComponent(material.id)}`);
+  };
 
   return (
     <div
-      className="card ck mat-card"
+      className={`card ck mat-card${locked ? ' locked' : ''}`}
       role="link"
-      tabIndex={0}
+      tabIndex={locked ? -1 : 0}
+      aria-disabled={locked || undefined}
       onClick={open}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -86,11 +107,21 @@ export function MaterialCard({
         }
       }}
     >
-      <MaterialThumb material={material} order={order} />
+      <MaterialThumb material={material} order={order} locked={locked} />
       <div className="mat-body">
-        <div className="row sp" style={{ gap: 6 }}>
-          <span className="tag">{material.category}</span>
-          <MaterialStatusTag status={progress.status} />
+        <div className="row sp wrap" style={{ gap: 6 }}>
+          <span className="row wrap" style={{ gap: 6 }}>
+            <span className="tag">{material.category}</span>
+            {material.isRequired !== false ? <span className="tag gr">Wajib</span> : null}
+          </span>
+          {locked ? (
+            <span className="tag">
+              <Icon name="lock" size={12} />
+              Terkunci
+            </span>
+          ) : (
+            <MaterialStatusTag status={progress.status} />
+          )}
         </div>
         <h3 className="mt" style={{ fontSize: 16 }}>
           {material.title}

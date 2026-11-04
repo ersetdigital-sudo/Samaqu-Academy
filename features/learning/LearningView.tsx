@@ -14,10 +14,18 @@ import { MarkdownLite } from '@/components/ui/MarkdownLite';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ContributorCredit } from './ContributorCredit';
-import { MaterialCard, MaterialStatusTag } from './MaterialCard';
+import { LearningLevelSection } from './LearningLevelSection';
+import { MaterialStatusTag } from './MaterialCard';
+import { MaterialQuiz } from './MaterialQuiz';
 import { MaterialVideo } from './MaterialVideo';
 import { useMaterialForm } from './useMaterialForm';
 import { MATERIAL_CATEGORIES } from '@/lib/constants';
+import {
+  LEARNING_CONFIG,
+  groupMaterialsByLevel,
+  quizBestScore,
+  quizFor,
+} from '@/lib/learning';
 import { materialStats } from '@/lib/stats';
 import type { Material } from '@/lib/types';
 
@@ -40,9 +48,17 @@ function LearningListView() {
   const [query, setQuery] = useState('');
 
   const stats = materialStats(snapshot.content.materials, snapshot.progress);
-  const materials = useMemo(() => {
+  const filtering = category !== 'Semua' || status !== 'Semua' || query.trim() !== '';
+
+  // Level, progres, dan status kunci dihitung dari seluruh materi — bukan hasil filter.
+  const allGroups = useMemo(
+    () => groupMaterialsByLevel(snapshot.levels, snapshot.content.materials, snapshot.progress),
+    [snapshot.content.materials, snapshot.levels, snapshot.progress],
+  );
+
+  const groups = useMemo(() => {
     const search = query.trim().toLowerCase();
-    return snapshot.content.materials.filter((material) => {
+    const matches = (material: Material) => {
       const materialStatus = snapshot.progress.materials[material.id]?.status ?? 'todo';
       if (category !== 'Semua' && material.category !== category) return false;
       if (status !== 'Semua' && materialStatus !== status) return false;
@@ -51,14 +67,24 @@ function LearningListView() {
         .join(' ')
         .toLowerCase()
         .includes(search);
-    });
-  }, [category, query, snapshot.content.materials, snapshot.progress.materials, status]);
+    };
+    const filtered = allGroups.map((group) => ({
+      ...group,
+      materials: group.materials.filter(matches),
+    }));
+    return filtering ? filtered.filter((group) => group.materials.length > 0) : filtered;
+  }, [allGroups, category, filtering, query, snapshot.progress.materials, status]);
+
+  const visibleCount = groups.reduce((sum, group) => sum + group.materials.length, 0);
 
   // Nomor urut belajar mengikuti urutan penuh, bukan hasil filter.
   const orderOf = useMemo(
     () => new Map(snapshot.content.materials.map((material, index) => [material.id, index + 1])),
     [snapshot.content.materials],
   );
+
+  const progressOf = (id: string) =>
+    snapshot.progress.materials[id] ?? { status: 'todo' as const, progress: 0, updatedAt: 0 };
 
   const confirmDelete = (material: Material) => {
     openModal(
@@ -80,7 +106,7 @@ function LearningListView() {
       <PageHeader
         eyebrow="Learning & Service"
         title="Learning Center"
-        subtitle="Materi onboarding dan pengembangan skill Customer Service Samaqu. Pelajari berurutan atau sesuai kebutuhan."
+        subtitle="Jalur belajar Customer Service Samaqu. Selesaikan materi wajib per level untuk membuka level berikutnya."
         actions={
           <>
             <span className="tag gr">
@@ -146,37 +172,31 @@ function LearningListView() {
         </div>
       </div>
 
-      {materials.length ? (
-        <div className="grid g3">
-          {materials.map((material) => (
-            <MaterialCard
-              key={material.id}
-              material={material}
-              order={orderOf.get(material.id)}
-              progress={
-                snapshot.progress.materials[material.id] ?? {
-                  status: 'todo',
-                  progress: 0,
-                  updatedAt: 0,
-                }
-              }
+      {visibleCount ? (
+        <div className="lvl-wrap">
+          {groups.map((group) => (
+            <LearningLevelSection
+              key={group.level.id}
+              group={group}
+              orderOf={orderOf}
+              progressOf={progressOf}
               canManage={canManage}
-              onEdit={() => openMaterialForm(material)}
-              onDelete={() => confirmDelete(material)}
+              onEdit={openMaterialForm}
+              onDelete={confirmDelete}
             />
           ))}
         </div>
       ) : (
         <EmptyState
-          icon={query ? 'search-x' : 'book-open'}
-          title={query ? 'Materi tidak ditemukan' : 'Belum ada materi'}
+          icon={filtering ? 'search-x' : 'book-open'}
+          title={filtering ? 'Materi tidak ditemukan' : 'Belum ada materi'}
           subtitle={
-            query
+            filtering
               ? 'Coba kata kunci lain atau ubah filter.'
               : 'Tambahkan materi pertama untuk Learning Center.'
           }
           action={
-            canManage ? (
+            canManage && !filtering ? (
               <button className="btn sm" onClick={() => openMaterialForm()}>
                 <Icon name="plus" />
                 Tambah Materi
@@ -190,7 +210,14 @@ function LearningListView() {
 }
 
 function MaterialDetailView({ id }: { id: string }) {
-  const { snapshot, hydrated, setMaterialProgress, toggleMaterialDone, deleteContent } = useData();
+  const {
+    snapshot,
+    hydrated,
+    setMaterialProgress,
+    toggleMaterialDone,
+    saveQuizAttempt,
+    deleteContent,
+  } = useData();
   const { canManage } = useRole();
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
@@ -212,9 +239,14 @@ function MaterialDetailView({ id }: { id: string }) {
     if (initialized.current === material.id) return;
     initialized.current = material.id;
     if (progress.status === 'todo') {
-      void setMaterialProgress(material.id, 'progress', 10);
+      void setMaterialProgress(material.id, 'progress', LEARNING_CONFIG.openedProgress);
     }
   }, [hydrated, material, progress.status, setMaterialProgress]);
+
+  const questions = quizFor(snapshot.materialQuizzes, id);
+  const hasQuiz = questions.length > 0;
+  const bestScore = quizBestScore(snapshot.quizAttempts, id);
+  const attemptCount = snapshot.quizAttempts.filter((attempt) => attempt.materialId === id).length;
 
   if (!material) {
     return (
@@ -306,6 +338,14 @@ function MaterialDetailView({ id }: { id: string }) {
             <MarkdownLite text={material.body} />
           </div>
 
+          <MaterialQuiz
+            questions={questions}
+            passMark={LEARNING_CONFIG.passMark}
+            bestScore={bestScore}
+            attemptCount={attemptCount}
+            onSubmitted={(score, answers) => saveQuizAttempt(material.id, score, answers)}
+          />
+
           <div
             className="row sp mt2 wrap"
             style={{ borderTop: '1px solid var(--b)', paddingTop: 18 }}
@@ -324,13 +364,26 @@ function MaterialDetailView({ id }: { id: string }) {
                 Sebelumnya
               </button>
             )}
-            <button
-              className={`btn ${progress.status === 'done' ? '' : 'p'}`}
-              onClick={() => toggleMaterialDone(material.id)}
-            >
-              <Icon name={progress.status === 'done' ? 'rotate-ccw' : 'check'} />
-              {progress.status === 'done' ? 'Tandai belum selesai' : 'Tandai Selesai'}
-            </button>
+            {hasQuiz ? (
+              progress.status === 'done' ? (
+                <span className="tag gr">
+                  <Icon name="check" size={12} />
+                  Selesai via kuis
+                </span>
+              ) : (
+                <span className="sm muted">
+                  Lulus kuis minimal {LEARNING_CONFIG.passMark}% untuk menyelesaikan materi.
+                </span>
+              )
+            ) : (
+              <button
+                className={`btn ${progress.status === 'done' ? '' : 'p'}`}
+                onClick={() => toggleMaterialDone(material.id)}
+              >
+                <Icon name={progress.status === 'done' ? 'rotate-ccw' : 'check'} />
+                {progress.status === 'done' ? 'Tandai belum selesai' : 'Tandai Selesai'}
+              </button>
+            )}
             {next ? (
               <Link className="btn" href={`/learning?id=${encodeURIComponent(next.id)}`}>
                 Berikutnya

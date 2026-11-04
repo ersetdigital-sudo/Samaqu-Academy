@@ -5,6 +5,7 @@ import {
   PRODUCT_CATEGORIES,
   SCRIPT_CATEGORIES,
 } from '@/lib/constants';
+import { DEFAULT_LEVELS } from '@/lib/learning';
 import type {
   AcademySnapshot,
   ActivityItem,
@@ -403,6 +404,9 @@ export function buildSnapshot(
 ): AcademySnapshot {
   return {
     content,
+    levels: DEFAULT_LEVELS,
+    materialQuizzes: {},
+    quizAttempts: [],
     progress: normalizeProgress(options.progress),
     activity: normalizeActivity(options.activity),
     attempts: normalizeAttempts(options.attempts),

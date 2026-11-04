@@ -16,6 +16,21 @@ export function useMaterialForm() {
   const openMaterialForm = (material?: Material, defaults?: Partial<Material>) => {
     const nextSortOrder =
       snapshot.content.materials.reduce((max, item) => Math.max(max, item.sortOrder ?? 0), 0) + 1;
+    // Opsi level mengikuti data learning_levels, bukan hanya konstanta bawaan.
+    const fields = MATERIAL_FIELDS.map((field) =>
+      field.key === 'levelId'
+        ? {
+            ...field,
+            options: snapshot.levels.map((level) => ({
+              value: String(level.id),
+              label: `Level ${level.sortOrder} · ${level.title}`,
+            })),
+          }
+        : field,
+    );
+    const initial = material
+      ? { ...material, isRequired: material.isRequired === false ? 'false' : 'true' }
+      : defaults ?? {};
     openModal(
       <RecordForm
         key={material?.id ?? 'new-material'}
@@ -23,11 +38,13 @@ export function useMaterialForm() {
         subtitle={
           material ? 'Perbarui informasi lalu simpan.' : 'Kolom bertanda * wajib diisi.'
         }
-        fields={MATERIAL_FIELDS}
-        initial={material ?? defaults ?? {}}
+        fields={fields}
+        initial={initial}
         defaults={{
           category: 'Introduction to Samaqu',
           durationMinutes: 10,
+          levelId: String(snapshot.levels[0]?.id ?? 1),
+          isRequired: 'true',
           sortOrder: nextSortOrder,
         }}
         submitLabel={material ? 'Simpan Perubahan' : 'Tambahkan'}
@@ -43,6 +60,8 @@ export function useMaterialForm() {
             contributor: String(values.contributor ?? '').trim(),
             videoUrl: String(values.videoUrl ?? '').trim(),
             videoDuration: String(values.videoDuration ?? '').trim(),
+            levelId: values.levelId ? Number(values.levelId) : null,
+            isRequired: values.isRequired !== 'false',
             sortOrder: Number(values.sortOrder) || nextSortOrder,
             sample: false,
             updatedAt: Date.now(),
