@@ -7,4 +7,5 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 supabase/.temp/
+backups/
 
