@@ -38,6 +38,42 @@
   object-fit: cover;
 }
 
+/* Foto utuh (mis. lembar spesifikasi bahan) tampil penuh, tidak terpotong di tengah */
+.product-thumb.has-img {
+  height: auto;
+  aspect-ratio: 4 / 5;
+  padding: 10px;
+  background: var(--gl);
+}
+
+.product-thumb.has-img img {
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--w);
+  box-shadow: var(--sh);
+}
+
+/* Product Knowledge landing: one card per section */
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hub-card h3 {
+  font-size: 17px;
+}
+
+.hub-ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--gl2);
+  color: var(--acc);
+  display: grid;
+  place-items: center;
+}
+
 .app-loading {
   min-height: 60vh;
   display: grid;
@@ -186,6 +222,84 @@
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid var(--b);
+}
+
+.series-map h3 {
+  font-size: 18px;
+}
+
+.series-matrix {
+  min-width: 560px;
+}
+
+.series-matrix thead th {
+  white-space: nowrap;
+}
+
+.series-matrix th,
+.series-matrix td {
+  vertical-align: middle;
+}
+
+.series-matrix tbody th {
+  width: 150px;
+  color: var(--t);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.series-matrix td {
+  min-width: 170px;
+}
+
+.series-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--b);
+  border-radius: 9px;
+  background: var(--w);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.series-cell + .series-cell {
+  margin-top: 6px;
+}
+
+.series-cell:hover {
+  border-color: var(--b2);
+  background: var(--gl2);
+}
+
+.series-cell-thumb {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 7px;
+  background: var(--gl2);
+  color: #a3a3a0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.series-cell-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.series-cell-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
 }
 
 .members-grid {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useData } from '@/components/providers/DataProvider';
 import { useModal } from '@/components/providers/ModalProvider';
@@ -9,32 +9,41 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
-import { Note } from '@/components/ui/Note';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { ProductStatusTag } from '@/components/ui/badges';
-import { PRODUCT_CATEGORIES } from '@/lib/constants';
-import { isGarment } from '@/lib/product-schema';
 import type { Product, ProductCategory } from '@/lib/types';
-import { rupiah } from '@/lib/utils/format';
+import { ProductCard } from './ProductCard';
 import { ProductDetail } from './ProductDetail';
 import { ProductForm } from './ProductForm';
-
-function productIcon(category: ProductCategory): string {
-  if (category === 'Size Chart') return 'ruler';
-  if (category === 'Fabric Collection') return 'layers';
-  if (category === 'Product Series') return 'library';
-  return 'shirt';
-}
+import { ProductHubCards } from './ProductHubCards';
+import { SeriesMatrix } from './SeriesMatrix';
+import {
+  GARMENT_CATEGORIES,
+  SECTION_META,
+  isGarmentCategory,
+  isProductSection,
+  sectionForCategory,
+  type ProductSection,
+} from './product-sections';
 
 export function ProductsView() {
   const { snapshot, hydrated, deleteContent, setVisitedProducts } = useData();
   const { canManage } = useRole();
   const { openModal, closeModal } = useModal();
   const { showToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
+
   const openId = searchParams.get('open');
-  const [category, setCategory] = useState('Semua');
+  const sectionParam = searchParams.get('section');
+  const categoryParam = searchParams.get('category');
+  // Legacy `?category=...` links land on the section that owns that category.
+  const section: ProductSection | null = isProductSection(sectionParam)
+    ? sectionParam
+    : sectionForCategory(categoryParam);
+
   const [query, setQuery] = useState('');
+  // Chip filter lives in the URL (`?section=product&category=...`), so it can never go stale.
+  const garment: string = isGarmentCategory(categoryParam) ? categoryParam : 'Semua';
   const openedRef = useRef<string | null>(null);
   const openDetailRef = useRef<(id: string) => boolean>(() => false);
 
@@ -43,11 +52,35 @@ export function ProductsView() {
   }, [hydrated, setVisitedProducts]);
 
   const products = snapshot.content.products;
-  const filtered = useMemo(() => {
-    const search = query.trim().toLowerCase();
+
+  const counts = useMemo(() => {
+    const base: Record<ProductSection, number> = { series: 0, fabric: 0, size: 0, product: 0 };
+    products.forEach((product) => {
+      (Object.keys(base) as ProductSection[]).forEach((key) => {
+        if (SECTION_META[key].categories.includes(product.category)) base[key] += 1;
+      });
+    });
+    return base;
+  }, [products]);
+
+  const sectionItems = useMemo(
+    () =>
+      section
+        ? products.filter((product) => SECTION_META[section].categories.includes(product.category))
+        : [],
+    [products, section],
+  );
+
+  const visible =
+    section === 'product' && garment !== 'Semua'
+      ? sectionItems.filter((product) => product.category === garment)
+      : sectionItems;
+
+  const search = query.trim();
+  const results = useMemo(() => {
+    if (!search) return [];
+    const needle = search.toLowerCase();
     return products.filter((product) => {
-      if (category !== 'Semua' && product.category !== category) return false;
-      if (!search) return true;
       const fabricName =
         products.find(
           (entry) => entry.category === 'Fabric Collection' && entry.code === product.fabric,
@@ -56,15 +89,31 @@ export function ProductsView() {
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
-        .includes(search);
+        .includes(needle);
     });
-  }, [category, products, query]);
+  }, [products, search]);
+
+  const goToSection = (next: ProductSection | null) => {
+    setQuery('');
+    if (!next) {
+      router.replace('/products', { scroll: false });
+      return;
+    }
+    router.push(`/products?section=${next}`, { scroll: false });
+  };
+
+  const selectGarment = (next: string) => {
+    router.replace(
+      next === 'Semua' ? '/products?section=product' : `/products?section=product&category=${next}`,
+      { scroll: false },
+    );
+  };
 
   const openProductDetail = (product: Product) => {
     openModal(
       <ProductDetail
         product={product}
-        imageUrl={snapshot.images[product.id]}
+        imageUrl={product.image}
         products={products}
         canManage={canManage}
         onClose={closeModal}
@@ -81,18 +130,24 @@ export function ProductsView() {
 
   const openProductForm = (current?: Product, initialCategory?: ProductCategory) => {
     const fallbackCategory: ProductCategory =
-      category !== 'Semua' ? (category as ProductCategory) : initialCategory ?? 'Thobe';
+      initialCategory ??
+      (isGarmentCategory(garment) && section === 'product'
+        ? garment
+        : section
+          ? SECTION_META[section].newCategory
+          : 'Thobe');
     openModal(
       <ProductForm
         key={current?.id ?? `new-${fallbackCategory}`}
         current={current}
         initialCategory={current?.category ?? fallbackCategory}
-        imageUrl={current ? snapshot.images[current.id] : undefined}
         onClose={closeModal}
         onSaved={(item) => {
           closeModal();
           setQuery('');
-          if (category !== 'Semua') setCategory(item.category);
+          const target = sectionForCategory(item.category);
+          if (target && target !== section) goToSection(target);
+          else if (isGarmentCategory(item.category)) selectGarment(item.category);
         }}
       />,
       { large: true },
@@ -126,47 +181,64 @@ export function ProductsView() {
     if (openDetailRef.current(openId)) openedRef.current = openId;
   }, [openId, products]);
 
-  const countCategory = (value: string) =>
-    value === 'Semua' ? products.length : products.filter((product) => product.category === value).length;
+  // A deep link that only carries `?open=` still needs a section behind the modal.
+  useEffect(() => {
+    if (!openId || section) return;
+    const product = products.find((entry) => entry.id === openId);
+    const target = product ? sectionForCategory(product.category) : null;
+    if (target) router.replace(`/products?section=${target}&open=${openId}`, { scroll: false });
+  }, [openId, products, router, section]);
+
+  const renderGrid = (items: Product[]) => (
+    <div className="grid g3 mt">
+      {items.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          image={product.image}
+          canManage={canManage}
+          onOpen={() => openProductDetail(product)}
+          onEdit={() => openProductForm(product)}
+          onDelete={() => confirmDeleteProduct(product)}
+        />
+      ))}
+    </div>
+  );
+
+  const addButton = canManage && section && !search ? (
+    <button className="btn p" onClick={() => openProductForm()}>
+      <Icon name="plus" />
+      {SECTION_META[section].addLabel}
+    </button>
+  ) : null;
 
   return (
     <>
       <PageHeader
         eyebrow="Learning & Service"
         title="Product Knowledge"
-        subtitle="Pusat informasi produk Samaqu."
-        actions={
-          canManage ? (
-            <button className="btn p" onClick={() => openProductForm()}>
-              <Icon name="plus" />
-              Tambah Produk
-            </button>
-          ) : null
+        subtitle={
+          section
+            ? SECTION_META[section].blurb
+            : 'Pilih bagian yang ingin dipelajari lebih dulu.'
         }
+        actions={addButton}
       />
 
-      <Note>
-        Data bertanda <b>Contoh</b> adalah data dummy, bukan informasi resmi Samaqu. Ganti dengan
-        data resmi tim produk. Data dan foto disimpan lokal di browser ini (belum di server).
-      </Note>
-
       <div className="row sp wrap mt">
-        <div className="chips">
-          {['Semua', ...PRODUCT_CATEGORIES].map((value) => (
-            <button
-              key={value}
-              className={`chip${category === value ? ' on' : ''}`}
-              onClick={() => setCategory(value)}
-            >
-              {value} <span style={{ opacity: 0.6 }}>{countCategory(value)}</span>
-            </button>
-          ))}
-        </div>
-        <div className="search" style={{ maxWidth: 300 }}>
+        {section ? (
+          <button className="btn sm" onClick={() => goToSection(null)}>
+            <Icon name="arrow-left" />
+            Semua bagian
+          </button>
+        ) : (
+          <div />
+        )}
+        <div className="search" style={{ maxWidth: 320 }}>
           <Icon name="search" />
           <input
             className="inp"
-            placeholder="Cari nama, kode, seri, bahan…"
+            placeholder="Cari semua kategori…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label="Cari produk"
@@ -174,110 +246,71 @@ export function ProductsView() {
         </div>
       </div>
 
-      {filtered.length ? (
-        <div className="grid g3 mt">
-          {filtered.map((product) => {
-            const image = snapshot.images[product.id];
-            const meta = isGarment(product.category)
-              ? [
-                  product.series,
-                  product.fabric ? `Bahan ${product.fabric}` : '',
-                  rupiah(product.price),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : product.category === 'Fabric Collection'
-                ? [product.composition, product.gsm ? `${product.gsm} GSM` : '']
-                    .filter(Boolean)
-                    .join(' · ')
-                : product.category === 'Product Series'
-                  ? `${product.memberIds.length} produk`
-                  : '';
-            return (
-              <div
-                className="card ck"
-                key={product.id}
-                style={{ display: 'flex', flexDirection: 'column' }}
-                role="link"
-                tabIndex={0}
-                onClick={() => openProductDetail(product)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openProductDetail(product);
-                  }
-                }}
-              >
-                <div className="product-thumb">
-                  {image ? (
-                    <img src={image} alt="" />
-                  ) : (
-                    <Icon name={productIcon(product.category)} size={36} />
-                  )}
-                </div>
-                <div className="row sp mt">
-                  <span className="tag">{product.category}</span>
-                  <span className="row" style={{ gap: 4 }}>
-                    {product.sample ? <span className="tag">Contoh</span> : null}
-                    <ProductStatusTag status={product.status} />
-                  </span>
-                </div>
-                <h3 className="mt1">{product.name}</h3>
-                <div className="sm muted">
-                  {product.code}
-                  {meta ? ` · ${meta}` : ''}
-                </div>
-                <p className="sm muted mt1 clamp-2" style={{ flex: 1 }}>
-                  {product.description || product.characteristics || product.guide || ''}
-                </p>
-                {canManage ? (
-                  <div className="row mt">
-                    <button
-                      className="btn sm"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openProductForm(product);
-                      }}
-                    >
-                      <Icon name="pencil" />
-                      Edit
-                    </button>
-                    <button
-                      className="btn sm danger"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        confirmDeleteProduct(product);
-                      }}
-                    >
-                      <Icon name="trash-2" />
-                      Hapus
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
+      {search ? (
         <div className="mt">
-          <EmptyState
-            icon={query ? 'search-x' : 'shirt'}
-            title={query ? 'Tidak ada produk yang cocok' : 'Belum ada data'}
-            subtitle={
-              query
-                ? 'Coba kata kunci lain atau ubah filter.'
-                : 'Belum ada data pada kategori ini.'
-            }
-            action={
-              canManage ? (
-                <button className="btn sm" onClick={() => openProductForm()}>
-                  <Icon name="plus" />
-                  Tambah
-                </button>
-              ) : null
-            }
-          />
+          <div className="row sp wrap">
+            <h3 style={{ fontSize: 15.5 }}>Hasil pencarian “{search}”</h3>
+            <span className="tag">{results.length} item</span>
+          </div>
+          {results.length ? (
+            renderGrid(results)
+          ) : (
+            <div className="mt">
+              <EmptyState
+                icon="search-x"
+                title="Tidak ada yang cocok"
+                subtitle="Coba kata kunci lain, misalnya nama seri, kode, atau jenis bahan."
+              />
+            </div>
+          )}
         </div>
+      ) : section ? (
+        <>
+          {section === 'series' ? (
+            <SeriesMatrix series={sectionItems} onOpen={openProductDetail} />
+          ) : null}
+
+          {section === 'product' ? (
+            <div className="chips mt">
+              {['Semua', ...GARMENT_CATEGORIES].map((value) => (
+                <button
+                  key={value}
+                  className={`chip${garment === value ? ' on' : ''}`}
+                  onClick={() => selectGarment(value)}
+                >
+                  {value}{' '}
+                  <span style={{ opacity: 0.6 }}>
+                    {value === 'Semua'
+                      ? sectionItems.length
+                      : sectionItems.filter((product) => product.category === value).length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {visible.length ? (
+            renderGrid(visible)
+          ) : (
+            <div className="mt">
+              <EmptyState
+                icon={SECTION_META[section].icon}
+                title="Belum ada data di bagian ini"
+                subtitle="Tambahkan data baru supaya admin lain bisa mempelajarinya."
+                action={
+                  canManage ? (
+                    <button className="btn sm" onClick={() => openProductForm()}>
+                      <Icon name="plus" />
+                      {SECTION_META[section].addLabel}
+                    </button>
+                  ) : null
+                }
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <ProductHubCards counts={counts} onOpen={goToSection} />
       )}
     </>
   );

@@ -60,8 +60,18 @@ function optionOf(option: string | RecordFieldOption): RecordFieldOption {
 }
 
 function toFormValue(field: RecordField, raw: unknown): RecordValue {
-  if (field.type === 'multi' || field.type === 'list') {
+  if (field.type === 'multi') {
     return Array.isArray(raw) ? raw.map(String) : [];
+  }
+  if (field.type === 'list') {
+    if (Array.isArray(raw)) return raw.map(String);
+    // Catatan lama tersimpan sebagai teks multi-baris: tetap bisa diedit per poin.
+    return typeof raw === 'string'
+      ? raw
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [];
   }
   if (field.type === 'check') return Boolean(raw);
   if (field.type === 'lines' || field.type === 'chat') {
@@ -266,7 +276,11 @@ export function RecordForm({
               <input
                 className="inp"
                 value={row}
-                placeholder={`${field.label} ${rowIndex + 1}`}
+                placeholder={
+                  rowIndex === 0 && field.placeholder
+                    ? field.placeholder
+                    : `${field.label} ${rowIndex + 1}`
+                }
                 aria-label={`${field.label} ${rowIndex + 1}`}
                 onChange={(event) => {
                   const next = event.target.value;

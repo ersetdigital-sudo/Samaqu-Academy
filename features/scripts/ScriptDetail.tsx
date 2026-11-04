@@ -27,7 +27,6 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
       <div className="row sp">
         <div className="row" style={{ gap: 6 }}>
           <span className="tag gr">{script.category}</span>
-          {script.sample ? <span className="tag">Contoh</span> : null}
         </div>
         <button className="icb" onClick={onClose} aria-label="Tutup">
           <Icon name="x" />
@@ -84,7 +83,15 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
       {script.notes ? (
         <>
           <h3 className="mt">Catatan Penggunaan</h3>
-          <p className="sm muted">{script.notes}</p>
+          <ul className="sm muted notes-list">
+            {script.notes
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map((line, index) => (
+                <li key={`${index}-${line}`}>{line}</li>
+              ))}
+          </ul>
         </>
       ) : null}
 
@@ -98,9 +105,11 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
         </div>
       ) : null}
 
-      <Note className="mt">
-        Sesuaikan dengan konteks percakapan. Bagian dalam [kurung] wajib diganti dengan data resmi.
-      </Note>
+      {script.sample ? (
+        <Note className="mt">
+          Sesuaikan dengan konteks percakapan. Bagian dalam [kurung] wajib diganti dengan data resmi.
+        </Note>
+      ) : null}
     </>
   );
 }

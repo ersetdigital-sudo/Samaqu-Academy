@@ -35,9 +35,6 @@ const UNSHIFT_COLLECTIONS = new Set<ContentCollectionKey>([
   'products',
 ]);
 
-const IMAGE_BUCKET = 'product-images';
-const IMAGE_URL_TTL = 60 * 60 * 24;
-
 interface ContentRow {
   id: string;
   type: string;
@@ -188,40 +185,6 @@ export function createSupabaseRepository(
   let previousActivity: ActivityItem[] = [];
   let previousAttempts: AssessmentAttempt[] = [];
 
-  async function loadImages(): Promise<Record<string, string>> {
-    const { data, error } = await supabase.storage
-      .from(IMAGE_BUCKET)
-      .list('', { limit: 1000 });
-    if (error || !data) return {};
-    const paths = data
-      .map((object) => object.name)
-      .filter((name) => /\.(webp|jpe?g|png)$/i.test(name));
-    if (!paths.length) return {};
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(IMAGE_BUCKET)
-      .createSignedUrls(paths, IMAGE_URL_TTL);
-    if (signedError || !signed) return {};
-    const urls: Record<string, string> = {};
-    signed.forEach((item) => {
-      if (item.path && item.signedUrl) {
-        urls[item.path.replace(/\.[^.]+$/, '')] = item.signedUrl;
-      }
-    });
-    return urls;
-  }
-
-  async function deleteProductImage(productId: string): Promise<void> {
-    const { data } = await supabase.storage
-      .from(IMAGE_BUCKET)
-      .list('', { limit: 1000, search: productId });
-    const names = (data ?? [])
-      .map((object) => object.name)
-      .filter((name) => name === productId || name.startsWith(`${productId}.`));
-    if (names.length) {
-      await supabase.storage.from(IMAGE_BUCKET).remove(names);
-    }
-  }
-
   return {
     async load(): Promise<AcademySnapshot> {
       const [contentResult, progressResult, activityResult, attemptsResult, settingsResult] =
@@ -273,7 +236,6 @@ export function createSupabaseRepository(
         settings: {
           passMark: settingsResult.data?.pass_mark ?? 75,
         },
-        images: await loadImages(),
       };
     },
 
@@ -317,9 +279,6 @@ export function createSupabaseRepository(
     async deleteContent(key: ContentCollectionKey, id: string): Promise<void> {
       const { error } = await supabase.from('content_items').delete().eq('id', id);
       if (error) throw new Error(error.message);
-      if (key === 'products') {
-        await deleteProductImage(id).catch(() => undefined);
-      }
     },
 
     async saveProgress(progress: ProgressState): Promise<void> {
@@ -472,34 +431,5 @@ export function createSupabaseRepository(
       if (error) throw new Error(error.message);
     },
 
-    async saveImage(productId: string, blob: Blob): Promise<string> {
-      const extension =
-        blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/png' ? 'png' : 'webp';
-      const path = `${productId}.${extension}`;
-      const { data: existing } = await supabase.storage
-        .from(IMAGE_BUCKET)
-        .list('', { limit: 1000, search: productId });
-      const stale = (existing ?? [])
-        .map((object) => object.name)
-        .filter((name) => name.startsWith(`${productId}.`) && name !== path);
-      if (stale.length) await supabase.storage.from(IMAGE_BUCKET).remove(stale);
-
-      const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(path, blob, {
-        upsert: true,
-        contentType: blob.type || 'image/webp',
-        cacheControl: '31536000',
-      });
-      if (error) throw new Error(error.message);
-
-      const { data, error: signError } = await supabase.storage
-        .from(IMAGE_BUCKET)
-        .createSignedUrl(path, IMAGE_URL_TTL);
-      if (signError || !data) throw new Error(signError?.message || 'Gagal membuat URL gambar.');
-      return data.signedUrl;
-    },
-
-    async deleteImage(productId: string): Promise<void> {
-      await deleteProductImage(productId);
-    },
   };
 }

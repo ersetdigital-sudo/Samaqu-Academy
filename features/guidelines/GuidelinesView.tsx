@@ -331,10 +331,16 @@ export function GuidelinesView() {
                       </div>
                       <div className="dd mt1">
                         <div className="dont">
-                          <div className="lbl">Before</div>"{item.before}"
+                          <div className="lbl">Before</div>
+                          <div className="ba-chat">
+                            <ChatBubbles text={item.before} />
+                          </div>
                         </div>
                         <div className="do">
-                          <div className="lbl">After</div>"{item.after}"
+                          <div className="lbl">After</div>
+                          <div className="ba-chat">
+                            <ChatBubbles text={item.after} />
+                          </div>
                         </div>
                       </div>
                       <p className="sm muted mt1">

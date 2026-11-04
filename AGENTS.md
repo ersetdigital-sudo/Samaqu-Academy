@@ -124,7 +124,7 @@ Key rules:
 - Content read: any authenticated user.
 - Content write/settings write: owner only via `public.is_owner()` (JWT `app_metadata.role = 'owner'`).
 - Progress/activity/attempts: only the owning user (`auth.uid()`).
-- Product photos: private `product-images` bucket, signed URLs (24h), owner-only writes.
+- Product photos: no Storage usage; the owner pastes a Cloudinary URL into the product form (`data.image`).
 - `allowed_emails` restricts new auth users. Existing users are unaffected.
 - `disable_signup` is true. Do not open public signup without an explicit request and an allowlist review.
 - `content_items.sort_order` is **bigint** (new unprefixed items use negative timestamps). Do not change it back to integer.
@@ -183,7 +183,7 @@ Supabase injects `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE
 - Icons: import individually in `components/ui/Icon.tsx`. Never import the whole Lucide library or use a CDN.
 - Fonts: use `next/font/local` + the 4 subset WOFF2 files in `app/fonts`; the `fonts/` TTFs are source archive only.
 - Keep heavy features route-split. Assistant logic is dynamically imported on first question; do not import it into the app shell.
-- Product images are compressed to WebP/JPEG (max 1200px) and stored in Supabase Storage; never put base64 images in localStorage.
+- Product photos are Cloudinary URLs typed into the form and stored in the product's `image` field; the app never uploads files and never puts base64 images in localStorage.
 
 ## Vercel / resource constraints
 
@@ -212,7 +212,7 @@ Browser checks:
 - Nav links have no underline (default, hover, active); article links still underline.
 - Owner can CRUD content; CS role is read-only (RLS enforced).
 - Material progress persists across reload.
-- Product image upload goes to Storage and survives reload.
+- A product photo URL saved in the form renders on the card, the detail modal, and the series matrix after reload.
 - Assessment attempt/activity persists.
 - Owner can open `/settings/ai`: save/replace/delete API key, masked last4 only, test connection, load models, test model, save per-feature models, save/reset/preview behavior, view usage logs.
 - CS role cannot open `/settings/ai` or `/settings/memory`; direct API calls to `ai-admin` return 403.
@@ -232,7 +232,7 @@ If testing against live Supabase, use unique test IDs and remove only the rows y
 - Google OAuth redirect config (Supabase Site URL/allow-list + Google Cloud callback).
 - Nav underline reset and `.content` article underline exception.
 - Subset fonts and explicit icon imports.
-- Private Storage bucket + signed URLs.
+- Product photos stay URLs (`Product.image`); there is no Storage upload path any more.
 - AI key encryption, owner-only `ai-admin`, server-side MiMo calls, and the `AI_SETTINGS_ENCRYPTION_KEY` secret.
 - Draft knowledge exclusion and Published-only organizational memory.
 - Static export plus Supabase Edge Functions (do not move AI to Vercel Functions).
@@ -343,6 +343,95 @@ Docs contradicted the original assumptions. Authoritative findings:
 - `features/scripts/BeforeAfterGuidance.tsx` renders the two blocks above the Before/After
   comparison on the BA card and returns `null` when both are empty, so old rows are unchanged.
 - Seeded "Proactive Customer Assistance" (Size Consultation, Materi Pembelajaran).
+
+### 2026-11-04 — Before & After transcript readability
+
+- Symptom: the Before/After chat text rendered as one run-on paragraph (CSS collapsed the
+  `\n` between `C:`/`A:` turns) and the two cards squeezed into ~190px columns on tablet.
+- Fix: `.dd .ba-text { white-space: pre-line; line-height: 1.75; }` keeps one chat turn per
+  row; the `.dd` pair now stacks below 980px instead of 600px. Applied in `ScriptsView.tsx`
+  and `GuidelinesView.tsx` (the same block is reused in guideline 06). Content unchanged.
+
+### 2026-11-04 — Before & After rendered as chat bubbles
+
+- Follow-up: the owner asked for the Chat Flow treatment ("Customer"/"Admin" labels, white
+  left bubble / dark right bubble). `ScriptsView` and `GuidelinesView` now render the Before and
+  After texts through the existing `ChatBubbles` (same parser as Chat Flow), wrapped in the new
+  `.ba-chat` flex-gap container. `.dd .ba-text` removed; data untouched.
+- Manual entries render the same only when each line starts with `C:`/`A:` (`parseChatText`
+  defaults unknown prefixes to customer, so an unprefixed text becomes one long customer bubble).
+  `BEFORE_AFTER_FIELDS.hint` now states that rule on both fields.
+
+### 2026-11-04 — Product Knowledge split into focused sections
+
+- `/products` no longer has a "Semua" tab. It opens on four landing cards (Series, Bahan, Size
+  Chart, Produk) and each section shows only its own categories. Query param is
+  `?section=series|fabric|size|product`; legacy `?category=...` is mapped to its section by
+  `sectionForCategory()` and a bare `?open=id` gets the owning section added behind the modal.
+- New files: `product-sections.ts` (section meta + category mapping, single source of truth),
+  `ProductCard.tsx` (tile extracted from the old view), `ProductHubCards.tsx` (landing cards).
+  `ProductsView.tsx` is now only the orchestrator (section, search, form/delete modals).
+- The Produk chip filter is derived from `?category=` instead of local state, so the URL can
+  never disagree with the visible filter.
+- Search stays cross-category and shows the card's category tag; an empty query returns to the
+  active section. `SeriesMatrix` renders only in the Series section.
+- Style: `.hub-card`/`.hub-ic` added to `styles/pages.css`; no new dependency. `/products` JS
+  gzip 243.8 → 244.7 KB (+0.37%).
+
+### 2026-11-04 — Series price in matrix
+
+- `PRODUCT_SCHEMA['Product Series']` gained `price` ("Harga Mulai (Rp)", `type: 'number'`, hint
+  acuan size M / kain B-01). `Product.price` already existed as a string, so no new key and no
+  migration; ProductDetail renders it through `rupiah()` like garments.
+- `SeriesMatrix` shows `mulai Rp…` (`rupiah(item.price)`) under the series code in each cell, read
+  from the row; series without a price render exactly as before.
+- Data: Jiharkah/Nahawand 359000; Imron/Bayati/Karim/Imalah 374000.
+
+### 2026-11-04 — Product photos are pasted URLs (Cloudinary)
+
+- Owner decision: no upload in the app, photos live in Cloudinary and only the URL is stored;
+  the empty `product-images` bucket was retired (deleted 0 objects — nothing to move).
+- `Product.image` (JSONB `data.image`) replaces `AcademySnapshot.images`. Removed the upload path:
+  `saveImage`/`deleteImage` on the repository, `saveProductImage`/`deleteProductImage` in
+  `DataProvider`, `lib/data/image-store.ts`, and `lib/utils/image.ts` (`compressImage`).
+- `ProductForm` Media block is now one URL field with a live preview and an `http(s)` check;
+  card, detail modal, and `SeriesMatrix` read `product.image` directly, so an edit shows instantly.
+
+### 2026-11-04 — Script notes keep line breaks as bullets
+
+- Symptom: "Catatan Penggunaan" was stored with `\n` but rendered as one run-on
+  paragraph (`<p>` collapses newlines).
+- Fix: `ScriptDetail` splits `script.notes` per line into `ul.notes-list` (`.notes-list`
+  in `styles/components.css`, disc bullets, 18px indent); Before & After `notes` uses
+  `white-space: pre-wrap` in `ScriptsView`. Data and forms untouched — newlines were
+  always saved correctly.
+
+### 2026-11-04 — Sample-only hint in script detail
+
+- The "Bagian dalam [kurung] wajib diganti…" Note rendered for every script, including
+  edited ones. It now renders only when `script.sample === true` (untouched seed content);
+  both script submit paths already write `sample: false`, so edited scripts lose the hint
+  without any data change.
+
+### 2026-11-04 — Catatan script diedit per poin (bullet otomatis)
+
+- Sebelumnya catatan hanya jadi bullet kalau owner menekan Enter di textarea; kalau ditulis
+  satu paragraf hasilnya satu bullet panjang.
+- `SCRIPT_FIELDS.notes` kini `type: 'list'` (baris bernomor, tambah/hapus/urut) dengan satu
+  baris kosong siap isi untuk script baru; `ScriptsView` menyimpan balik sebagai
+  `notes: string.join('\n')`, jadi format JSONB tidak berubah dan pembaca lama
+  (`ScriptDetail`, assistant, retrieval AI) tetap jalan.
+- `RecordForm.toFormValue` untuk `list` menerima string multi-baris (split `\n`), sehingga
+  catatan script lama tetap muncul per poin saat diedit.
+
+### 2026-11-04 — Variasi respons diedit per baris
+
+- `SCRIPT_FIELDS.variants` kini `type: 'list'` (baris bernomor, tambah/hapus/urut) seperti
+  Catatan Penggunaan, dengan contoh isi pada baris pertama agar mudah diisi.
+- `RecordForm` memakai `field.placeholder` untuk baris pertama field `list` (baris lain tetap
+  `"<label> <n>"`).
+- Script baru mulai dengan satu baris variasi kosong (`variants: ['']`); `ScriptsView` tetap
+  menyimpan `variants` sebagai `string[]`, jadi format JSONB dan pembaca lama tidak berubah.
 
 ## Operational notes
 

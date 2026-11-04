@@ -71,7 +71,6 @@ export function ProblemsView() {
           <div className="row wrap" style={{ gap: 6 }}>
             <span className="tag">{problem.group}</span>
             <SeverityTag severity={problem.severity} />
-            {problem.sample ? <span className="tag">Contoh</span> : null}
           </div>
           <button className="icb" onClick={closeModal} aria-label="Tutup">
             <Icon name="x" />

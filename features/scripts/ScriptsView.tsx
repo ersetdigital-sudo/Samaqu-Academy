@@ -7,6 +7,7 @@ import { useModal } from '@/components/providers/ModalProvider';
 import { useRole } from '@/components/providers/RoleProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { CaseMarkTag } from '@/components/ui/badges';
+import { ChatBubbles } from '@/components/ui/ChatBubbles';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
@@ -220,6 +221,8 @@ export function ScriptsView() {
         initial={current ?? {}}
         defaults={{
           category: filter.cat !== 'Semua' ? filter.cat : SCRIPT_CATEGORIES[0],
+          variants: [''],
+          notes: [''],
         }}
         submitLabel={current ? 'Simpan Perubahan' : 'Tambahkan'}
         onSubmit={async (values) => {
@@ -230,7 +233,7 @@ export function ScriptsView() {
             situation: String(values.situation),
             response: String(values.response),
             variants: Array.isArray(values.variants) ? values.variants : [],
-            notes: String(values.notes),
+            notes: Array.isArray(values.notes) ? values.notes.map(String).join('\n') : '',
             tags: Array.isArray(values.tags) ? values.tags : [],
             sample: false,
             updatedAt: Date.now(),
@@ -456,7 +459,6 @@ export function ScriptsView() {
                           <div className="row mt1" style={{ gap: 6 }}>
                             <span className="tag gr">{ba.category}</span>
                             {ba.mark ? <CaseMarkTag mark={ba.mark} /> : null}
-                            {ba.sample ? <span className="tag">Contoh</span> : null}
                           </div>
                         </div>
                         <div className="row wrap">
@@ -473,10 +475,16 @@ export function ScriptsView() {
                       <BeforeAfterGuidance item={ba} />
                       <div className="dd mt">
                         <div className="dont">
-                          <div className="lbl">Before</div>"{ba.before}"
+                          <div className="lbl">Before</div>
+                          <div className="ba-chat">
+                            <ChatBubbles text={ba.before} />
+                          </div>
                         </div>
                         <div className="do">
-                          <div className="lbl">After</div>"{ba.after}"
+                          <div className="lbl">After</div>
+                          <div className="ba-chat">
+                            <ChatBubbles text={ba.after} />
+                          </div>
                         </div>
                       </div>
                       <div className="grid g2 mt" style={{ gap: 12 }}>
@@ -487,7 +495,7 @@ export function ScriptsView() {
                           {ba.why}
                         </div>
                         {ba.notes ? (
-                          <div className="sm">
+                          <div className="sm" style={{ whiteSpace: 'pre-wrap' }}>
                             <div className="xs muted" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
                               Catatan untuk admin
                             </div>
@@ -542,7 +550,6 @@ export function ScriptsView() {
                         >
                           <div className="row sp">
                             <span className="tag gr">{script.category}</span>
-                            {script.sample ? <span className="tag">Contoh</span> : null}
                           </div>
                           <h3 className="mt">{script.title}</h3>
                           {script.situation ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useData } from '@/components/providers/DataProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
@@ -9,7 +9,6 @@ import { PRODUCT_CATEGORIES, PRODUCT_PHOTO_LABELS, PRODUCT_STATUSES } from '@/li
 import { getProductFields, isGarment, type ProductField } from '@/lib/product-schema';
 import type { Product, ProductCategory } from '@/lib/types';
 import { newId } from '@/lib/utils/id';
-import { compressImage } from '@/lib/utils/image';
 
 type FormValues = Record<string, string | string[]>;
 
@@ -42,7 +41,6 @@ function formTitle(category: ProductCategory, editing: boolean): string {
 interface ProductFormProps {
   current?: Product;
   initialCategory: ProductCategory;
-  imageUrl?: string;
   onSaved: (item: Product) => void;
   onClose: () => void;
 }
@@ -50,30 +48,18 @@ interface ProductFormProps {
 export function ProductForm({
   current,
   initialCategory,
-  imageUrl,
   onSaved,
   onClose,
 }: ProductFormProps) {
-  const { snapshot, upsertContent, saveProductImage, deleteProductImage } = useData();
+  const { snapshot, upsertContent } = useData();
   const { showToast } = useToast();
   const [category, setCategory] = useState<ProductCategory>(current?.category ?? initialCategory);
   const [values, setValues] = useState<FormValues>(() =>
     initialValues(current?.category ?? initialCategory, current),
   );
-  const [preview, setPreview] = useState<string | null>(imageUrl ?? null);
-  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
-  const [removeImage, setRemoveImage] = useState(false);
+  const [image, setImage] = useState(current?.image ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const localUrls = useRef<string[]>([]);
-
-  useEffect(
-    () => () => {
-      localUrls.current.forEach((url) => URL.revokeObjectURL(url));
-    },
-    [],
-  );
 
   const fields = getProductFields(category);
   const sections = [...new Set(fields.map((field) => field.section))];
@@ -94,27 +80,6 @@ export function ProductForm({
     setErrors({});
   };
 
-  const pickImage = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const blob = await compressImage(file);
-      const url = URL.createObjectURL(blob);
-      localUrls.current.push(url);
-      setPreview(url);
-      setPendingBlob(blob);
-      setRemoveImage(false);
-      showToast('Preview gambar siap');
-    } catch (cause) {
-      showToast(cause instanceof Error ? cause.message : 'Gagal memproses gambar', 'err');
-    }
-  };
-
-  const removePhoto = () => {
-    setPreview(null);
-    setPendingBlob(null);
-    setRemoveImage(true);
-  };
-
   const validate = (): boolean => {
     const nextErrors: Record<string, string> = {};
     fields.forEach((field) => {
@@ -124,6 +89,10 @@ export function ProductForm({
     });
     const price = String(values.price ?? '').trim();
     if (price && Number(price) < 0) nextErrors.price = 'Harga tidak boleh negatif';
+    const photo = image.trim();
+    if (photo && !/^https?:\/\//i.test(photo)) {
+      nextErrors.image = 'URL foto harus diawali http:// atau https://';
+    }
     const code = String(values.code ?? '').trim();
     if (code) {
       const duplicate = snapshot.content.products.find(
@@ -166,21 +135,17 @@ export function ProductForm({
       table: text('table'),
       measurement: text('measurement'),
       guide: text('guide'),
+      collar: text('collar'),
+      placket: text('placket'),
+      customerPitch: text('customerPitch'),
       memberIds: Array.isArray(values.memberIds) ? values.memberIds : [],
+      image: image.trim(),
       sample: false,
       updatedAt: Date.now(),
     };
 
     try {
       await upsertContent('products', item);
-      try {
-        if (pendingBlob) await saveProductImage(item.id, pendingBlob);
-        else if (removeImage) await deleteProductImage(item.id);
-      } catch {
-        showToast('Data tersimpan, tetapi foto gagal disimpan di browser', 'err');
-        onSaved(item);
-        return;
-      }
       showToast(current ? 'Perubahan berhasil disimpan' : 'Data berhasil ditambahkan');
       onSaved(item);
     } catch (cause) {
@@ -386,42 +351,40 @@ export function ProductForm({
       ))}
 
       <div className="fsec">Media</div>
-      <label className="flab" style={{ marginTop: 12 }}>
+      <label className="flab" htmlFor="pf_image" style={{ marginTop: 12 }}>
         {PRODUCT_PHOTO_LABELS[category] ?? 'Foto Produk'}
       </label>
-      {preview ? (
-        <div className="row" style={{ alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-          <img src={preview} alt="Preview" className="upload-preview" />
-          <div className="row wrap">
-            <button className="btn sm" type="button" onClick={() => fileRef.current?.click()}>
-              <Icon name="refresh-cw" />
-              Ganti Foto
-            </button>
-            <button className="btn sm danger" type="button" onClick={removePhoto}>
-              <Icon name="trash-2" />
-              Hapus Foto
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="upload-box" onClick={() => fileRef.current?.click()}>
-          <Icon name="image-plus" size={26} />
-          <div className="sm mt1">
-            <b>Klik untuk upload gambar</b>
-          </div>
-          <div className="sm muted">JPG/PNG/WebP, maks 8 MB. Gambar dikompres otomatis.</div>
-        </div>
-      )}
       <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
+        className="inp"
+        id="pf_image"
+        value={image}
+        placeholder="https://res.cloudinary.com/…/foto.webp"
         onChange={(event) => {
-          void pickImage(event.target.files?.[0]);
-          event.target.value = '';
+          setImage(event.target.value);
+          setErrors((previous) => {
+            if (!previous.image) return previous;
+            const next = { ...previous };
+            delete next.image;
+            return next;
+          });
         }}
       />
+      <div className="sm muted" style={{ marginTop: 3 }}>
+        Tempel URL gambar dari Cloudinary. Kosongkan jika belum ada foto.
+      </div>
+      {errors.image ? (
+        <div className="sm" style={{ color: 'var(--red)', marginTop: 3 }}>
+          {errors.image}
+        </div>
+      ) : null}
+      {image.trim() ? (
+        <img
+          src={image.trim()}
+          alt="Preview"
+          className="upload-preview"
+          style={{ marginTop: 12 }}
+        />
+      ) : null}
 
       <div className="mfoot">
         <button className="btn" type="button" onClick={onClose}>

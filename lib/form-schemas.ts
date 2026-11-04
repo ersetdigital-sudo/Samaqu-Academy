@@ -191,8 +191,21 @@ export const SCRIPT_FIELDS: RecordField[] = [
     rows: 4,
     hint: 'Tulis natural seperti chat biasa: ramah, ringkas, tidak kaku.',
   },
-  { key: 'variants', label: 'Variasi Respons (opsional)', type: 'lines', full: true, hint: 'Satu variasi per baris.' },
-  { key: 'notes', label: 'Catatan Penggunaan', type: 'textarea', full: true, placeholder: 'Hal yang perlu diperhatikan admin' },
+  {
+    key: 'variants',
+    label: 'Variasi Respons (opsional)',
+    type: 'list',
+    full: true,
+    placeholder: 'Contoh: Baik Kak, untuk ukuran M masih ready ya.',
+    hint: 'Satu variasi per baris. Tambah, hapus, atau urutkan dengan tombol di samping.',
+  },
+  {
+    key: 'notes',
+    label: 'Catatan Penggunaan',
+    type: 'list',
+    full: true,
+    hint: 'Satu poin per baris — otomatis tampil sebagai bullet di detail script.',
+  },
   { key: 'tags', label: 'Tag', type: 'tags', full: true, hint: 'Pisahkan dengan koma. Contoh: stok, ready' },
 ];
 
@@ -247,8 +260,20 @@ export const BEFORE_AFTER_FIELDS: RecordField[] = [
     full: true,
     hint: 'Satu prinsip per baris. Urutan bisa diatur dengan panah.',
   },
-  { key: 'before', label: 'Before: Respons Admin Sebelumnya', type: 'textarea', required: true },
-  { key: 'after', label: 'After: Respons yang Direkomendasikan', type: 'textarea', required: true },
+  {
+    key: 'before',
+    label: 'Before: Respons Admin Sebelumnya',
+    type: 'textarea',
+    required: true,
+    hint: 'Satu pesan per baris. Awali "C:" untuk customer dan "A:" untuk admin.',
+  },
+  {
+    key: 'after',
+    label: 'After: Respons yang Direkomendasikan',
+    type: 'textarea',
+    required: true,
+    hint: 'Satu pesan per baris. Awali "C:" untuk customer dan "A:" untuk admin.',
+  },
   { key: 'why', label: 'Alasan Respons Baru Lebih Baik', type: 'textarea', required: true, full: true },
   { key: 'notes', label: 'Catatan untuk Admin', type: 'textarea', full: true },
 ];

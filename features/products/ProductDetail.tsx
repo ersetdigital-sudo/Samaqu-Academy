@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
+import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
 import { getProductFields } from '@/lib/product-schema';
@@ -72,6 +73,15 @@ export function ProductDetail({
     if (key === 'table') {
       return raw ? <PipeTable value={String(raw)} /> : null;
     }
+    if (key === 'characteristics' && product.category === 'Product Series') {
+      // Kerah/placket/kelompok now have their own fields; drop the duplicated lines.
+      const lines = String(raw ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !/^(Kerah|Placket\/Klep|Kelompok)\s*:/i.test(line));
+      if (!lines.length) return null;
+      return <span style={{ whiteSpace: 'pre-wrap' }}>{lines.join('\n')}</span>;
+    }
     if (key === 'advantages') {
       const lines = String(raw ?? '')
         .split('\n')
@@ -111,13 +121,46 @@ export function ProductDetail({
   const fields = getProductFields(product.category).filter(
     (field) => !['name', 'description'].includes(String(field.key)),
   );
+  // Size chart dan lembar bahan tampil berdampingan dengan tabel agar gambarnya besar dan bisa di-zoom.
+  const hasMediaPanel =
+    product.category === 'Size Chart' || product.category === 'Fabric Collection';
+
+  const imageBlock = imageUrl ? (
+    <img
+      src={imageUrl}
+      alt=""
+      style={{
+        width: '100%',
+        maxHeight: 340,
+        objectFit: 'contain',
+        background: 'var(--gl2)',
+        borderRadius: 10,
+        marginTop: 14,
+      }}
+    />
+  ) : null;
+
+  const fieldsTable = (
+    <table>
+      <tbody>
+        {fields.map((field) => {
+          const value = renderValue(field.key);
+          return (
+            <tr key={String(field.key)}>
+              <th style={{ width: '38%', verticalAlign: 'top' }}>{field.label}</th>
+              <td>{value ?? <span className="muted">—</span>}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
 
   return (
     <>
       <div className="row sp">
         <div className="row">
           <span className="tag">{product.category}</span>
-          {product.sample ? <span className="tag">Contoh</span> : null}
           <ProductStatusTag status={product.status} />
         </div>
         <button className="icb" onClick={onClose} aria-label="Tutup">
@@ -125,20 +168,7 @@ export function ProductDetail({
         </button>
       </div>
 
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt=""
-          style={{
-            width: '100%',
-            maxHeight: 340,
-            objectFit: 'contain',
-            background: 'var(--gl2)',
-            borderRadius: 10,
-            marginTop: 14,
-          }}
-        />
-      ) : null}
+      {hasMediaPanel ? null : imageBlock}
 
       <h2 className="mt">{product.name}</h2>
       {product.description ? (
@@ -147,19 +177,17 @@ export function ProductDetail({
         </p>
       ) : null}
 
-      <table className="mt">
-        <tbody>
-          {fields.map((field) => {
-            const value = renderValue(field.key);
-            return (
-              <tr key={String(field.key)}>
-                <th style={{ width: '38%', verticalAlign: 'top' }}>{field.label}</th>
-                <td>{value ?? <span className="muted">—</span>}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {hasMediaPanel && imageUrl ? (
+        <div className="pd-split mt">
+          <ImageZoom
+            src={imageUrl}
+            label={product.category === 'Size Chart' ? 'Perbesar size chart' : 'Perbesar foto bahan'}
+          />
+          <div>{fieldsTable}</div>
+        </div>
+      ) : (
+        <div className="mt">{fieldsTable}</div>
+      )}
 
       <p className="sm muted mt">
         Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}
