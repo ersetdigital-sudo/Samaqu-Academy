@@ -276,7 +276,11 @@ export function RecordForm({
               <input
                 className="inp"
                 value={row}
-                placeholder={`${field.label} ${rowIndex + 1}`}
+                placeholder={
+                  rowIndex === 0 && field.placeholder
+                    ? field.placeholder
+                    : `${field.label} ${rowIndex + 1}`
+                }
                 aria-label={`${field.label} ${rowIndex + 1}`}
                 onChange={(event) => {
                   const next = event.target.value;

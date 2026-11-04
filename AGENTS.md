@@ -424,6 +424,15 @@ Docs contradicted the original assumptions. Authoritative findings:
 - `RecordForm.toFormValue` untuk `list` menerima string multi-baris (split `\n`), sehingga
   catatan script lama tetap muncul per poin saat diedit.
 
+### 2026-11-04 — Variasi respons diedit per baris
+
+- `SCRIPT_FIELDS.variants` kini `type: 'list'` (baris bernomor, tambah/hapus/urut) seperti
+  Catatan Penggunaan, dengan contoh isi pada baris pertama agar mudah diisi.
+- `RecordForm` memakai `field.placeholder` untuk baris pertama field `list` (baris lain tetap
+  `"<label> <n>"`).
+- Script baru mulai dengan satu baris variasi kosong (`variants: ['']`); `ScriptsView` tetap
+  menyimpan `variants` sebagai `string[]`, jadi format JSONB dan pembaca lama tidak berubah.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

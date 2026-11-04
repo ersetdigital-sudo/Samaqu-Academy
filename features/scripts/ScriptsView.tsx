@@ -221,6 +221,7 @@ export function ScriptsView() {
         initial={current ?? {}}
         defaults={{
           category: filter.cat !== 'Semua' ? filter.cat : SCRIPT_CATEGORIES[0],
+          variants: [''],
           notes: [''],
         }}
         submitLabel={current ? 'Simpan Perubahan' : 'Tambahkan'}

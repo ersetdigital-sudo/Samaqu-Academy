@@ -191,7 +191,14 @@ export const SCRIPT_FIELDS: RecordField[] = [
     rows: 4,
     hint: 'Tulis natural seperti chat biasa: ramah, ringkas, tidak kaku.',
   },
-  { key: 'variants', label: 'Variasi Respons (opsional)', type: 'lines', full: true, hint: 'Satu variasi per baris.' },
+  {
+    key: 'variants',
+    label: 'Variasi Respons (opsional)',
+    type: 'list',
+    full: true,
+    placeholder: 'Contoh: Baik Kak, untuk ukuran M masih ready ya.',
+    hint: 'Satu variasi per baris. Tambah, hapus, atau urutkan dengan tombol di samping.',
+  },
   {
     key: 'notes',
     label: 'Catatan Penggunaan',
