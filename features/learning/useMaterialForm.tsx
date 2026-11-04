@@ -40,6 +40,7 @@ export function useMaterialForm() {
             description: String(values.description),
             objectives: Array.isArray(values.objectives) ? values.objectives : [],
             body: String(values.body),
+            contributor: String(values.contributor ?? '').trim(),
             videoUrl: String(values.videoUrl ?? '').trim(),
             videoDuration: String(values.videoDuration ?? '').trim(),
             sortOrder: Number(values.sortOrder) || nextSortOrder,

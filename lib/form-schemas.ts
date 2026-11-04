@@ -43,6 +43,13 @@ export const MATERIAL_FIELDS: RecordField[] = [
     full: true,
   },
   {
+    key: 'contributor',
+    label: 'Kredit Penyusun',
+    placeholder: 'Contoh: Tim Training Samaqu',
+    hint: 'Opsional. Nama penyusun materi, tampil di kartu dan halaman materi.',
+    full: true,
+  },
+  {
     key: 'videoUrl',
     label: 'Link Video YouTube',
     placeholder: 'https://youtu.be/…',

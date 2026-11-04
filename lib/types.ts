@@ -30,6 +30,8 @@ export interface Material extends BaseContent {
   sortOrder?: number;
   /** Durasi video YouTube, mis. "8:12" — opsional, hanya untuk badge. */
   videoDuration?: string;
+  /** Kredit penyusun materi (nama/kontributor) — opsional, tampil di kartu dan detail. */
+  contributor?: string;
 }
 
 export interface Script extends BaseContent {

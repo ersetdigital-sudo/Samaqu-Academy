@@ -279,6 +279,13 @@ function MaterialDetailView({ id }: { id: string }) {
           <div className="row mt sm muted wrap">
             <Icon name="clock" size={15} />
             {material.durationMinutes} menit · <MaterialStatusTag status={progress.status} />
+            {material.contributor ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <Icon name="user" size={15} />
+                <span>{material.contributor}</span>
+              </>
+            ) : null}
           </div>
 
           {material.objectives.length ? (

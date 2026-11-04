@@ -97,6 +97,12 @@ export function MaterialCard({
         <p className="sm muted mt1" style={{ flex: 1 }}>
           {material.description}
         </p>
+        {material.contributor ? (
+          <div className="row xs muted mt1" style={{ gap: 5 }}>
+            <Icon name="user" size={13} />
+            <span>{material.contributor}</span>
+          </div>
+        ) : null}
         <div className="row sp mt xs muted">
           <span className="row" style={{ gap: 5 }}>
             <Icon name="clock" size={14} />
