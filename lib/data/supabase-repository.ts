@@ -108,6 +108,7 @@ function mapContent(rows: ContentRow[]): ContentCollections {
     const item = {
       ...(row.data ?? {}),
       id: row.id,
+      sortOrder: Number(row.sort_order) || 0,
       updatedAt: toMillis(row.updated_at),
     };
     (content[key] as unknown[]).push(item);
@@ -193,7 +194,8 @@ export function createSupabaseRepository(
             .from('content_items')
             .select('id, type, sort_order, data, updated_at')
             .order('type')
-            .order('sort_order', { ascending: true }),
+            .order('sort_order', { ascending: true })
+            .order('created_at', { ascending: true }),
           supabase
             .from('progress')
             .select('kind, item_id, status, progress, done, updated_at')
@@ -244,7 +246,12 @@ export function createSupabaseRepository(
       item: CollectionItem<K>,
     ): Promise<void> {
       const type = TYPE_BY_KEY[key];
-      const { id, ...data } = item as unknown as Record<string, unknown> & { id: string };
+      // sortOrder hanya untuk materi (kolom content_items.sort_order), bukan bagian data JSONB.
+      const {
+        id,
+        sortOrder: requestedOrder,
+        ...data
+      } = item as unknown as Record<string, unknown> & { id: string; sortOrder?: number };
 
       const { data: existing } = await supabase
         .from('content_items')
@@ -252,7 +259,10 @@ export function createSupabaseRepository(
         .eq('id', id)
         .maybeSingle();
 
-      let sortOrder = existing?.sort_order as number | undefined;
+      let sortOrder =
+        type === 'material' && typeof requestedOrder === 'number' && requestedOrder > 0
+          ? requestedOrder
+          : (existing?.sort_order as number | undefined);
       if (sortOrder == null) {
         if (type === 'flow' || type === 'guide') {
           sortOrder = Number((data as { no?: number }).no ?? 0);

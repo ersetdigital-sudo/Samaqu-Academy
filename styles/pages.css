@@ -802,3 +802,95 @@ button.video-frame:hover img {
   color: #fff;
   pointer-events: none;
 }
+
+/* Learning Center cards: thumbnail 16:9 di atas kartu (video YouTube atau placeholder) */
+.mat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.mat-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  background: var(--gl2);
+  overflow: hidden;
+}
+
+.mat-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mat-card.ck:hover .mat-thumb img {
+  opacity: 0.88;
+}
+
+.mat-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  pointer-events: none;
+}
+
+.mat-dur {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.mat-no {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--t);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.mat-ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+  color: var(--t3);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.mat-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 18px 22px 22px;
+}

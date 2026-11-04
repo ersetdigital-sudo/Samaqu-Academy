@@ -16,10 +16,12 @@ export function youtubeVideoId(url?: string): string | null {
 interface MaterialVideoProps {
   videoUrl?: string;
   title: string;
+  /** Halaman materi: video langsung diputar tanpa klik tambahan. */
+  autoPlay?: boolean;
 }
 
-export function MaterialVideo({ videoUrl, title }: MaterialVideoProps) {
-  const [playing, setPlaying] = useState(false);
+export function MaterialVideo({ videoUrl, title, autoPlay = false }: MaterialVideoProps) {
+  const [playing, setPlaying] = useState(autoPlay);
   const id = youtubeVideoId(videoUrl);
   if (!id) return null;
 
