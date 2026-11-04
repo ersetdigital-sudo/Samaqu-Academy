@@ -83,7 +83,9 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
       {script.notes ? (
         <>
           <h3 className="mt">Catatan Penggunaan</h3>
-          <p className="sm muted">{script.notes}</p>
+          <p className="sm muted" style={{ whiteSpace: 'pre-wrap' }}>
+            {script.notes}
+          </p>
         </>
       ) : null}
 

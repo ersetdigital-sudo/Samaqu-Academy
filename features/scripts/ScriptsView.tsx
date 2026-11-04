@@ -493,7 +493,7 @@ export function ScriptsView() {
                           {ba.why}
                         </div>
                         {ba.notes ? (
-                          <div className="sm">
+                          <div className="sm" style={{ whiteSpace: 'pre-wrap' }}>
                             <div className="xs muted" style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
                               Catatan untuk admin
                             </div>
