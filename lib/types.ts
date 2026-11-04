@@ -26,6 +26,10 @@ export interface Material extends BaseContent {
   objectives: string[];
   body: string;
   videoUrl?: string;
+  /** Urutan belajar (kolom content_items.sort_order). */
+  sortOrder?: number;
+  /** Durasi video YouTube, mis. "8:12" — opsional, hanya untuk badge. */
+  videoDuration?: string;
 }
 
 export interface Script extends BaseContent {

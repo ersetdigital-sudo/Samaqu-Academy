@@ -10,10 +10,12 @@ import { newId } from '@/lib/utils/id';
 
 export function useMaterialForm() {
   const { openModal, closeModal } = useModal();
-  const { upsertContent } = useData();
+  const { snapshot, upsertContent } = useData();
   const { showToast } = useToast();
 
   const openMaterialForm = (material?: Material, defaults?: Partial<Material>) => {
+    const nextSortOrder =
+      snapshot.content.materials.reduce((max, item) => Math.max(max, item.sortOrder ?? 0), 0) + 1;
     openModal(
       <RecordForm
         key={material?.id ?? 'new-material'}
@@ -23,7 +25,11 @@ export function useMaterialForm() {
         }
         fields={MATERIAL_FIELDS}
         initial={material ?? defaults ?? {}}
-        defaults={{ category: 'Introduction to Samaqu', durationMinutes: 10 }}
+        defaults={{
+          category: 'Introduction to Samaqu',
+          durationMinutes: 10,
+          sortOrder: nextSortOrder,
+        }}
         submitLabel={material ? 'Simpan Perubahan' : 'Tambahkan'}
         onSubmit={async (values) => {
           const item: Material = {
@@ -35,6 +41,8 @@ export function useMaterialForm() {
             objectives: Array.isArray(values.objectives) ? values.objectives : [],
             body: String(values.body),
             videoUrl: String(values.videoUrl ?? '').trim(),
+            videoDuration: String(values.videoDuration ?? '').trim(),
+            sortOrder: Number(values.sortOrder) || nextSortOrder,
             sample: false,
             updatedAt: Date.now(),
           };

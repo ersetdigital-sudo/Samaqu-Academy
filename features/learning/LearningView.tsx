@@ -53,6 +53,12 @@ function LearningListView() {
     });
   }, [category, query, snapshot.content.materials, snapshot.progress.materials, status]);
 
+  // Nomor urut belajar mengikuti urutan penuh, bukan hasil filter.
+  const orderOf = useMemo(
+    () => new Map(snapshot.content.materials.map((material, index) => [material.id, index + 1])),
+    [snapshot.content.materials],
+  );
+
   const confirmDelete = (material: Material) => {
     openModal(
       <ConfirmDialog
@@ -145,6 +151,7 @@ function LearningListView() {
             <MaterialCard
               key={material.id}
               material={material}
+              order={orderOf.get(material.id)}
               progress={
                 snapshot.progress.materials[material.id] ?? {
                   status: 'todo',
@@ -291,7 +298,7 @@ function MaterialDetailView({ id }: { id: string }) {
             </div>
           ) : null}
 
-          <MaterialVideo videoUrl={material.videoUrl} title={material.title} />
+          <MaterialVideo videoUrl={material.videoUrl} title={material.title} autoPlay />
 
           <div className="mt">
             <MarkdownLite text={material.body} />

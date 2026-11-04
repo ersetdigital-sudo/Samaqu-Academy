@@ -20,6 +20,14 @@ export const MATERIAL_FIELDS: RecordField[] = [
     options: MATERIAL_CATEGORIES,
   },
   {
+    key: 'sortOrder',
+    label: 'Urutan',
+    type: 'number',
+    required: true,
+    min: 1,
+    hint: 'Urutan materi di Learning Center. Materi baru otomatis dapat nomor terakhir.',
+  },
+  {
     key: 'durationMinutes',
     label: 'Estimasi Waktu (menit)',
     type: 'number',
@@ -39,6 +47,13 @@ export const MATERIAL_FIELDS: RecordField[] = [
     label: 'Link Video YouTube',
     placeholder: 'https://youtu.be/…',
     hint: 'Opsional. Video tampil sebagai thumbnail yang bisa diputar di halaman materi.',
+    full: true,
+  },
+  {
+    key: 'videoDuration',
+    label: 'Durasi Video',
+    placeholder: '8:12',
+    hint: 'Opsional. Tampil sebagai badge durasi di pojok thumbnail.',
     full: true,
   },
   {
