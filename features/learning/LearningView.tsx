@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/Icon';
 import { MarkdownLite } from '@/components/ui/MarkdownLite';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ContributorCredit } from './ContributorCredit';
 import { MaterialCard, MaterialStatusTag } from './MaterialCard';
 import { MaterialVideo } from './MaterialVideo';
 import { useMaterialForm } from './useMaterialForm';
@@ -279,13 +280,7 @@ function MaterialDetailView({ id }: { id: string }) {
           <div className="row mt sm muted wrap">
             <Icon name="clock" size={15} />
             {material.durationMinutes} menit · <MaterialStatusTag status={progress.status} />
-            {material.contributor ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <Icon name="user" size={15} />
-                <span>{material.contributor}</span>
-              </>
-            ) : null}
+            <ContributorCredit contributor={material.contributor} size="md" />
           </div>
 
           {material.objectives.length ? (

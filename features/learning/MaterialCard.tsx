@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import type { Material, MaterialProgress } from '@/lib/types';
+import { ContributorCredit } from './ContributorCredit';
 import { youtubeVideoId } from './MaterialVideo';
 
 export function MaterialStatusTag({ status }: { status: MaterialProgress['status'] }) {
@@ -97,12 +98,7 @@ export function MaterialCard({
         <p className="sm muted mt1" style={{ flex: 1 }}>
           {material.description}
         </p>
-        {material.contributor ? (
-          <div className="row xs muted mt1" style={{ gap: 5 }}>
-            <Icon name="user" size={13} />
-            <span>{material.contributor}</span>
-          </div>
-        ) : null}
+        <ContributorCredit contributor={material.contributor} className="mt1" />
         <div className="row sp mt xs muted">
           <span className="row" style={{ gap: 5 }}>
             <Icon name="clock" size={14} />
