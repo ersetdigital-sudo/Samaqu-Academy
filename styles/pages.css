@@ -1139,3 +1139,65 @@ button.video-frame:hover img {
     text-align: left;
   }
 }
+
+/* Review bank soal kuis materi (/learning/quiz-review) */
+.qz-review-mat {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qz-answer-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qz-answer-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--b);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+}
+
+.qz-answer-list li.ok {
+  border-color: var(--accl);
+  background: var(--acc2);
+  font-weight: 600;
+}
+
+.qz-answer-list li > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.qz-opt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qz-opt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qz-opt-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.qz-opt-row .inp {
+  flex: 1;
+  min-width: 0;
+}

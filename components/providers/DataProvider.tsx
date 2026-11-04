@@ -9,6 +9,7 @@ import type {
   AssessmentAttempt,
   CollectionItem,
   ContentCollectionKey,
+  MaterialQuizQuestion,
   MaterialStatus,
   ProgressState,
   QuizAttempt,
@@ -53,6 +54,10 @@ interface DataContextValue {
     score: number,
     answers: Record<string, number>,
   ) => Promise<void>;
+  /** Simpan soal kuis materi (tambah/ubah) — hanya owner (RLS). */
+  saveQuizQuestion: (question: MaterialQuizQuestion) => Promise<void>;
+  /** Hapus satu soal kuis materi — hanya owner (RLS). */
+  deleteQuizQuestion: (materialId: string, id: string) => Promise<void>;
   setPassMark: (value: number) => Promise<void>;
 }
 
@@ -278,6 +283,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [apply, hydrated, logActivity, requireRepository, setMaterialProgress, showToast],
   );
 
+  const saveQuizQuestion = useCallback(
+    async (question: MaterialQuizQuestion) => {
+      await requireRepository().saveQuizQuestion(question);
+      const current = snapshotRef.current;
+      const list = [...(current.materialQuizzes[question.materialId] ?? [])];
+      const index = list.findIndex((entry) => entry.id === question.id);
+      if (index >= 0) list[index] = question;
+      else list.push(question);
+      list.sort((a, b) => a.sortOrder - b.sortOrder);
+      apply({
+        ...current,
+        materialQuizzes: { ...current.materialQuizzes, [question.materialId]: list },
+      });
+    },
+    [apply, requireRepository],
+  );
+
+  const deleteQuizQuestion = useCallback(
+    async (materialId: string, id: string) => {
+      await requireRepository().deleteQuizQuestion(id);
+      const current = snapshotRef.current;
+      const list = (current.materialQuizzes[materialId] ?? []).filter((entry) => entry.id !== id);
+      apply({
+        ...current,
+        materialQuizzes: { ...current.materialQuizzes, [materialId]: list },
+      });
+    },
+    [apply, requireRepository],
+  );
+
   const setPassMark = useCallback(
     async (value: number) => {
       if (!hydrated) return;
@@ -366,6 +401,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logActivity,
       saveAttempt,
       saveQuizAttempt,
+      saveQuizQuestion,
+      deleteQuizQuestion,
       setPassMark,
     }),
     [
@@ -384,6 +421,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logActivity,
       saveAttempt,
       saveQuizAttempt,
+      saveQuizQuestion,
+      deleteQuizQuestion,
       setPassMark,
     ],
   );

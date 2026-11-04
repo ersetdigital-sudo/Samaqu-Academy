@@ -75,12 +75,17 @@ function allRequiredDone(materials: Material[], progress: ProgressState): boolea
     .every((material) => statusOf(progress, material.id) === 'done');
 }
 
-/** Kelompokkan materi per level, plus status kunci level berikutnya. */
+/**
+ * Kelompokkan materi per level, plus status kunci level berikutnya.
+ * `lockLevels` dimatikan untuk owner/leader: semua level langsung terbuka.
+ */
 export function groupMaterialsByLevel(
   levels: LearningLevel[],
   materials: Material[],
   progress: ProgressState,
+  options: { lockLevels?: boolean } = {},
 ): LearningLevelGroup[] {
+  const lockLevels = options.lockLevels ?? LEARNING_CONFIG.lockLevels;
   const sortedLevels = levels.length ? levels : DEFAULT_LEVELS;
   const ordered = [...sortedLevels].sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -93,8 +98,7 @@ export function groupMaterialsByLevel(
     const done = levelMaterials.filter((material) => statusOf(progress, material.id) === 'done')
       .length;
     // Level kosong tidak dikunci: hanya tampil sebagai "Segera hadir".
-    const locked =
-      total > 0 && LEARNING_CONFIG.lockLevels && previousHasMaterials && !previousComplete;
+    const locked = total > 0 && lockLevels && previousHasMaterials && !previousComplete;
 
     if (total) {
       previousHasMaterials = true;

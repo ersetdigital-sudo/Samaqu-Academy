@@ -211,6 +211,14 @@ export const localRepository: AcademyRepository = {
     // Adapter lokal tidak aktif: attempt kuis hanya hidup di memory snapshot.
   },
 
+  async saveQuizQuestion(): Promise<void> {
+    // Adapter lokal tidak aktif: bank soal hanya hidup di Supabase.
+  },
+
+  async deleteQuizQuestion(): Promise<void> {
+    // Adapter lokal tidak aktif: bank soal hanya hidup di Supabase.
+  },
+
   async saveSettings(settings: AssessmentSettings): Promise<void> {
     persist(STORAGE_KEYS.settings, settings);
   },

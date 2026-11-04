@@ -553,6 +553,28 @@ export function createSupabaseRepository(
       if (error) throw new Error(error.message);
     },
 
+    async saveQuizQuestion(question: MaterialQuizQuestion): Promise<void> {
+      const { error } = await supabase.from('quiz_questions').upsert(
+        {
+          id: question.id,
+          material_id: question.materialId,
+          question: question.question,
+          options: question.options,
+          correct_index: question.correctIndex,
+          explanation: question.explanation,
+          sort_order: question.sortOrder,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+      );
+      if (error) throw new Error(error.message);
+    },
+
+    async deleteQuizQuestion(id: string): Promise<void> {
+      const { error } = await supabase.from('quiz_questions').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+
     async saveSettings(settings: AssessmentSettings): Promise<void> {
       const { error } = await supabase.from('assessment_settings').upsert(
         {

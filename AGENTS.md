@@ -455,6 +455,23 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi: `npm run typecheck`, `next build` (18 route static), dan preview: kuis 100% →
   level 2 terbuka, "3/6 selesai". Attempt + progres uji dikembalikan ke kondisi awal.
 
+### 2026-11-04 — Fase 1 Learning Center: progres bersih, akses owner, review kuis
+
+- Migration `0007_learning_phase1_followup.sql`: baris progres materi hasil normalisasi 0006
+  (10% → 50%) dihapus, jadi semua materi kembali "Belum" 0%; progres hanya lahir dari aktivitas
+  user. Batas `updated_at < 2026-11-05` membuat migrasi aman dijalankan ulang.
+- Kebijakan tulis `content_items`, `learning_levels`, `quiz_questions` ditegaskan ulang
+  owner-only (`public.is_owner()`): admin CS diblokir di RLS, bukan hanya tombolnya disembunyikan.
+  Tidak ada role `leader` terpisah — owner adalah role pengelola.
+- Owner/leader tidak terkena kunci level: `groupMaterialsByLevel(..., { lockLevels })` dimatikan
+  saat `canManage`. CS tetap melihat level terkunci.
+- Halaman baru `/learning/quiz-review` (khusus owner, tautan "Review Kuis" di `/learning`):
+  semua soal per materi + jawaban benar + pembahasan, bisa ditambah/diubah/dihapus lewat
+  `QuizQuestionForm` → `saveQuizQuestion`/`deleteQuizQuestion` (repository + `DataProvider`).
+- Verifikasi: `npm run typecheck`, `next build` (19 route static), preview owner: 0 level
+  terkunci, progres 0/3, 25 soal tampil, simpan soal baru berhasil. Hapus soal lewat dialog
+  belum terverifikasi otomatis (tombol "Hapus" ganda), data uji dihapus manual.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

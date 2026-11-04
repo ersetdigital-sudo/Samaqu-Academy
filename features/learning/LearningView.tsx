@@ -51,9 +51,13 @@ function LearningListView() {
   const filtering = category !== 'Semua' || status !== 'Semua' || query.trim() !== '';
 
   // Level, progres, dan status kunci dihitung dari seluruh materi — bukan hasil filter.
+  // Owner/leader tidak terkena kunci level: semua level langsung terbuka.
   const allGroups = useMemo(
-    () => groupMaterialsByLevel(snapshot.levels, snapshot.content.materials, snapshot.progress),
-    [snapshot.content.materials, snapshot.levels, snapshot.progress],
+    () =>
+      groupMaterialsByLevel(snapshot.levels, snapshot.content.materials, snapshot.progress, {
+        lockLevels: canManage ? false : LEARNING_CONFIG.lockLevels,
+      }),
+    [canManage, snapshot.content.materials, snapshot.levels, snapshot.progress],
   );
 
   const groups = useMemo(() => {
@@ -112,6 +116,12 @@ function LearningListView() {
             <span className="tag gr">
               {stats.done}/{stats.total} selesai
             </span>
+            {canManage ? (
+              <Link className="btn" href="/learning/quiz-review">
+                <Icon name="clipboard-list" />
+                Review Kuis
+              </Link>
+            ) : null}
             {canManage ? (
               <button
                 className="btn p"
