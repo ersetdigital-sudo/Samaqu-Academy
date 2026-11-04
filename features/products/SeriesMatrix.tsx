@@ -1,9 +1,8 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
-import { SERIES_COLLARS, SERIES_PLACKETS } from '@/lib/product-schema';
+import { SERIES_COLLARS, SERIES_PLACKETS, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
-import { rupiah } from '@/lib/utils/format';
 
 interface SeriesMatrixProps {
   series: Product[];
@@ -45,7 +44,9 @@ export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
                 <th scope="row">{collar}</th>
                 {SERIES_PLACKETS.map((placket) => {
                   const matches = placed.filter(
-                    (item) => item.collar === collar && item.placket === placket,
+                    (item) =>
+                      normalizeSeriesTerm(item.collar) === collar &&
+                      normalizeSeriesTerm(item.placket) === placket,
                   );
                   return (
                     <td key={placket}>
@@ -67,9 +68,6 @@ export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
                             <span className="series-cell-name">
                               <b>{item.name}</b>
                               <span className="sm muted">{item.code}</span>
-                              {item.price ? (
-                                <span className="xs muted">mulai {rupiah(item.price)}</span>
-                              ) : null}
                             </span>
                           </button>
                         ))
@@ -86,7 +84,8 @@ export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
       </div>
 
       <p className="sm muted mt">
-        Tanya dulu: mau kerah tegak atau kerah kemeja? Lalu pilih placket polos atau variasi.
+        Tanya dulu: mau kerah bulat atau kerah kemeja? Lalu pilih placket polos atau dengan
+        aksesoris. Semua series memakai zipper di placket.
       </p>
     </div>
   );

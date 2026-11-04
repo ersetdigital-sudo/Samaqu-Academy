@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
-import { getProductFields } from '@/lib/product-schema';
+import { getProductFields, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { formatDateTime, rupiah } from '@/lib/utils/format';
@@ -38,6 +38,11 @@ export function ProductDetail({
     const raw = product[key];
     if (key === 'price') return rupiah(raw as string) || null;
     if (key === 'gsm') return raw ? `${String(raw)} GSM` : null;
+    // Rows saved with the pre-official wording still show the official term.
+    if (key === 'collar' || key === 'placket') {
+      const term = normalizeSeriesTerm(String(raw ?? ''));
+      return term ? <span>{term}</span> : null;
+    }
     if (key === 'fabric') {
       const code = String(raw ?? '');
       if (!code) return null;
@@ -111,7 +116,12 @@ export function ProductDetail({
         return names ? `${field.label}: ${names}` : '';
       }
       const raw = product[field.key];
-      const value = field.key === 'price' ? rupiah(raw as string) : String(raw ?? '');
+      const value =
+        field.key === 'price'
+          ? rupiah(raw as string)
+          : field.key === 'collar' || field.key === 'placket'
+            ? normalizeSeriesTerm(String(raw ?? ''))
+            : String(raw ?? '');
       return value ? `${field.label}: ${value}` : '';
     });
     const ok = await copyToClipboard(lines.filter(Boolean).join('\n'));
