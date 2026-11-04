@@ -35,6 +35,13 @@ export const MATERIAL_FIELDS: RecordField[] = [
     full: true,
   },
   {
+    key: 'videoUrl',
+    label: 'Link Video YouTube',
+    placeholder: 'https://youtu.be/…',
+    hint: 'Opsional. Video tampil sebagai thumbnail yang bisa diputar di halaman materi.',
+    full: true,
+  },
+  {
     key: 'objectives',
     label: 'Tujuan Pembelajaran',
     type: 'lines',
