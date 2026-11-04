@@ -25,6 +25,7 @@
   display: flex;
   gap: 11px;
   align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
   text-decoration: none;
   color: inherit;
@@ -37,7 +38,9 @@
   transition: opacity 0.16s;
 }
 
-.sb-burger {
+/* Scoped to `.brand` so the later `.icb { display: grid }` rule cannot bring the
+   close button back on desktop, where the title needs the full width. */
+.brand .sb-burger {
   display: none;
   margin-left: auto;
 }
@@ -62,6 +65,17 @@
 .brand small {
   color: var(--t3);
   font-size: 11.5px;
+}
+
+/* Header row: [logo] [text block] [close] — the text is the only part that
+   gives way, so the X never sits on top of the title. */
+.brand b,
+.brand small {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .nav {
@@ -201,6 +215,13 @@
 .sb.min .brand {
   justify-content: center;
   padding: 18px 0 12px;
+}
+
+/* In the narrow rail the text is hidden, so the logo stays centred instead of
+   stretching the row. */
+.sb.min .brand-id {
+  flex: 0 0 auto;
+  justify-content: center;
 }
 
 .sb.min .brand-tx,
@@ -375,6 +396,21 @@
     padding: 18px 20px 12px;
   }
 
+  /* Drawer: the X needs room on the right, so the header block reclaims the
+     padding and the title drops half a point to keep the full name on one line. */
+  .brand {
+    padding: 18px 16px 12px;
+  }
+
+  .sb.min .brand-id {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+
+  .brand b {
+    font-size: 13.5px;
+  }
+
   .sb.min .brand-tx,
   .sb.min .ng,
   .sb.min .ni-lb,
@@ -413,7 +449,7 @@
     margin-left: 0;
   }
 
-  .sb-burger {
+  .brand .sb-burger {
     display: grid;
   }
 

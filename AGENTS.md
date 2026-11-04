@@ -323,6 +323,17 @@ Docs contradicted the original assumptions. Authoritative findings:
   and closes on Escape. `.sb-burger` (X) must stay `display:none` above 820px.
 - `prefers-reduced-motion` disables the transitions.
 
+### 2026-11-04 — Sidebar header title clipped
+
+- Symptom: "Samaqu CS Academy" cut off in the brand row, close (X) crowding it — even on desktop.
+- Root cause: `.sb-burger { display:none }` is declared before `.icb { display:grid }`; equal
+  specificity, so `.icb` won and the X showed at every width. The text block also had no
+  `flex: 1` and no `text-overflow`.
+- Fix: `.brand .sb-burger` scopes the hide/show (`.icb` can no longer override it); `.brand-id`
+  is `flex: 1 1 auto`; title/subtitle truncate with an ellipsis. Drawer (`≤820px`) uses 16px
+  brand padding and a 13.5px title so the full name fits next to the X. Rail mode keeps the logo
+  centred (`.sb.min .brand-id`).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
