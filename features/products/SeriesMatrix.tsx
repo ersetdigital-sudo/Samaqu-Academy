@@ -3,7 +3,6 @@
 import { Icon } from '@/components/ui/Icon';
 import { SERIES_COLLARS, SERIES_PLACKETS, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
-import { rupiah } from '@/lib/utils/format';
 
 interface SeriesMatrixProps {
   series: Product[];
@@ -69,9 +68,6 @@ export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
                             <span className="series-cell-name">
                               <b>{item.name}</b>
                               <span className="sm muted">{item.code}</span>
-                              {item.price ? (
-                                <span className="xs muted">mulai {rupiah(item.price)}</span>
-                              ) : null}
                             </span>
                           </button>
                         ))
