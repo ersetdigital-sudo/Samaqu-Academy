@@ -221,6 +221,7 @@ export function ScriptsView() {
         initial={current ?? {}}
         defaults={{
           category: filter.cat !== 'Semua' ? filter.cat : SCRIPT_CATEGORIES[0],
+          notes: [''],
         }}
         submitLabel={current ? 'Simpan Perubahan' : 'Tambahkan'}
         onSubmit={async (values) => {
@@ -231,7 +232,7 @@ export function ScriptsView() {
             situation: String(values.situation),
             response: String(values.response),
             variants: Array.isArray(values.variants) ? values.variants : [],
-            notes: String(values.notes),
+            notes: Array.isArray(values.notes) ? values.notes.map(String).join('\n') : '',
             tags: Array.isArray(values.tags) ? values.tags : [],
             sample: false,
             updatedAt: Date.now(),

@@ -192,7 +192,13 @@ export const SCRIPT_FIELDS: RecordField[] = [
     hint: 'Tulis natural seperti chat biasa: ramah, ringkas, tidak kaku.',
   },
   { key: 'variants', label: 'Variasi Respons (opsional)', type: 'lines', full: true, hint: 'Satu variasi per baris.' },
-  { key: 'notes', label: 'Catatan Penggunaan', type: 'textarea', full: true, placeholder: 'Hal yang perlu diperhatikan admin' },
+  {
+    key: 'notes',
+    label: 'Catatan Penggunaan',
+    type: 'list',
+    full: true,
+    hint: 'Satu poin per baris — otomatis tampil sebagai bullet di detail script.',
+  },
   { key: 'tags', label: 'Tag', type: 'tags', full: true, hint: 'Pisahkan dengan koma. Contoh: stok, ready' },
 ];
 

@@ -413,6 +413,17 @@ Docs contradicted the original assumptions. Authoritative findings:
   both script submit paths already write `sample: false`, so edited scripts lose the hint
   without any data change.
 
+### 2026-11-04 — Catatan script diedit per poin (bullet otomatis)
+
+- Sebelumnya catatan hanya jadi bullet kalau owner menekan Enter di textarea; kalau ditulis
+  satu paragraf hasilnya satu bullet panjang.
+- `SCRIPT_FIELDS.notes` kini `type: 'list'` (baris bernomor, tambah/hapus/urut) dengan satu
+  baris kosong siap isi untuk script baru; `ScriptsView` menyimpan balik sebagai
+  `notes: string.join('\n')`, jadi format JSONB tidak berubah dan pembaca lama
+  (`ScriptDetail`, assistant, retrieval AI) tetap jalan.
+- `RecordForm.toFormValue` untuk `list` menerima string multi-baris (split `\n`), sehingga
+  catatan script lama tetap muncul per poin saat diedit.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
