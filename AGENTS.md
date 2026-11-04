@@ -358,6 +358,9 @@ Docs contradicted the original assumptions. Authoritative findings:
   left bubble / dark right bubble). `ScriptsView` and `GuidelinesView` now render the Before and
   After texts through the existing `ChatBubbles` (same parser as Chat Flow), wrapped in the new
   `.ba-chat` flex-gap container. `.dd .ba-text` removed; data untouched.
+- Manual entries render the same only when each line starts with `C:`/`A:` (`parseChatText`
+  defaults unknown prefixes to customer, so an unprefixed text becomes one long customer bubble).
+  `BEFORE_AFTER_FIELDS.hint` now states that rule on both fields.
 
 ## Operational notes
 

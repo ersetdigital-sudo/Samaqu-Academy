@@ -247,8 +247,20 @@ export const BEFORE_AFTER_FIELDS: RecordField[] = [
     full: true,
     hint: 'Satu prinsip per baris. Urutan bisa diatur dengan panah.',
   },
-  { key: 'before', label: 'Before: Respons Admin Sebelumnya', type: 'textarea', required: true },
-  { key: 'after', label: 'After: Respons yang Direkomendasikan', type: 'textarea', required: true },
+  {
+    key: 'before',
+    label: 'Before: Respons Admin Sebelumnya',
+    type: 'textarea',
+    required: true,
+    hint: 'Satu pesan per baris. Awali "C:" untuk customer dan "A:" untuk admin.',
+  },
+  {
+    key: 'after',
+    label: 'After: Respons yang Direkomendasikan',
+    type: 'textarea',
+    required: true,
+    hint: 'Satu pesan per baris. Awali "C:" untuk customer dan "A:" untuk admin.',
+  },
   { key: 'why', label: 'Alasan Respons Baru Lebih Baik', type: 'textarea', required: true, full: true },
   { key: 'notes', label: 'Catatan untuk Admin', type: 'textarea', full: true },
 ];
