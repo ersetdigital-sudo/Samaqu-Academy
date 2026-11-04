@@ -83,9 +83,15 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
       {script.notes ? (
         <>
           <h3 className="mt">Catatan Penggunaan</h3>
-          <p className="sm muted" style={{ whiteSpace: 'pre-wrap' }}>
-            {script.notes}
-          </p>
+          <ul className="sm muted notes-list">
+            {script.notes
+              .split('\n')
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map((line, index) => (
+                <li key={`${index}-${line}`}>{line}</li>
+              ))}
+          </ul>
         </>
       ) : null}
 

@@ -397,6 +397,15 @@ Docs contradicted the original assumptions. Authoritative findings:
 - `ProductForm` Media block is now one URL field with a live preview and an `http(s)` check;
   card, detail modal, and `SeriesMatrix` read `product.image` directly, so an edit shows instantly.
 
+### 2026-11-04 — Script notes keep line breaks as bullets
+
+- Symptom: "Catatan Penggunaan" was stored with `\n` but rendered as one run-on
+  paragraph (`<p>` collapses newlines).
+- Fix: `ScriptDetail` splits `script.notes` per line into `ul.notes-list` (`.notes-list`
+  in `styles/components.css`, disc bullets, 18px indent); Before & After `notes` uses
+  `white-space: pre-wrap` in `ScriptsView`. Data and forms untouched — newlines were
+  always saved correctly.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -705,6 +705,15 @@ textarea.inp {
   color: #363a37;
 }
 
+.notes-list {
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.notes-list li {
+  margin: 4px 0;
+}
+
 .opt {
   display: block;
   width: 100%;
