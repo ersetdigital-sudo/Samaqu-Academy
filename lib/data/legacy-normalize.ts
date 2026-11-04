@@ -407,6 +407,5 @@ export function buildSnapshot(
     activity: normalizeActivity(options.activity),
     attempts: normalizeAttempts(options.attempts),
     settings: normalizeSettings(options.settings),
-    images: {},
   };
 }

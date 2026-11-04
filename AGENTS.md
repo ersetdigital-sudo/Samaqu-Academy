@@ -124,7 +124,7 @@ Key rules:
 - Content read: any authenticated user.
 - Content write/settings write: owner only via `public.is_owner()` (JWT `app_metadata.role = 'owner'`).
 - Progress/activity/attempts: only the owning user (`auth.uid()`).
-- Product photos: private `product-images` bucket, signed URLs (24h), owner-only writes.
+- Product photos: no Storage usage; the owner pastes a Cloudinary URL into the product form (`data.image`).
 - `allowed_emails` restricts new auth users. Existing users are unaffected.
 - `disable_signup` is true. Do not open public signup without an explicit request and an allowlist review.
 - `content_items.sort_order` is **bigint** (new unprefixed items use negative timestamps). Do not change it back to integer.
@@ -183,7 +183,7 @@ Supabase injects `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE
 - Icons: import individually in `components/ui/Icon.tsx`. Never import the whole Lucide library or use a CDN.
 - Fonts: use `next/font/local` + the 4 subset WOFF2 files in `app/fonts`; the `fonts/` TTFs are source archive only.
 - Keep heavy features route-split. Assistant logic is dynamically imported on first question; do not import it into the app shell.
-- Product images are compressed to WebP/JPEG (max 1200px) and stored in Supabase Storage; never put base64 images in localStorage.
+- Product photos are Cloudinary URLs typed into the form and stored in the product's `image` field; the app never uploads files and never puts base64 images in localStorage.
 
 ## Vercel / resource constraints
 
@@ -212,7 +212,7 @@ Browser checks:
 - Nav links have no underline (default, hover, active); article links still underline.
 - Owner can CRUD content; CS role is read-only (RLS enforced).
 - Material progress persists across reload.
-- Product image upload goes to Storage and survives reload.
+- A product photo URL saved in the form renders on the card, the detail modal, and the series matrix after reload.
 - Assessment attempt/activity persists.
 - Owner can open `/settings/ai`: save/replace/delete API key, masked last4 only, test connection, load models, test model, save per-feature models, save/reset/preview behavior, view usage logs.
 - CS role cannot open `/settings/ai` or `/settings/memory`; direct API calls to `ai-admin` return 403.
@@ -232,7 +232,7 @@ If testing against live Supabase, use unique test IDs and remove only the rows y
 - Google OAuth redirect config (Supabase Site URL/allow-list + Google Cloud callback).
 - Nav underline reset and `.content` article underline exception.
 - Subset fonts and explicit icon imports.
-- Private Storage bucket + signed URLs.
+- Product photos stay URLs (`Product.image`); there is no Storage upload path any more.
 - AI key encryption, owner-only `ai-admin`, server-side MiMo calls, and the `AI_SETTINGS_ENCRYPTION_KEY` secret.
 - Draft knowledge exclusion and Published-only organizational memory.
 - Static export plus Supabase Edge Functions (do not move AI to Vercel Functions).
@@ -386,6 +386,16 @@ Docs contradicted the original assumptions. Authoritative findings:
 - `SeriesMatrix` shows `mulai Rp…` (`rupiah(item.price)`) under the series code in each cell, read
   from the row; series without a price render exactly as before.
 - Data: Jiharkah/Nahawand 359000; Imron/Bayati/Karim/Imalah 374000.
+
+### 2026-11-04 — Product photos are pasted URLs (Cloudinary)
+
+- Owner decision: no upload in the app, photos live in Cloudinary and only the URL is stored;
+  the empty `product-images` bucket was retired (deleted 0 objects — nothing to move).
+- `Product.image` (JSONB `data.image`) replaces `AcademySnapshot.images`. Removed the upload path:
+  `saveImage`/`deleteImage` on the repository, `saveProductImage`/`deleteProductImage` in
+  `DataProvider`, `lib/data/image-store.ts`, and `lib/utils/image.ts` (`compressImage`).
+- `ProductForm` Media block is now one URL field with a live preview and an `http(s)` check;
+  card, detail modal, and `SeriesMatrix` read `product.image` directly, so an edit shows instantly.
 
 ## Operational notes
 

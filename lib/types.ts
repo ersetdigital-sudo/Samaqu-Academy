@@ -151,6 +151,7 @@ export interface Product extends BaseContent {
   collar?: string;
   placket?: string;
   customerPitch?: string;
+  image?: string;
 }
 
 export interface ContentCollections {
@@ -212,7 +213,6 @@ export interface AcademySnapshot {
   activity: ActivityItem[];
   attempts: AssessmentAttempt[];
   settings: AssessmentSettings;
-  images: Record<string, string>;
 }
 
 export type ContentCollectionKey = keyof ContentCollections;

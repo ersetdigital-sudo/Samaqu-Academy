@@ -7,11 +7,10 @@ import { rupiah } from '@/lib/utils/format';
 
 interface SeriesMatrixProps {
   series: Product[];
-  images: Record<string, string>;
   onOpen: (product: Product) => void;
 }
 
-export function SeriesMatrix({ series, images, onOpen }: SeriesMatrixProps) {
+export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
   const placed = series.filter((item) => item.collar && item.placket);
   if (!placed.length) return null;
 
@@ -59,8 +58,8 @@ export function SeriesMatrix({ series, images, onOpen }: SeriesMatrixProps) {
                             onClick={() => onOpen(item)}
                           >
                             <span className="series-cell-thumb">
-                              {images[item.id] ? (
-                                <img src={images[item.id]} alt="" />
+                              {item.image ? (
+                                <img src={item.image} alt="" />
                               ) : (
                                 <Icon name="library" size={16} />
                               )}

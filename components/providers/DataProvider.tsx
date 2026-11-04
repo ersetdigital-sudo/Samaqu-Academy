@@ -46,8 +46,6 @@ interface DataContextValue {
   logActivity: (type: ActivityType, title: string, score: number | null, refId?: string) => Promise<void>;
   saveAttempt: (attempt: AssessmentAttempt) => Promise<void>;
   setPassMark: (value: number) => Promise<void>;
-  saveProductImage: (productId: string, blob: Blob) => Promise<string>;
-  deleteProductImage: (productId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -284,39 +282,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           })),
         };
       }
-      const images = { ...current.images };
-      delete images[id];
       let progress = current.progress;
       if (key === 'materials') {
         const materials = { ...progress.materials };
         delete materials[id];
         progress = { ...progress, materials };
       }
-      apply({ ...current, content, images, progress });
+      apply({ ...current, content, progress });
       if (key === 'materials') {
         await requireRepository().saveProgress(progress).catch(() => undefined);
       }
-    },
-    [apply, requireRepository],
-  );
-
-  const saveProductImage = useCallback(
-    async (productId: string, blob: Blob) => {
-      const url = await requireRepository().saveImage(productId, blob);
-      const current = snapshotRef.current;
-      apply({ ...current, images: { ...current.images, [productId]: url } });
-      return url;
-    },
-    [apply, requireRepository],
-  );
-
-  const deleteProductImage = useCallback(
-    async (productId: string) => {
-      await requireRepository().deleteImage(productId);
-      const current = snapshotRef.current;
-      const images = { ...current.images };
-      delete images[productId];
-      apply({ ...current, images });
     },
     [apply, requireRepository],
   );
@@ -338,8 +313,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logActivity,
       saveAttempt,
       setPassMark,
-      saveProductImage,
-      deleteProductImage,
     }),
     [
       snapshot,
@@ -357,8 +330,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logActivity,
       saveAttempt,
       setPassMark,
-      saveProductImage,
-      deleteProductImage,
     ],
   );
 

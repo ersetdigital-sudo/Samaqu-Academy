@@ -113,7 +113,7 @@ export function ProductsView() {
     openModal(
       <ProductDetail
         product={product}
-        imageUrl={snapshot.images[product.id]}
+        imageUrl={product.image}
         products={products}
         canManage={canManage}
         onClose={closeModal}
@@ -141,7 +141,6 @@ export function ProductsView() {
         key={current?.id ?? `new-${fallbackCategory}`}
         current={current}
         initialCategory={current?.category ?? fallbackCategory}
-        imageUrl={current ? snapshot.images[current.id] : undefined}
         onClose={closeModal}
         onSaved={(item) => {
           closeModal();
@@ -196,7 +195,7 @@ export function ProductsView() {
         <ProductCard
           key={product.id}
           product={product}
-          image={snapshot.images[product.id]}
+          image={product.image}
           canManage={canManage}
           onOpen={() => openProductDetail(product)}
           onEdit={() => openProductForm(product)}
@@ -268,7 +267,7 @@ export function ProductsView() {
       ) : section ? (
         <>
           {section === 'series' ? (
-            <SeriesMatrix series={sectionItems} images={snapshot.images} onOpen={openProductDetail} />
+            <SeriesMatrix series={sectionItems} onOpen={openProductDetail} />
           ) : null}
 
           {section === 'product' ? (

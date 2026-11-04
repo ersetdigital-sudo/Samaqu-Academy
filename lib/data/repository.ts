@@ -19,6 +19,4 @@ export interface AcademyRepository {
   saveActivity(items: ActivityItem[]): Promise<void>;
   saveAttempts(items: AssessmentAttempt[]): Promise<void>;
   saveSettings(settings: AssessmentSettings): Promise<void>;
-  saveImage(productId: string, blob: Blob): Promise<string>;
-  deleteImage(productId: string): Promise<void>;
 }

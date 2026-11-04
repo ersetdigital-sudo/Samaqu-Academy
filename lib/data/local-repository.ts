@@ -19,7 +19,6 @@ import {
   normalizeProgress,
   normalizeSettings,
 } from './legacy-normalize';
-import { loadImageUrls, removeImageBlob, saveImageBlob } from './image-store';
 import type { AcademyRepository } from './repository';
 
 function persist(key: string, value: unknown): void {
@@ -154,8 +153,7 @@ export const localRepository: AcademyRepository = {
     const activity = loadActivity(seed.activity);
     const attempts = loadAttempts();
     const settings = loadSettings(seed.settings);
-    const images = await loadImageUrls();
-    return { content, progress, activity, attempts, settings, images };
+    return { content, progress, activity, attempts, settings };
   },
 
   async upsertContent<K extends ContentCollectionKey>(
@@ -184,7 +182,6 @@ export const localRepository: AcademyRepository = {
         ...product,
         memberIds: product.memberIds.filter((memberId) => memberId !== id),
       }));
-      await removeImageBlob(id).catch(() => undefined);
     }
     persist(STORAGE_KEYS.content, sortCollections(content));
   },
@@ -205,11 +202,4 @@ export const localRepository: AcademyRepository = {
     persist(STORAGE_KEYS.settings, settings);
   },
 
-  async saveImage(productId: string, blob: Blob): Promise<string> {
-    return saveImageBlob(productId, blob);
-  },
-
-  async deleteImage(productId: string): Promise<void> {
-    await removeImageBlob(productId);
-  },
 };
