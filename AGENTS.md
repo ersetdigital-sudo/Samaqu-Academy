@@ -352,6 +352,13 @@ Docs contradicted the original assumptions. Authoritative findings:
   row; the `.dd` pair now stacks below 980px instead of 600px. Applied in `ScriptsView.tsx`
   and `GuidelinesView.tsx` (the same block is reused in guideline 06). Content unchanged.
 
+### 2026-11-04 — Before & After rendered as chat bubbles
+
+- Follow-up: the owner asked for the Chat Flow treatment ("Customer"/"Admin" labels, white
+  left bubble / dark right bubble). `ScriptsView` and `GuidelinesView` now render the Before and
+  After texts through the existing `ChatBubbles` (same parser as Chat Flow), wrapped in the new
+  `.ba-chat` flex-gap container. `.dd .ba-text` removed; data untouched.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

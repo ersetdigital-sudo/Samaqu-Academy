@@ -1190,11 +1190,12 @@ th {
   color: var(--red);
 }
 
-/* Before & After transcript: one chat line per row so it stays readable */
-.dd .ba-text {
-  margin: 6px 0 0;
-  white-space: pre-line;
-  line-height: 1.75;
+/* Before & After transcript as chat bubbles: speaker is obvious at a glance */
+.ba-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 /* Before & After guidance blocks (Hindari + Prinsip) */

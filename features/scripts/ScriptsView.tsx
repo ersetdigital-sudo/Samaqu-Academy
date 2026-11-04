@@ -7,6 +7,7 @@ import { useModal } from '@/components/providers/ModalProvider';
 import { useRole } from '@/components/providers/RoleProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { CaseMarkTag } from '@/components/ui/badges';
+import { ChatBubbles } from '@/components/ui/ChatBubbles';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
@@ -474,11 +475,15 @@ export function ScriptsView() {
                       <div className="dd mt">
                         <div className="dont">
                           <div className="lbl">Before</div>
-                          <p className="ba-text">{ba.before}</p>
+                          <div className="ba-chat">
+                            <ChatBubbles text={ba.before} />
+                          </div>
                         </div>
                         <div className="do">
                           <div className="lbl">After</div>
-                          <p className="ba-text">{ba.after}</p>
+                          <div className="ba-chat">
+                            <ChatBubbles text={ba.after} />
+                          </div>
                         </div>
                       </div>
                       <div className="grid g2 mt" style={{ gap: 12 }}>
