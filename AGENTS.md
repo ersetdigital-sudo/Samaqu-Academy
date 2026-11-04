@@ -406,6 +406,13 @@ Docs contradicted the original assumptions. Authoritative findings:
   `white-space: pre-wrap` in `ScriptsView`. Data and forms untouched — newlines were
   always saved correctly.
 
+### 2026-11-04 — Sample-only hint in script detail
+
+- The "Bagian dalam [kurung] wajib diganti…" Note rendered for every script, including
+  edited ones. It now renders only when `script.sample === true` (untouched seed content);
+  both script submit paths already write `sample: false`, so edited scripts lose the hint
+  without any data change.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

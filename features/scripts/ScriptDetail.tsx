@@ -105,9 +105,11 @@ export function ScriptDetail({ script, canManage, onClose, onEdit, onDelete }: S
         </div>
       ) : null}
 
-      <Note className="mt">
-        Sesuaikan dengan konteks percakapan. Bagian dalam [kurung] wajib diganti dengan data resmi.
-      </Note>
+      {script.sample ? (
+        <Note className="mt">
+          Sesuaikan dengan konteks percakapan. Bagian dalam [kurung] wajib diganti dengan data resmi.
+        </Note>
+      ) : null}
     </>
   );
 }
