@@ -378,6 +378,15 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Style: `.hub-card`/`.hub-ic` added to `styles/pages.css`; no new dependency. `/products` JS
   gzip 243.8 → 244.7 KB (+0.37%).
 
+### 2026-11-04 — Series price in matrix
+
+- `PRODUCT_SCHEMA['Product Series']` gained `price` ("Harga Mulai (Rp)", `type: 'number'`, hint
+  acuan size M / kain B-01). `Product.price` already existed as a string, so no new key and no
+  migration; ProductDetail renders it through `rupiah()` like garments.
+- `SeriesMatrix` shows `mulai Rp…` (`rupiah(item.price)`) under the series code in each cell, read
+  from the row; series without a price render exactly as before.
+- Data: Jiharkah/Nahawand 359000; Imron/Bayati/Karim/Imalah 374000.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

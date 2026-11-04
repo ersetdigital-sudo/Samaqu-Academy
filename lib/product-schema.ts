@@ -69,6 +69,7 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
     { key: 'code', label: 'Kode Seri', required: true, section: 'Informasi Seri' },
     { key: 'collar', label: 'Kerah', type: 'select', section: 'Informasi Seri', options: SERIES_COLLARS },
     { key: 'placket', label: 'Placket / Klep', type: 'select', section: 'Informasi Seri', options: SERIES_PLACKETS },
+    { key: 'price', label: 'Harga Mulai (Rp)', type: 'number', section: 'Informasi Seri', hint: 'Harga acuan size M, kain B-01.' },
     { key: 'description', label: 'Deskripsi Seri', type: 'textarea', required: true, section: 'Informasi Seri', full: true },
     { key: 'customerPitch', label: 'Cara menjelaskan ke customer', type: 'textarea', section: 'Informasi Seri', full: true },
     { key: 'characteristics', label: 'Karakteristik', type: 'textarea', section: 'Informasi Seri', full: true },
