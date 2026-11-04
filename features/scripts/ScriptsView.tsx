@@ -473,10 +473,12 @@ export function ScriptsView() {
                       <BeforeAfterGuidance item={ba} />
                       <div className="dd mt">
                         <div className="dont">
-                          <div className="lbl">Before</div>"{ba.before}"
+                          <div className="lbl">Before</div>
+                          <p className="ba-text">{ba.before}</p>
                         </div>
                         <div className="do">
-                          <div className="lbl">After</div>"{ba.after}"
+                          <div className="lbl">After</div>
+                          <p className="ba-text">{ba.after}</p>
                         </div>
                       </div>
                       <div className="grid g2 mt" style={{ gap: 12 }}>

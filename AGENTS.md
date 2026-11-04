@@ -344,6 +344,14 @@ Docs contradicted the original assumptions. Authoritative findings:
   comparison on the BA card and returns `null` when both are empty, so old rows are unchanged.
 - Seeded "Proactive Customer Assistance" (Size Consultation, Materi Pembelajaran).
 
+### 2026-11-04 — Before & After transcript readability
+
+- Symptom: the Before/After chat text rendered as one run-on paragraph (CSS collapsed the
+  `\n` between `C:`/`A:` turns) and the two cards squeezed into ~190px columns on tablet.
+- Fix: `.dd .ba-text { white-space: pre-line; line-height: 1.75; }` keeps one chat turn per
+  row; the `.dd` pair now stacks below 980px instead of 600px. Applied in `ScriptsView.tsx`
+  and `GuidelinesView.tsx` (the same block is reused in guideline 06). Content unchanged.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

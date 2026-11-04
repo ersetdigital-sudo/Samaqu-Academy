@@ -1158,6 +1158,13 @@ th {
   gap: 12px;
 }
 
+/* Two narrow columns are hard to read on a tablet: stack them sooner */
+@media (max-width: 980px) {
+  .dd {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .do,
 .dont {
   border-radius: 12px;
@@ -1181,6 +1188,13 @@ th {
 
 .dont .lbl {
   color: var(--red);
+}
+
+/* Before & After transcript: one chat line per row so it stays readable */
+.dd .ba-text {
+  margin: 6px 0 0;
+  white-space: pre-line;
+  line-height: 1.75;
 }
 
 /* Before & After guidance blocks (Hindari + Prinsip) */
