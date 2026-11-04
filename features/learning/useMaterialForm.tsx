@@ -34,6 +34,7 @@ export function useMaterialForm() {
             description: String(values.description),
             objectives: Array.isArray(values.objectives) ? values.objectives : [],
             body: String(values.body),
+            videoUrl: String(values.videoUrl ?? '').trim(),
             sample: false,
             updatedAt: Date.now(),
           };

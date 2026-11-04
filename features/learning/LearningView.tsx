@@ -14,6 +14,7 @@ import { MarkdownLite } from '@/components/ui/MarkdownLite';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { MaterialCard, MaterialStatusTag } from './MaterialCard';
+import { MaterialVideo } from './MaterialVideo';
 import { useMaterialForm } from './useMaterialForm';
 import { MATERIAL_CATEGORIES } from '@/lib/constants';
 import { materialStats } from '@/lib/stats';
@@ -289,6 +290,8 @@ function MaterialDetailView({ id }: { id: string }) {
               </ul>
             </div>
           ) : null}
+
+          <MaterialVideo videoUrl={material.videoUrl} title={material.title} />
 
           <div className="mt">
             <MarkdownLite text={material.body} />

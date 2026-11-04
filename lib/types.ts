@@ -25,6 +25,7 @@ export interface Material extends BaseContent {
   durationMinutes: number;
   objectives: string[];
   body: string;
+  videoUrl?: string;
 }
 
 export interface Script extends BaseContent {
