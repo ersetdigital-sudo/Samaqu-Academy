@@ -1183,6 +1183,98 @@ th {
   color: var(--red);
 }
 
+/* Before & After guidance blocks (Hindari + Prinsip) */
+.ba-guide {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ba-guide .avoid {
+  background: #fff6f4;
+  border: 1px solid #f2d5d0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.ba-guide .avoid .lbl {
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ba-guide .avoid .lbl svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ba-guide .avoid p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #7a2a22;
+}
+
+.ba-guide .principles {
+  background: #f7f6f2;
+  border: 1px solid var(--b);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.ba-guide .principles ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+}
+
+.ba-guide .principles li::marker {
+  color: var(--t3);
+  font-weight: 600;
+}
+
+/* Repeatable row editor used by the "list" record field */
+.listfield {
+  display: grid;
+  gap: 8px;
+}
+
+.listfield-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.listfield-row .inp {
+  flex: 1;
+  min-width: 0;
+}
+
+.listfield-row .icb {
+  width: 28px;
+  height: 28px;
+}
+
+.listfield-row .icb:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.listfield-no {
+  width: 18px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t3);
+  text-align: right;
+}
+
+.listfield > .btn {
+  justify-self: start;
+}
+
 .take {
   display: flex;
   gap: 12px;

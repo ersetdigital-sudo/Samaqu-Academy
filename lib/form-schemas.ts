@@ -227,6 +227,26 @@ export const CASE_FIELDS: RecordField[] = [
 export const BEFORE_AFTER_FIELDS: RecordField[] = [
   { key: 'title', label: 'Judul Situasi', required: true },
   { key: 'category', label: 'Kategori', type: 'select', required: true, options: SCRIPT_CATEGORIES },
+  {
+    key: 'mark',
+    label: 'Tanda',
+    type: 'select',
+    options: [{ value: '', label: 'Tanpa tanda' }, ...CASE_MARKS],
+  },
+  {
+    key: 'mistakeToAvoid',
+    label: 'Kesalahan yang perlu dihindari',
+    type: 'textarea',
+    rows: 2,
+    full: true,
+  },
+  {
+    key: 'principles',
+    label: 'Prinsip',
+    type: 'list',
+    full: true,
+    hint: 'Satu prinsip per baris. Urutan bisa diatur dengan panah.',
+  },
   { key: 'before', label: 'Before: Respons Admin Sebelumnya', type: 'textarea', required: true },
   { key: 'after', label: 'After: Respons yang Direkomendasikan', type: 'textarea', required: true },
   { key: 'why', label: 'Alasan Respons Baru Lebih Baik', type: 'textarea', required: true, full: true },

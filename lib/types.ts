@@ -54,10 +54,13 @@ export interface CaseStudy extends BaseContent {
 export interface BeforeAfter extends BaseContent {
   title: string;
   category: string;
+  mark?: CaseMark;
   before: string;
   after: string;
   why: string;
   notes: string;
+  mistakeToAvoid?: string;
+  principles?: string[];
 }
 
 export interface FlowStage extends BaseContent {

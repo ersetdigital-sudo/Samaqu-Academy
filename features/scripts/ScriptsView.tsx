@@ -21,6 +21,7 @@ import {
 import type { BeforeAfter, CaseMark, CaseStudy, Script } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { newId } from '@/lib/utils/id';
+import { BeforeAfterGuidance } from './BeforeAfterGuidance';
 import { CaseDetail } from './CaseDetail';
 import { CaseForm } from './CaseForm';
 import { ScriptDetail } from './ScriptDetail';
@@ -276,14 +277,18 @@ export function ScriptsView() {
         }}
         submitLabel={current ? 'Simpan Perubahan' : 'Tambahkan'}
         onSubmit={async (values) => {
+          const mark = String(values.mark ?? '');
           const item: BeforeAfter = {
             id: current?.id ?? newId('ba'),
             title: String(values.title),
             category: String(values.category),
+            mark: mark ? (mark as CaseMark) : undefined,
             before: String(values.before),
             after: String(values.after),
             why: String(values.why),
             notes: String(values.notes),
+            mistakeToAvoid: String(values.mistakeToAvoid ?? '').trim() || undefined,
+            principles: Array.isArray(values.principles) ? values.principles.map(String) : [],
             sample: false,
             updatedAt: Date.now(),
           };
@@ -450,6 +455,7 @@ export function ScriptsView() {
                           <h3 style={{ fontSize: 15.5 }}>{ba.title}</h3>
                           <div className="row mt1" style={{ gap: 6 }}>
                             <span className="tag gr">{ba.category}</span>
+                            {ba.mark ? <CaseMarkTag mark={ba.mark} /> : null}
                             {ba.sample ? <span className="tag">Contoh</span> : null}
                           </div>
                         </div>
@@ -464,6 +470,7 @@ export function ScriptsView() {
                           )}
                         </div>
                       </div>
+                      <BeforeAfterGuidance item={ba} />
                       <div className="dd mt">
                         <div className="dont">
                           <div className="lbl">Before</div>"{ba.before}"

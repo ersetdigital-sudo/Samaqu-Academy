@@ -334,6 +334,16 @@ Docs contradicted the original assumptions. Authoritative findings:
   brand padding and a 13.5px title so the full name fits next to the X. Rail mode keeps the logo
   centred (`.sb.min .brand-id`).
 
+### 2026-11-04 — Before & After: "Hindari" + "Prinsip"
+
+- No DDL needed: `content_items.data` is JSONB, so the new keys are optional fields only
+  (`BeforeAfter.mistakeToAvoid?: string`, `principles?: string[]`, `mark?: CaseMark`).
+- `RecordForm` gained a `list` field type (add/remove rows, reorder with arrows) used by the
+  new `principles` field; `BEFORE_AFTER_FIELDS` also has `mark` and `mistakeToAvoid`.
+- `features/scripts/BeforeAfterGuidance.tsx` renders the two blocks above the Before/After
+  comparison on the BA card and returns `null` when both are empty, so old rows are unchanged.
+- Seeded "Proactive Customer Assistance" (Size Consultation, Materi Pembelajaran).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
