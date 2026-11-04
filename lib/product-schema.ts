@@ -60,7 +60,6 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
   ],
   'Size Chart': [
     { key: 'name', label: 'Nama Produk / Kategori', required: true, section: 'Informasi Umum' },
-    { key: 'code', label: 'Kode (opsional)', section: 'Informasi Umum', placeholder: 'Contoh: SC-TH' },
     { key: 'table', label: 'Tabel Ukuran', type: 'table', required: true, section: 'Tabel Ukuran', full: true, hint: 'Baris pertama = judul kolom. Pisahkan kolom dengan tanda | (garis tegak).' },
     { key: 'measurement', label: 'Detail Pengukuran', type: 'textarea', section: 'Panduan', full: true, placeholder: 'Contoh: Panjang diukur dari bahu ke bawah…' },
     { key: 'guide', label: 'Panduan Memilih Ukuran', type: 'textarea', section: 'Panduan', full: true },
