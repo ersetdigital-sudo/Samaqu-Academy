@@ -52,7 +52,7 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
         }
       }}
     >
-      <div className="product-thumb">
+      <div className={`product-thumb${image ? ' has-img' : ''}`}>
         {image ? <img src={image} alt="" /> : <Icon name={productIcon(product.category)} size={36} />}
       </div>
       <div className="row sp mt">

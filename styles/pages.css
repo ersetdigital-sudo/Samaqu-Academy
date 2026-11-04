@@ -38,6 +38,21 @@
   object-fit: cover;
 }
 
+/* Foto utuh (mis. lembar spesifikasi bahan) tampil penuh, tidak terpotong di tengah */
+.product-thumb.has-img {
+  height: auto;
+  aspect-ratio: 4 / 5;
+  padding: 10px;
+  background: var(--gl);
+}
+
+.product-thumb.has-img img {
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--w);
+  box-shadow: var(--sh);
+}
+
 /* Product Knowledge landing: one card per section */
 .hub-card {
   display: flex;

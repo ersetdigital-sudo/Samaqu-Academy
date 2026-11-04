@@ -121,7 +121,9 @@ export function ProductDetail({
   const fields = getProductFields(product.category).filter(
     (field) => !['name', 'description'].includes(String(field.key)),
   );
-  const isSizeChart = product.category === 'Size Chart';
+  // Size chart dan lembar bahan tampil berdampingan dengan tabel agar gambarnya besar dan bisa di-zoom.
+  const hasMediaPanel =
+    product.category === 'Size Chart' || product.category === 'Fabric Collection';
 
   const imageBlock = imageUrl ? (
     <img
@@ -166,7 +168,7 @@ export function ProductDetail({
         </button>
       </div>
 
-      {isSizeChart ? null : imageBlock}
+      {hasMediaPanel ? null : imageBlock}
 
       <h2 className="mt">{product.name}</h2>
       {product.description ? (
@@ -175,9 +177,12 @@ export function ProductDetail({
         </p>
       ) : null}
 
-      {isSizeChart && imageUrl ? (
+      {hasMediaPanel && imageUrl ? (
         <div className="pd-split mt">
-          <ImageZoom src={imageUrl} label="Perbesar size chart" />
+          <ImageZoom
+            src={imageUrl}
+            label={product.category === 'Size Chart' ? 'Perbesar size chart' : 'Perbesar foto bahan'}
+          />
           <div>{fieldsTable}</div>
         </div>
       ) : (
