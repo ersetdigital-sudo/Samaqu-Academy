@@ -72,6 +72,15 @@ export function ProductDetail({
     if (key === 'table') {
       return raw ? <PipeTable value={String(raw)} /> : null;
     }
+    if (key === 'characteristics' && product.category === 'Product Series') {
+      // Kerah/placket/kelompok now have their own fields; drop the duplicated lines.
+      const lines = String(raw ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !/^(Kerah|Placket\/Klep|Kelompok)\s*:/i.test(line));
+      if (!lines.length) return null;
+      return <span style={{ whiteSpace: 'pre-wrap' }}>{lines.join('\n')}</span>;
+    }
     if (key === 'advantages') {
       const lines = String(raw ?? '')
         .split('\n')

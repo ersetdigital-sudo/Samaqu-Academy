@@ -18,6 +18,7 @@ import type { Product, ProductCategory } from '@/lib/types';
 import { rupiah } from '@/lib/utils/format';
 import { ProductDetail } from './ProductDetail';
 import { ProductForm } from './ProductForm';
+import { SeriesMatrix } from './SeriesMatrix';
 
 function productIcon(category: ProductCategory): string {
   if (category === 'Size Chart') return 'ruler';
@@ -173,6 +174,14 @@ export function ProductsView() {
           />
         </div>
       </div>
+
+      {category === 'Semua' || category === 'Product Series' ? (
+        <SeriesMatrix
+          series={products.filter((product) => product.category === 'Product Series')}
+          images={snapshot.images}
+          onOpen={openProductDetail}
+        />
+      ) : null}
 
       {filtered.length ? (
         <div className="grid g3 mt">

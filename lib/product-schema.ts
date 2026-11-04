@@ -37,6 +37,14 @@ const GARMENT: ProductField[] = [
   { key: 'extra', label: 'Informasi Tambahan', type: 'textarea', section: 'Informasi Produk', full: true },
 ];
 
+export const SERIES_COLLARS = [
+  'Kerah Tegak',
+  'Kerah Kemeja',
+  'Kerah Kemeja Pin Collar',
+] as const;
+
+export const SERIES_PLACKETS = ['Polos', 'Kancing Diamond', 'Eyelet / Mata Ayam'] as const;
+
 export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
   Thobe: GARMENT,
   Gamis: GARMENT,
@@ -60,7 +68,10 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
   'Product Series': [
     { key: 'name', label: 'Nama Seri', required: true, section: 'Informasi Seri' },
     { key: 'code', label: 'Kode Seri', required: true, section: 'Informasi Seri' },
+    { key: 'collar', label: 'Kerah', type: 'select', section: 'Informasi Seri', options: SERIES_COLLARS },
+    { key: 'placket', label: 'Placket / Klep', type: 'select', section: 'Informasi Seri', options: SERIES_PLACKETS },
     { key: 'description', label: 'Deskripsi Seri', type: 'textarea', required: true, section: 'Informasi Seri', full: true },
+    { key: 'customerPitch', label: 'Cara menjelaskan ke customer', type: 'textarea', section: 'Informasi Seri', full: true },
     { key: 'characteristics', label: 'Karakteristik', type: 'textarea', section: 'Informasi Seri', full: true },
     { key: 'memberIds', label: 'Produk dalam Seri Ini', type: 'members', section: 'Produk Terkait', full: true },
   ],

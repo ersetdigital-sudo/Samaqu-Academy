@@ -148,6 +148,9 @@ export interface Product extends BaseContent {
   measurement: string;
   guide: string;
   memberIds: string[];
+  collar?: string;
+  placket?: string;
+  customerPitch?: string;
 }
 
 export interface ContentCollections {
