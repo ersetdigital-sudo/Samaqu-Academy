@@ -396,6 +396,10 @@ export function createSupabaseRepository(
           ...(type === 'material'
             ? { level_id: levelId == null ? null : Number(levelId), is_required: isRequired !== false }
             : {}),
+          // Seri: URL video juga disimpan di kolom `video_url` (migration 0010), bukan hanya JSONB.
+          ...(type === 'product'
+            ? { video_url: String((data as { videoUrl?: string }).videoUrl ?? '').trim() || null }
+            : {}),
         },
         { onConflict: 'id' },
       );

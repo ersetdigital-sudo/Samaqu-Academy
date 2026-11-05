@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
-import { MaterialVideo, youtubeVideoId } from '@/features/learning/MaterialVideo';
+import { SeriesVideo } from '@/features/products/SeriesVideo';
 import { getProductFields, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
@@ -148,10 +148,10 @@ export function ProductDetail({
     ? products.filter((entry) => entry.category === 'Product Series' && entry.id !== product.id)
     : [];
 
-  // Seri: video YouTube 16:9 seperti Learning Center (thumbnail + tombol play).
+  // Seri: video milik sendiri (<video> native). Link YouTube lama tetap memakai embed lama.
   // Tanpa video -> foto close-up.
-  const seriesHeader = !isSeries ? null : youtubeVideoId(product.videoUrl) ? (
-    <MaterialVideo videoUrl={product.videoUrl} title={product.name} zoomable />
+  const seriesHeader = !isSeries ? null : product.videoUrl ? (
+    <SeriesVideo videoUrl={product.videoUrl} title={product.name} />
   ) : imageUrl ? (
     <div className="series-hero mt">
       <img src={imageUrl} alt="" />

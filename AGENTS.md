@@ -577,6 +577,27 @@ Docs contradicted the original assumptions. Authoritative findings:
   overflow di 1280/768/390. YouTube menampilkan bot-check di browser uji (bukan defect app).
   Materi Learning Center belum punya video, jadi jalur non-zoomable hanya dicek dari kode.
 
+### 2026-11-05 — Video seri pindah ke hosting sendiri (Supabase Storage)
+
+- Keluhan: overlay YouTube Shorts (logo, Suka/Bagikan, nama channel) menutupi teks video.
+- Bucket baru `series-videos` lewat migration `0010_series_videos_bucket.sql`: public read
+  (anon + authenticated), insert/update/delete hanya `public.is_owner()`, `file_size_limit`
+  50 MB, `allowed_mime_types` `video/mp4`. **Belum dijalankan ke production** (butuh persetujuan
+  owner). Kolom `video_url` tetap dari migration `0009`.
+- `lib/storage/series-videos.ts`: `uploadSeriesVideo` (MP4 + batas 50 MB, kembalikan URL publik)
+  dan `deleteSeriesVideo` (hapus file lama; link YouTube diabaikan).
+- Form seri: field `videoUrl` berganti tipe jadi `video` → `SeriesVideoField` (input file MP4,
+  tombol "Hapus video"). `ProductForm.handleSubmit` menghapus file lama dari storage setelah
+  upsert kalau URL-nya berubah. `upsertContent` kini menulis `content_items.video_url` juga.
+- Detail seri: `SeriesVideo` memakai `<video controls playsInline preload="metadata">` (tanpa
+  autoplay, 9:16, rounded, `.series-video` di `pages.css`) plus tombol "Perbesar" ke fullscreen
+  native. Link YouTube lama tetap dirender `MaterialVideo` (komponen Learning Center tidak
+  diubah) sampai semua video dipindah.
+- Verifikasi: `npm run typecheck` lulus; preview owner: detail Jiharkah masih memakai embed lama
+  (`.video-frame` + Perbesar), form "Video Seri" berisi input `video/mp4` + "Hapus video", label
+  "Link Video YouTube" hilang. Upload nyata dan pemutar `<video>` belum terverifikasi karena
+  bucket `series-videos` belum ada di production.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -2,7 +2,6 @@
 
 import { Icon } from '@/components/ui/Icon';
 import { ProductStatusTag } from '@/components/ui/badges';
-import { youtubeVideoId } from '@/features/learning/MaterialVideo';
 import { isGarment } from '@/lib/product-schema';
 import type { Product, ProductCategory } from '@/lib/types';
 import { rupiah } from '@/lib/utils/format';
@@ -46,7 +45,7 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
   const subtitle = [product.category === 'Product Series' ? '' : product.code, meta]
     .filter(Boolean)
     .join(' · ');
-  const hasVideo = product.category === 'Product Series' && Boolean(youtubeVideoId(product.videoUrl));
+  const hasVideo = product.category === 'Product Series' && Boolean(String(product.videoUrl ?? '').trim());
   return (
     <div
       className="card ck"

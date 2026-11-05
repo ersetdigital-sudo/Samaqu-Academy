@@ -813,6 +813,42 @@
   display: block;
 }
 
+/* Video seri yang di-host sendiri (bucket series-videos): 9:16, rounded, tinggi mengikuti layar */
+.series-video {
+  position: relative;
+  /* Lebar ikut tinggi layar supaya video 9:16 tetap utuh dan tidak melebihi modal. */
+  width: min(100%, 420px, calc((100vh - 200px) * 9 / 16));
+  aspect-ratio: 9 / 16;
+  margin-inline: auto;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: #111;
+}
+
+.series-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* Fullscreen dari tombol "Perbesar": video setinggi layar, tanpa sudut membulat. */
+.series-video:fullscreen {
+  height: 100%;
+  width: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+}
+
+.series-video:fullscreen video {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+}
+
 /* Video Shorts 9:16: bingkai ikut rasio video supaya tidak ada pilar hitam kiri-kanan. */
 .video-frame.is-vert {
   aspect-ratio: 9 / 16;
