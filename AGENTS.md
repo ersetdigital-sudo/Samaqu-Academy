@@ -539,6 +539,18 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi: `npm run typecheck`; preview owner 920px: kartu 721px, video 655×368 (16:9), h1 27px,
   tanpa `.mbox`, back link kembali ke daftar, sidebar seri lain muncul.
 
+### 2026-11-05 — Video seri Shorts tanpa pilar hitam
+
+- Keluhan: video seri (link `/shorts/`, contoh Jiharkah 0:28) masih diputar di bingkai 16:9,
+  jadi YouTube memberi pilar hitam kiri-kanan.
+- `MaterialVideo` menambah `youtubeVideoIsShort()` dan kelas `is-vert` pada bingkai hanya untuk
+  link Shorts; `styles/pages.css` memberi `.video-frame.is-vert` rasio 9:16 dengan lebar
+  `min(100%, 420px, (100vh - 160px) * 9/16)` dan `margin-inline:auto` supaya pas di kartu.
+- Thumbnail tetap `hqdefault.jpg`: pilar hitamnya terpotong oleh `object-fit: cover` di bingkai
+  9:16 (`oar2.jpg` tidak selalu tersedia). Link non-Shorts tetap 16:9, tidak berubah.
+- Verifikasi: `npx tsc --noEmit` lulus; aturan `.video-frame.is-vert` terkonfirmasi ada di CSS
+  yang disajikan dev server. Tampilan di browser belum dicek ulang otomatis.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

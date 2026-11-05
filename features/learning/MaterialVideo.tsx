@@ -13,6 +13,11 @@ export function youtubeVideoId(url?: string): string | null {
   return match ? match[1] : null;
 }
 
+/** Shorts = video vertikal (9:16), jadi bingkainya tidak boleh 16:9. */
+export function youtubeVideoIsShort(url?: string): boolean {
+  return /\/shorts\//.test(String(url ?? '').trim());
+}
+
 interface MaterialVideoProps {
   videoUrl?: string;
   title: string;
@@ -25,8 +30,10 @@ export function MaterialVideo({ videoUrl, title, autoPlay = false }: MaterialVid
   const id = youtubeVideoId(videoUrl);
   if (!id) return null;
 
+  // `hqdefault` untuk Shorts masih berpilar hitam, tapi `object-fit: cover` di bingkai
+  // 9:16 memotong pilarnya; `oar2` tidak tersedia untuk semua video.
   const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-  const frameClass = 'video-frame mt';
+  const frameClass = youtubeVideoIsShort(videoUrl) ? 'video-frame is-vert mt' : 'video-frame mt';
 
   if (playing) {
     return (

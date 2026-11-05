@@ -813,6 +813,13 @@
   display: block;
 }
 
+/* Video Shorts 9:16: bingkai ikut rasio video supaya tidak ada pilar hitam kiri-kanan. */
+.video-frame.is-vert {
+  aspect-ratio: 9 / 16;
+  max-width: min(100%, 420px, calc((100vh - 160px) * 9 / 16));
+  margin-inline: auto;
+}
+
 button.video-frame {
   cursor: pointer;
 }
