@@ -85,7 +85,7 @@ export function ProductsView() {
         products.find(
           (entry) => entry.category === 'Fabric Collection' && entry.code === product.fabric,
         )?.name ?? '';
-      return [product.name, product.code, product.series, product.fabric, fabricName, product.composition]
+      return [product.name, product.series, product.fabric, fabricName, product.composition]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -259,7 +259,7 @@ export function ProductsView() {
               <EmptyState
                 icon="search-x"
                 title="Tidak ada yang cocok"
-                subtitle="Coba kata kunci lain, misalnya nama seri, kode, atau jenis bahan."
+                subtitle="Coba kata kunci lain, misalnya nama seri atau jenis bahan."
               />
             </div>
           )}

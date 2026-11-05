@@ -23,6 +23,7 @@
 }
 
 .product-thumb {
+  position: relative;
   height: 150px;
   border-radius: 9px;
   background: var(--gl2);
@@ -30,6 +31,37 @@
   place-items: center;
   color: #a3a3a0;
   overflow: hidden;
+}
+
+/* Badge play kecil di pojok foto kartu seri yang punya video. */
+.thumb-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  pointer-events: none;
+}
+
+/* Modal detail seri tanpa video: foto close-up full lebar, 16:9, terpotong rapi. */
+.series-hero {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--gl2);
+}
+
+.series-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .product-thumb img {

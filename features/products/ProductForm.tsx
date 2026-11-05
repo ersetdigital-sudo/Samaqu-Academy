@@ -5,6 +5,7 @@ import { useData } from '@/components/providers/DataProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
 import { PipeTable } from '@/components/ui/PipeTable';
+import { youtubeVideoId } from '@/features/learning/MaterialVideo';
 import { PRODUCT_CATEGORIES, PRODUCT_PHOTO_LABELS, PRODUCT_STATUSES } from '@/lib/constants';
 import {
   getProductFields,
@@ -101,6 +102,10 @@ export function ProductForm({
     if (photo && !/^https?:\/\//i.test(photo)) {
       nextErrors.image = 'URL foto harus diawali http:// atau https://';
     }
+    const video = String(values.videoUrl ?? '').trim();
+    if (video && !youtubeVideoId(video)) {
+      nextErrors.videoUrl = 'Link video harus URL YouTube yang valid';
+    }
     const code = String(values.code ?? '').trim();
     if (code) {
       const duplicate = snapshot.content.products.find(
@@ -147,6 +152,7 @@ export function ProductForm({
       placket: text('placket'),
       customerPitch: text('customerPitch'),
       memberIds: Array.isArray(values.memberIds) ? values.memberIds : [],
+      videoUrl: text('videoUrl'),
       image: image.trim(),
       sample: false,
       updatedAt: Date.now(),

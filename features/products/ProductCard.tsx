@@ -2,6 +2,7 @@
 
 import { Icon } from '@/components/ui/Icon';
 import { ProductStatusTag } from '@/components/ui/badges';
+import { youtubeVideoId } from '@/features/learning/MaterialVideo';
 import { isGarment } from '@/lib/product-schema';
 import type { Product, ProductCategory } from '@/lib/types';
 import { rupiah } from '@/lib/utils/format';
@@ -22,7 +23,10 @@ function productMeta(product: Product): string {
   if (product.category === 'Fabric Collection') {
     return [product.composition, product.gsm ? `${product.gsm} GSM` : ''].filter(Boolean).join(' · ');
   }
-  if (product.category === 'Product Series') return `${product.memberIds.length} produk`;
+  // Seri tanpa produk terkait tidak menampilkan "0 produk".
+  if (product.category === 'Product Series') {
+    return product.memberIds.length ? `${product.memberIds.length} produk` : '';
+  }
   return '';
 }
 
@@ -38,6 +42,11 @@ interface ProductCardProps {
 /** One product tile; the category tag doubles as the label in cross-category search results. */
 export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelete }: ProductCardProps) {
   const meta = productMeta(product);
+  // Seri tidak menampilkan kode (SKU) lagi — juga untuk baris lama yang masih menyimpan `code`.
+  const subtitle = [product.category === 'Product Series' ? '' : product.code, meta]
+    .filter(Boolean)
+    .join(' · ');
+  const hasVideo = product.category === 'Product Series' && Boolean(youtubeVideoId(product.videoUrl));
   return (
     <div
       className="card ck"
@@ -54,6 +63,11 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
     >
       <div className={`product-thumb${image ? ' has-img' : ''}`}>
         {image ? <img src={image} alt="" /> : <Icon name={productIcon(product.category)} size={36} />}
+        {hasVideo ? (
+          <span className="thumb-play" aria-hidden="true">
+            <Icon name="play" size={13} />
+          </span>
+        ) : null}
       </div>
       <div className="row sp mt">
         <span className="tag">{product.category}</span>
@@ -62,10 +76,7 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
         </span>
       </div>
       <h3 className="mt1">{product.name}</h3>
-      <div className="sm muted">
-        {product.code}
-        {meta ? ` · ${meta}` : ''}
-      </div>
+      {subtitle ? <div className="sm muted">{subtitle}</div> : null}
       <p className="sm muted mt1 clamp-2" style={{ flex: 1 }}>
         {product.description || product.characteristics || product.guide || ''}
       </p>

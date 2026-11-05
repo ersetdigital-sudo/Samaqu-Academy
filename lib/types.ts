@@ -191,6 +191,8 @@ export interface Product extends BaseContent {
   placket?: string;
   customerPitch?: string;
   image?: string;
+  /** Link video YouTube per seri; kosong = modal memakai foto close-up. */
+  videoUrl?: string;
 }
 
 export interface ContentCollections {

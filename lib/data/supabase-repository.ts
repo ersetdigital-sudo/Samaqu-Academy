@@ -44,6 +44,8 @@ interface ContentRow {
   sort_order: number;
   level_id?: number | null;
   is_required?: boolean | null;
+  /** Kolom khusus seri produk (migration 0009); null kalau belum diisi. */
+  video_url?: string | null;
   data: Record<string, unknown> | null;
   updated_at: string;
 }
@@ -142,6 +144,10 @@ function mapContent(rows: ContentRow[]): ContentCollections {
       updatedAt: toMillis(row.updated_at),
       ...(key === 'materials'
         ? { levelId: row.level_id ?? null, isRequired: row.is_required !== false }
+        : {}),
+      // Seri: `data.videoUrl` (hasil form) menang; kolom `video_url` dipakai kalau data belum punya key.
+      ...(key === 'products' && row.video_url && !(row.data && 'videoUrl' in row.data)
+        ? { videoUrl: row.video_url }
         : {}),
     };
     (content[key] as unknown[]).push(item);
@@ -275,7 +281,8 @@ export function createSupabaseRepository(
       ] = await Promise.all([
           supabase
             .from('content_items')
-            .select('id, type, sort_order, level_id, is_required, data, updated_at')
+            // `*` supaya kolom opsional (mis. `video_url` seri) terbaca walau migration belum jalan.
+            .select('*')
             .order('type')
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true }),

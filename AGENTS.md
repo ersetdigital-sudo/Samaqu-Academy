@@ -472,6 +472,32 @@ Docs contradicted the original assumptions. Authoritative findings:
   terkunci, progres 0/3, 25 soal tampil, simpan soal baru berhasil. Hapus soal lewat dialog
   belum terverifikasi otomatis (tombol "Hapus" ganda), data uji dihapus manual.
 
+### 2026-11-05 — Product Knowledge: kode seri dihapus, video per seri
+
+- Seri tidak lagi punya kode/SKU: key `code` hilang dari `PRODUCT_SCHEMA['Product Series']`
+  (form, validasi duplikat, kartu, matriks, pencarian, salinan "Copy Info"). `Product.code`
+  tetap ada untuk kode bahan (B-01) dan kode produk (TH-001) karena `product.fabric`
+  mereferensikan `bahan.code` — ini referensi silang, bukan SKU seri.
+- `Product.videoUrl` (+ kolom `content_items.video_url`, migration `0009`) menyimpan link YouTube
+  per seri. Form punya "Link Video YouTube" dengan validasi `youtubeVideoId()` dari
+  `features/learning/MaterialVideo`. Modal detail seri memakai `MaterialVideo` (thumbnail + tombol
+  play, tanpa autoplay) full lebar 16:9; tanpa video → `.series-hero` (foto close-up kartu,
+  `object-cover`). Kartu menampilkan badge `.thumb-play` kalau video terisi.
+- `price` keluar dari schema seri ("Harga Mulai (Rp)"); baris "Produk dalam Seri Ini" dan teks
+  "0 produk" disembunyikan saat kosong; urutan baris modal: Kerah, Placket / Klep, Karakteristik,
+  Cara menjelaskan ke customer, Produk dalam Seri Ini.
+- `lib/data/supabase-repository.ts` membaca `content_items` dengan `select('*')` dan memakai
+  `row.video_url` hanya kalau `data.videoUrl` belum ada, jadi form (JSONB) dan SQL sama-sama jalan
+  walau migration belum diterapkan.
+- Migration `0008` menghapus key `code` dari `data` baris Product Series. Tidak ada kolom, FK,
+  atau unique index untuk kode seri — seri adalah JSONB — jadi tidak ada DDL drop. **Belum
+  dijalankan ke production** (butuh persetujuan owner).
+- Verifikasi: `npm run typecheck`, `next build` (19 route static), `npm run audit` (products
+  245.9 KB gzip), preview owner: 6 seri tanpa kode di matriks/kartu, urutan baris modal benar,
+  form menolak link non-YouTube, mobile tanpa overflow.
+- Catatan: 6 link YouTube seri dan kolom `video_url` belum diisi, jadi tampilan video (badge kartu
+  + hero video di modal) belum terverifikasi di preview.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

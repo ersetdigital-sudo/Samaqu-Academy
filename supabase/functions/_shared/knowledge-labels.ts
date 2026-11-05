@@ -90,6 +90,7 @@ export const SKIP_FIELDS = new Set([
   'imageUrl',
   'imagePath',
   'photo',
+  'videoUrl',
   'memberIds',
   'materialId',
   'sortOrder',

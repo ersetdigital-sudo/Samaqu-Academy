@@ -598,7 +598,7 @@ function setRole(r){CURRENT_ROLE=r;LS.setItem('smq_role',r);toast('Mode akses: '
 /* --- Skema form per kategori --- */
 const GARMENT=[
  {k:'name',l:'Nama Produk',req:1,sec:'Informasi Umum',ph:'Contoh: Thobe [Nama]'},
- {k:'code',l:'Kode Produk / SKU',req:1,sec:'Informasi Umum',ph:'Contoh: TH-001'},
+ {k:'code',l:'Kode Produk',req:1,sec:'Informasi Umum',ph:'Contoh: TH-001'},
  {k:'series',l:'Product Series',t:'series',sec:'Informasi Umum'},
  {k:'status',l:'Status Ketersediaan',t:'select',o:['Tersedia','Pre-order','Stok Terbatas','Habis','Tidak Aktif'],req:1,sec:'Informasi Umum'},
  {k:'desc',l:'Deskripsi Produk',t:'area',req:1,sec:'Informasi Umum',full:1},
@@ -619,7 +619,7 @@ const SCHEMA={Thobe:GARMENT,Gamis:GARMENT,Koko:GARMENT,
   {k:'table',l:'Tabel Ukuran',t:'table',req:1,sec:'Tabel Ukuran',full:1,hint:'Baris pertama = judul kolom. Pisahkan kolom dengan tanda | (garis tegak).'},
   {k:'measure',l:'Detail Pengukuran',t:'area',sec:'Panduan',full:1,ph:'Contoh: Panjang diukur dari bahu ke bawah…'},{k:'guide',l:'Panduan Memilih Ukuran',t:'area',sec:'Panduan',full:1}],
  'Product Series':[
-  {k:'name',l:'Nama Seri',req:1,sec:'Informasi Seri'},{k:'code',l:'Kode Seri',req:1,sec:'Informasi Seri'},
+  {k:'name',l:'Nama Seri',req:1,sec:'Informasi Seri'},
   {k:'desc',l:'Deskripsi Seri',t:'area',req:1,sec:'Informasi Seri',full:1},{k:'character',l:'Karakteristik',t:'area',sec:'Informasi Seri',full:1},
   {k:'members',l:'Produk dalam Seri Ini',t:'members',sec:'Produk Terkait',full:1}]
 };
@@ -636,7 +636,7 @@ const SEED=[
  {id:'seed_fb1',cat:'Fabric Collection',name:'Bahan B-01',code:'B-01',composition:'',gsm:'',character:'Belum tersedia. Isi dari data resmi tim produk.',adv:'',extra:''},
  {id:'seed_fb2',cat:'Fabric Collection',name:'Bahan A-02',code:'A-02',composition:'',gsm:'',character:'Belum tersedia. Isi dari data resmi tim produk.',adv:'',extra:''},
  {id:'seed_sc1',cat:'Size Chart',name:'Size Chart Thobe',code:'SC-TH',table:'Ukuran | Panjang (cm) | Lingkar Dada (cm)\nS | [isi] | [isi]\nM | [isi] | [isi]\nL | [isi] | [isi]\nXL | [isi] | [isi]',measure:'[Isi cara pengukuran resmi]',guide:'Cocokkan tinggi & berat badan customer dengan tabel ini.'},
- {id:'seed_sr1',cat:'Product Series',name:'Seri [Nama Seri]',code:'SR-01',desc:'Data contoh. Penjelasan seri diisi oleh tim produk.',character:'',members:['seed_th1']}
+ {id:'seed_sr1',cat:'Product Series',name:'Seri [Nama Seri]',desc:'Data contoh. Penjelasan seri diisi oleh tim produk.',character:'',members:['seed_th1']}
 ].map(x=>({...x,sample:true,updated:Date.now()}));
 const PKEY='smq_products_v1';
 let PRODUCTS=[];

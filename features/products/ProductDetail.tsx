@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
+import { MaterialVideo, youtubeVideoId } from '@/features/learning/MaterialVideo';
 import { getProductFields, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
@@ -128,12 +129,27 @@ export function ProductDetail({
     showToast(ok ? 'Info produk berhasil disalin' : 'Gagal menyalin', ok ? 'ok' : 'err');
   };
 
-  const fields = getProductFields(product.category).filter(
-    (field) => !['name', 'description'].includes(String(field.key)),
-  );
+  const isSeries = product.category === 'Product Series';
+  const fields = getProductFields(product.category).filter((field) => {
+    if (['name', 'description', 'videoUrl'].includes(String(field.key))) return false;
+    // Baris "Produk dalam Seri Ini" tidak ditampilkan kalau seri belum punya anggota.
+    if (field.key === 'memberIds' && !(Array.isArray(product.memberIds) && product.memberIds.length)) {
+      return false;
+    }
+    return true;
+  });
   // Size chart dan lembar bahan tampil berdampingan dengan tabel agar gambarnya besar dan bisa di-zoom.
   const hasMediaPanel =
     product.category === 'Size Chart' || product.category === 'Fabric Collection';
+
+  // Seri: video YouTube full lebar (16:9, thumbnail + tombol play). Tanpa video -> foto close-up.
+  const seriesHeader = !isSeries ? null : youtubeVideoId(product.videoUrl) ? (
+    <MaterialVideo videoUrl={product.videoUrl} title={product.name} />
+  ) : imageUrl ? (
+    <div className="series-hero mt">
+      <img src={imageUrl} alt="" />
+    </div>
+  ) : null;
 
   const imageBlock = imageUrl ? (
     <img
@@ -178,7 +194,7 @@ export function ProductDetail({
         </button>
       </div>
 
-      {hasMediaPanel ? null : imageBlock}
+      {isSeries ? seriesHeader : hasMediaPanel ? null : imageBlock}
 
       <h2 className="mt">{product.name}</h2>
       {product.description ? (
