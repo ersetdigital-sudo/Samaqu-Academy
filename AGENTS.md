@@ -498,6 +498,20 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Catatan: 6 link YouTube seri dan kolom `video_url` belum diisi, jadi tampilan video (badge kartu
   + hero video di modal) belum terverifikasi di preview.
 
+### 2026-11-05 — Popup seri menyesuaikan video Shorts
+
+- Keluhan: popup seri untuk video Shorts (9:16) tampil sebagai modal 900px (`.mbox.lg`) sehingga
+  video kecil di tengah dengan ruang kosong besar, dan saat diputar muncul pilar hitam kiri-kanan.
+- `openModal` menerima opsi `portrait` → `.mbox.portrait` dengan lebar `min(400px, calc(72vh * 0.5625 + 52px))`
+  (ikut tinggi layar supaya video tetap mengisi penuh). `.mbox.portrait .video-frame.is-vert`
+  memakai `max-width:none`, jadi bingkai 9:16 selebar isi popup.
+- `ProductsView.openProductDetail` memilih varian ini hanya saat seri punya link `/shorts/`
+  (`isYoutubeShort`). Seri tanpa video Shorts tetap modal besar; tidak ada perubahan data.
+- Verifikasi: `npm run typecheck`, `npm run build` (static), preview owner 920px: `.mbox.portrait`
+  400px, frame video 333×592 (9:16) tanpa celah samping, thumbnail `oar2.jpg` termuat, tombol play
+  mengganti frame dengan iframe `youtube-nocookie` id yang sama, skor tanpa overflow horizontal.
+  Pemutaran video asli diblokir "Sign in to confirm you're not a bot" di browser uji (bukan defect app).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

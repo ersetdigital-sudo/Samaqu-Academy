@@ -13,7 +13,7 @@ import {
 } from 'react';
 
 interface ModalContextValue {
-  openModal: (node: ReactNode, options?: { large?: boolean }) => void;
+  openModal: (node: ReactNode, options?: { large?: boolean; portrait?: boolean }) => void;
   closeModal: () => void;
 }
 
@@ -22,6 +22,7 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 export function ModalProvider({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<ReactNode>(null);
   const [large, setLarge] = useState(false);
+  const [portrait, setPortrait] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
@@ -30,9 +31,10 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     setContent(null);
   }, []);
 
-  const openModal = useCallback((node: ReactNode, options?: { large?: boolean }) => {
+  const openModal = useCallback((node: ReactNode, options?: { large?: boolean; portrait?: boolean }) => {
     previousFocus.current = document.activeElement as HTMLElement | null;
     setLarge(Boolean(options?.large));
+    setPortrait(Boolean(options?.portrait));
     setContent(node);
   }, []);
 
@@ -70,7 +72,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           }}
         >
           <div
-            className={`mbox${large ? ' lg' : ''}`}
+            className={`mbox${large ? ' lg' : ''}${portrait ? ' portrait' : ''}`}
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
