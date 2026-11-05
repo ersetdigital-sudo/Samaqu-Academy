@@ -551,6 +551,18 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi: `npx tsc --noEmit` lulus; aturan `.video-frame.is-vert` terkonfirmasi ada di CSS
   yang disajikan dev server. Tampilan di browser belum dicek ulang otomatis.
 
+### 2026-11-05 — Tabel spesifikasi seri di samping video
+
+- Keluhan: tabel spesifikasi (Kerah, Placket, Karakteristik, Cara menjelaskan) menumpuk di
+  bawah video, padahal ruang di sampingnya kosong.
+- `ProductDetail` merender tabel field seri di grid baru `.pd-series`
+  (`minmax(0,0.9fr) minmax(0,1.2fr)`): video/foto di kiri, tabel di kanan. Urutan DOM tidak
+  berubah, jadi `Copy Info` dan perilaku lain tetap. Di bawah 760px grid jadi satu kolom.
+- `styles/components.css`: `.pd-series` + reset `margin-top` untuk `.video-frame.mt` /
+  `.series-hero.mt` di dalam grid. Size Chart / Bahan tetap memakai `.pd-split`.
+- Verifikasi: `npx tsc --noEmit` lulus; preview owner 920px: grid 655px → video 287×510 (9:16),
+  tabel 350px, tanpa overflow. Mobile 390px: kolom bertumpuk 277px, tanpa overflow.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -205,9 +205,18 @@ export function ProductDetail({
         <span>Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}</span>
       </div>
 
-      {isSeries ? seriesHeader : hasMediaPanel ? null : imageBlock}
+      {!isSeries && !hasMediaPanel ? imageBlock : null}
 
-      {hasMediaPanel && imageUrl ? (
+      {isSeries ? (
+        seriesHeader ? (
+          <div className="pd-series mt">
+            <div>{seriesHeader}</div>
+            <div>{fieldsTable}</div>
+          </div>
+        ) : (
+          <div className="mt">{fieldsTable}</div>
+        )
+      ) : hasMediaPanel && imageUrl ? (
         <div className="pd-split mt">
           <ImageZoom
             src={imageUrl}
