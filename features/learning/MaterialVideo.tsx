@@ -13,24 +13,35 @@ export function youtubeVideoId(url?: string): string | null {
   return match ? match[1] : null;
 }
 
+/** Video Shorts (9:16 vertikal) butuh bingkai portrait, bukan 16:9. */
+export function isYoutubeShort(url?: string): boolean {
+  return /\/shorts\//i.test(String(url ?? ''));
+}
+
 interface MaterialVideoProps {
   videoUrl?: string;
   title: string;
   /** Halaman materi: video langsung diputar tanpa klik tambahan. */
   autoPlay?: boolean;
+  /** Video vertikal (Shorts): bingkai 9:16 + thumbnail crop portrait. */
+  vertical?: boolean;
 }
 
-export function MaterialVideo({ videoUrl, title, autoPlay = false }: MaterialVideoProps) {
+export function MaterialVideo({ videoUrl, title, autoPlay = false, vertical = false }: MaterialVideoProps) {
   const [playing, setPlaying] = useState(autoPlay);
   const id = youtubeVideoId(videoUrl);
   if (!id) return null;
 
+  // Shorts: `oar2.jpg` sudah 9:16; `hqdefault.jpg` (4:3, berbingkai hitam) hanya untuk video biasa.
+  const thumb = vertical ? `https://i.ytimg.com/vi/${id}/oar2.jpg` : `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  const frameClass = `video-frame mt${vertical ? ' is-vert' : ''}`;
+
   if (playing) {
     return (
-      <div className="video-frame mt">
+      <div className={frameClass}>
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
-          title={`Video materi: ${title}`}
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`}
+          title={vertical ? `Shorts: ${title}` : `Video: ${title}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
@@ -41,11 +52,11 @@ export function MaterialVideo({ videoUrl, title, autoPlay = false }: MaterialVid
   return (
     <button
       type="button"
-      className="video-frame mt"
+      className={frameClass}
       onClick={() => setPlaying(true)}
-      aria-label={`Putar video materi: ${title}`}
+      aria-label={`Putar video: ${title}`}
     >
-      <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" loading="lazy" />
+      <img src={thumb} alt="" loading="lazy" />
       <span className="video-play">
         <Icon name="play" size={22} />
       </span>

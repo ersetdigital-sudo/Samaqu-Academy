@@ -84,7 +84,7 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
     { key: 'placket', label: 'Placket / Klep', type: 'select', section: 'Informasi Seri', options: SERIES_PLACKETS },
     { key: 'characteristics', label: 'Karakteristik', type: 'textarea', section: 'Informasi Seri', full: true },
     { key: 'customerPitch', label: 'Cara menjelaskan ke customer', type: 'textarea', section: 'Informasi Seri', full: true },
-    { key: 'videoUrl', label: 'Link Video YouTube', section: 'Informasi Seri', full: true, placeholder: 'https://www.youtube.com/watch?v=…', hint: 'Kosongkan kalau seri ini belum punya video.' },
+    { key: 'videoUrl', label: 'Link Video YouTube', section: 'Informasi Seri', full: true, placeholder: 'https://youtube.com/shorts/…', hint: 'Boleh link YouTube biasa atau Shorts (tampil vertikal). Kosongkan kalau seri ini belum punya video.' },
     { key: 'memberIds', label: 'Produk dalam Seri Ini', type: 'members', section: 'Produk Terkait', full: true },
   ],
 };

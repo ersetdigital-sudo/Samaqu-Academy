@@ -821,6 +821,19 @@ button.video-frame:hover img {
   opacity: 0.85;
 }
 
+/* Video Shorts (vertikal): bingkai 9:16 di tengah, tidak dipaksa 16:9 jadi berbingkai hitam. */
+.video-frame.is-vert {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 9 / 16;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.video-frame.is-vert img {
+  object-fit: cover;
+}
+
 .video-play {
   position: absolute;
   inset: 0;
