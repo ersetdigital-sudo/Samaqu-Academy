@@ -657,6 +657,17 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi preview owner 920px: `/sop` menampilkan 6 kartu, `/jobdesk` 4 kartu, tanpa error
   console dan tanpa overflow horizontal.
 
+### 2026-11-05 — Edge Function `ai` + `ai-admin` di-deploy ulang
+
+- Owner menyetujui deploy; `npx supabase functions deploy ai ai-admin --use-api --no-verify-jwt
+  --remote=rbjxjdgqtcwwbvuwtlpg --yes` dijalankan dari container `web`. Hasil
+  `functions list`: `ai` versi 7, `ai-admin` versi 6, keduanya `ACTIVE`.
+- Yang kini aktif termasuk `_shared/knowledge-labels.ts` + `_shared/knowledge-documents.ts`
+  terbaru, jadi tipe `jobdesk` dan `sop` ikut dikirim sebagai dokumen knowledge ke AI.
+- Verifikasi: `POST /functions/v1/ai` tanpa token → 401 `{"ok":false,"error":"Sesi tidak valid.
+  Login ulang."}` dan preflight `OPTIONS` → 200 (fungsi hidup, JWT dicek di dalam fungsi).
+  Jawaban AI yang benar-benar menyebut Job Desk/SOP **belum** diuji (butuh login owner).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
