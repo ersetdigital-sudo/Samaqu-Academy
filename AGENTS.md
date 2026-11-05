@@ -598,6 +598,21 @@ Docs contradicted the original assumptions. Authoritative findings:
   "Link Video YouTube" hilang. Upload nyata dan pemutar `<video>` belum terverifikasi karena
   bucket `series-videos` belum ada di production.
 
+### 2026-11-05 — Video seri: "Perbesar" tidak lagi terpotong
+
+- Keluhan: setelah klik "Perbesar", video tampil seukuran aslinya (1080×1920) lalu terpotong
+  bingkai, bukan mengecil mengikuti layar.
+- Penyebab: `.series-video:fullscreen` memakai `display: grid; place-items: center`, sehingga
+  tinggi `100%` pada `<video>` tidak punya acuan (baris grid auto) dan video digambar pada
+  ukuran intrinsiknya; `overflow: hidden` di bingkai memotong sisanya.
+- Fix (`styles/pages.css`): bingkai fullscreen jadi `display: block` + latar hitam, video
+  `width/height: 100%` + `object-fit: contain` (tanpa `max-width`), jadi video 9:16 selalu utuh
+  di tengah layar. Tombol "Perbesar" disembunyikan saat sudah fullscreen (`SeriesVideo`).
+- Verifikasi: `npm run typecheck` lulus; CSS tersaji berisi aturan baru; preview 920px: video
+  inline tetap 319×566 (9:16), tombol Perbesar ada, tanpa error console. Tampilan fullscreen
+  **belum terverifikasi otomatis** — Fullscreen API ditolak di browser uji ("Permissions check
+  failed"), perlu dicek manual di browser biasa.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

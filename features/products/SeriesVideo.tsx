@@ -43,10 +43,12 @@ function NativeSeriesVideo({ src, title }: { src: string; title: string }) {
   return (
     <div className="series-video" ref={wrap}>
       <video src={src} controls playsInline preload="metadata" aria-label={`Video: ${title}`} />
-      <button type="button" className="video-zoom" onClick={toggleFullscreen}>
-        <Icon name="scan-search" size={13} />
-        Perbesar
-      </button>
+      {fullscreen ? null : (
+        <button type="button" className="video-zoom" onClick={toggleFullscreen}>
+          <Icon name="scan-search" size={13} />
+          Perbesar
+        </button>
+      )}
     </div>
   );
 }
