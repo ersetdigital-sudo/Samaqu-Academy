@@ -51,10 +51,12 @@ export function MaterialVideo({ videoUrl, title, autoPlay = false, zoomable = fa
   const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   const frameClass = youtubeVideoIsShort(videoUrl) ? 'video-frame is-vert mt' : 'video-frame mt';
   const playerSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`;
+  // Saat pemutar besar terbuka, video di halaman dilepas dari DOM supaya tidak ada dua video berjalan.
+  const showInlinePlayer = playing && !zoom;
 
   const frame = (
     <div className={frameClass}>
-      {playing ? (
+      {showInlinePlayer ? (
         <iframe
           src={playerSrc}
           title={`Video: ${title}`}
