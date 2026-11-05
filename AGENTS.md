@@ -668,6 +668,38 @@ Docs contradicted the original assumptions. Authoritative findings:
   Login ulang."}` dan preflight `OPTIONS` → 200 (fungsi hidup, JWT dicek di dalam fungsi).
   Jawaban AI yang benar-benar menyebut Job Desk/SOP **belum** diuji (butuh login owner).
 
+### 2026-11-05 — Label Chat Customer per tahap
+
+- Aturan owner: setiap chat customer wajib punya label tahap — Leads Baru (chat pertama, belum ada
+  data) → Proses (form/invoice terkirim, belum transfer) → Closing (sudah transfer + diinput di ops)
+  → Dikirim (resi dikirim) → Selesai (paket diterima: minta testimoni, cek ukuran pas, promo repeat
+  order). Tujuannya posisi semua customer terlihat dari daftar label tanpa membuka chat satu per satu.
+- Menu baru `/labels` di grup Learning & Service (`Label Chat`, ikon `tag`): `/features/labels`
+  berisi `label-stages.ts` (satu sumber kebenaran: definisi, kriteria pindah label, aksi CS,
+  kesalahan umum, 3 tindak lanjut tahap Selesai, aturan main) dan `LabelsView` (alur 5 tahap
+  memakai `.journey.j5` + `.jstep` milik Chat Flow). Datanya statis di kode, bukan `content_items`,
+  jadi label baku tidak bisa berubah per-user dan tidak butuh migration DDL.
+- `.journey.j5` ditambahkan di `styles/components.css` (5 kolom, turun ke 3 dan 2 kolom di layar
+  kecil); `.journey` bawaan tetap 7 kolom untuk Chat Flow.
+- Penempatan: aturan/kriterianya = SOP, kewajiban harian siapa mengisi dan siapa mengecek = Job Desk.
+  `supabase/migrations/0012_chat_labels.sql` menyiapkan SOP `sop_label_chat_tahapan` + tugas label
+  untuk `jbd_admin_cs` dan `jbd_leader_cs` (idempotent, tanpa DDL). **Belum dijalankan ke
+  production** (menunggu persetujuan owner).
+- Verifikasi: `npm run typecheck` lulus, `next build` 22 route static termasuk `/labels`; markup
+  komponen dirender ulang di server (5 label, kriteria, aturan main tampil). Tampilan di browser
+  **belum terverifikasi otomatis** karena app butuh login Supabase.
+
+### 2026-11-05 — Istilah "ops" → "dashboard admin" (label Closing)
+
+- Owner mengganti istilah tempat input transaksi: "ops" jadi **"dashboard admin"** di semua teks
+  label Closing. Teks baku di `features/labels/label-stages.ts` (`step` Closing, `definition`,
+  kriteria "Transaksi sudah diinput di dashboard admin", kesalahan umum) dan langkah SOP label di
+  `supabase/migrations/0012_chat_labels.sql` sudah memakai istilah baru.
+- Data Supabase dicek lewat Management API: tidak ada baris `content_items` yang memuat kata "ops"
+  maupun "diinput", dan SOP label (`sop_label_chat_tahapan`) belum ada di production karena
+  migration 0012 memang belum dijalankan — jadi tidak ada UPDATE data yang diperlukan.
+- Istilah lain yang tidak berkaitan dengan input transaksi tidak diubah.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

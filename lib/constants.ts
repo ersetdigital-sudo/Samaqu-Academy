@@ -29,6 +29,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Communication Guidelines', href: '/guidelines', icon: 'book-heart' },
       { label: 'Job Desk', href: '/jobdesk', icon: 'briefcase' },
       { label: 'SOP', href: '/sop', icon: 'shield-check' },
+      { label: 'Label Chat', href: '/labels', icon: 'tag' },
       { label: 'Chat Flow', href: '/flow', icon: 'route' },
       { label: 'Script Library', href: '/scripts', icon: 'message-square-text' },
       { label: 'Product Knowledge', href: '/products', icon: 'shirt' },
