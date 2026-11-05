@@ -689,6 +689,17 @@ Docs contradicted the original assumptions. Authoritative findings:
   komponen dirender ulang di server (5 label, kriteria, aturan main tampil). Tampilan di browser
   **belum terverifikasi otomatis** karena app butuh login Supabase.
 
+### 2026-11-05 — Istilah "ops" → "dashboard admin" (label Closing)
+
+- Owner mengganti istilah tempat input transaksi: "ops" jadi **"dashboard admin"** di semua teks
+  label Closing. Teks baku di `features/labels/label-stages.ts` (`step` Closing, `definition`,
+  kriteria "Transaksi sudah diinput di dashboard admin", kesalahan umum) dan langkah SOP label di
+  `supabase/migrations/0012_chat_labels.sql` sudah memakai istilah baru.
+- Data Supabase dicek lewat Management API: tidak ada baris `content_items` yang memuat kata "ops"
+  maupun "diinput", dan SOP label (`sop_label_chat_tahapan`) belum ada di production karena
+  migration 0012 memang belum dijalankan — jadi tidak ada UPDATE data yang diperlukan.
+- Istilah lain yang tidak berkaitan dengan input transaksi tidak diubah.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -60,11 +60,11 @@ export const LABEL_STAGES: LabelStage[] = [
   {
     id: 'closing',
     name: 'Closing',
-    step: 'Transfer masuk + input ops',
-    definition: 'Customer sudah transfer dan transaksinya sudah diinput di ops.',
+    step: 'Transfer masuk + input dashboard admin',
+    definition: 'Customer sudah transfer dan transaksinya sudah diinput di dashboard admin.',
     criteria: [
       'Bukti transfer masuk dan nominalnya sesuai invoice',
-      'Transaksi sudah diinput di ops',
+      'Transaksi sudah diinput di dashboard admin',
       'Nomor transaksi sudah tercatat di chat',
     ],
     actions: [
@@ -73,7 +73,7 @@ export const LABEL_STAGES: LabelStage[] = [
       'Simpan nomor transaksi di chat supaya mudah dicari',
     ],
     mistakes: [
-      'Transfer masuk tapi transaksi belum diinput di ops',
+      'Transfer masuk tapi transaksi belum diinput di dashboard admin',
       'Label Closing dipasang sebelum nominal transfer dicek',
     ],
   },

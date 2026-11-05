@@ -25,7 +25,7 @@ values (
     'steps', jsonb_build_array(
       'Saat chat pertama masuk, pasang label "Leads Baru" sebelum menutup chat.',
       'Lengkapi data customer (nama, ukuran, alamat, nomor WhatsApp), lalu kirim form atau invoice. Begitu form/invoice terkirim, ganti label jadi "Proses".',
-      'Saat bukti transfer masuk, pastikan nominalnya sesuai dan transaksi sudah diinput di ops, lalu ganti label jadi "Closing".',
+      'Saat bukti transfer masuk, pastikan nominalnya sesuai dan transaksi sudah diinput di dashboard admin, lalu ganti label jadi "Closing".',
       'Saat resi sudah diinfokan ke customer, ganti label jadi "Dikirim" dan pantau posisi paketnya.',
       'Saat customer konfirmasi paket diterima, ganti label jadi "Selesai".',
       'Di tahap Selesai jalankan tiga tindak lanjut: minta testimoni, cek apakah ukurannya pas, lalu kirim promo repeat order.',
