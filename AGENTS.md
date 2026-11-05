@@ -645,6 +645,18 @@ Docs contradicted the original assumptions. Authoritative findings:
   tambah/ubah terbuka dan batal menutup, empty state tampil, 375px tanpa overflow, tanpa error
   console. Simpan ke DB **belum terverifikasi** sampai migration 0011 dijalankan.
 
+### 2026-11-05 — Data contoh Job Desk & SOP diisi
+
+- Migration `0011_jobdesk_sop_types.sql` sudah dijalankan ke production; `content_items_type_check`
+  kini menerima `jobdesk` dan `sop`, jadi halaman admin bisa menyimpan data.
+- Diisi data awal agar halamannya ada gambaran: 4 job desk (`jbd_admin_cs`, `jbd_marketplace`,
+  `jbd_gudang`, `jbd_leader_cs`) dan 6 SOP (`sop_chat_pertama`, `sop_followup_belum_bayar`,
+  `sop_komplain_terlambat`, `sop_tukar_ukuran_retur`, `sop_eskalasi_leader`, `sop_klaim_cacat`).
+  Semua baris `content_items` dengan `sort_order` 1..N, disisipkan `on conflict (id) do nothing`
+  supaya editan owner tidak tertimpa.
+- Verifikasi preview owner 920px: `/sop` menampilkan 6 kartu, `/jobdesk` 4 kartu, tanpa error
+  console dan tanpa overflow horizontal.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
