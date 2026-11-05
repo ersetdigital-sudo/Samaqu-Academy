@@ -627,6 +627,24 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi: `npm run typecheck` lulus; preview owner (920px) detail Jiharkah: klik "Perbesar"
   membuka overlay tanpa error console, Escape/X menutup.
 
+### 2026-11-05 — Menu Job Desk & SOP
+
+- Dua halaman baru di grup "Learning & Service": `/jobdesk` (satu kartu per jabatan: ringkasan,
+  tanggung jawab, checklist tugas harian) dan `/sop` (judul, tujuan, langkah bernomor, catatan
+  penting). Keduanya CRUD owner seperti section lain (`RecordForm` + `ConfirmDialog`).
+- Data tetap di `content_items` dengan tipe baru `jobdesk` dan `sop` (JSONB `data`), tanpa tabel
+  baru: `JobDeskRole`/`Sop` di `lib/types.ts`, `jobdesk`/`sops` di `ContentCollections`,
+  `TYPE_BY_KEY` + `APPEND_COLLECTIONS` + `isContent`/`normalizeContent` ikut ditambah.
+- **Blocker DB:** `content_items_type_check` (0001) masih hanya mengizinkan 10 tipe lama, jadi
+  simpan Job Desk/SOP ditolak DB (`violates check constraint content_items_type_check`).
+  Migration `0011_jobdesk_sop_types.sql` membuat ulang constraint dengan `jobdesk` + `sop`
+  (atomic, idempotent, tanpa mengubah baris). **Belum dijalankan ke production** (butuh
+  persetujuan owner).
+- Verifikasi: `npm run typecheck` dan `npm run build` (21 route static, termasuk `/jobdesk` dan
+  `/sop`) lulus; preview owner: dua menu muncul di sidebar, kedua halaman render, form
+  tambah/ubah terbuka dan batal menutup, empty state tampil, 375px tanpa overflow, tanpa error
+  console. Simpan ke DB **belum terverifikasi** sampai migration 0011 dijalankan.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

@@ -396,6 +396,8 @@ export function normalizeContent(input: LegacyContentInput): ContentCollections 
     scenarios: normalizeScenarios(input.scenarios),
     quiz: normalizeQuiz(input.quiz),
     products: normalizeProducts(input.products),
+    jobdesk: [],
+    sops: [],
   };
 }
 

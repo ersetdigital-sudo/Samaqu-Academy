@@ -329,3 +329,65 @@ export const BEFORE_AFTER_FIELDS: RecordField[] = [
   { key: 'why', label: 'Alasan Respons Baru Lebih Baik', type: 'textarea', required: true, full: true },
   { key: 'notes', label: 'Catatan untuk Admin', type: 'textarea', full: true },
 ];
+
+export const JOB_DESK_FIELDS: RecordField[] = [
+  {
+    key: 'role',
+    label: 'Jabatan',
+    required: true,
+    full: true,
+    placeholder: 'Contoh: Admin CS',
+  },
+  {
+    key: 'summary',
+    label: 'Ringkasan Peran',
+    type: 'textarea',
+    rows: 2,
+    required: true,
+    full: true,
+  },
+  {
+    key: 'responsibilities',
+    label: 'Tanggung Jawab',
+    type: 'lines',
+    required: true,
+    full: true,
+    hint: 'Satu tanggung jawab per baris.',
+  },
+  {
+    key: 'tasks',
+    label: 'Checklist Tugas Harian',
+    type: 'list',
+    required: true,
+    full: true,
+    hint: 'Satu tugas per baris. Urutan bisa diatur dengan panah.',
+  },
+];
+
+export const SOP_FIELDS: RecordField[] = [
+  { key: 'title', label: 'Judul SOP', required: true, full: true },
+  {
+    key: 'purpose',
+    label: 'Tujuan',
+    type: 'textarea',
+    rows: 2,
+    required: true,
+    full: true,
+  },
+  {
+    key: 'steps',
+    label: 'Langkah',
+    type: 'list',
+    required: true,
+    full: true,
+    hint: 'Satu langkah per baris, urut dari langkah pertama.',
+  },
+  {
+    key: 'notes',
+    label: 'Catatan Penting',
+    type: 'textarea',
+    rows: 2,
+    full: true,
+    hint: 'Opsional. Batas waktu, pengecualian, atau siapa yang harus dihubungi.',
+  },
+];

@@ -25,6 +25,8 @@ const TYPE_BY_KEY: Record<ContentCollectionKey, string> = {
   scenarios: 'scenario',
   quiz: 'quiz',
   products: 'product',
+  jobdesk: 'jobdesk',
+  sops: 'sop',
 };
 
 const KEY_BY_TYPE: Record<string, ContentCollectionKey> = Object.fromEntries(
@@ -132,6 +134,8 @@ function mapContent(rows: ContentRow[]): ContentCollections {
     scenarios: [],
     quiz: [],
     products: [],
+    jobdesk: [],
+    sops: [],
   };
 
   rows.forEach((row) => {
