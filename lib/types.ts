@@ -191,6 +191,24 @@ export interface Product extends BaseContent {
   placket?: string;
   customerPitch?: string;
   image?: string;
+  /** Link video YouTube per seri; kosong = modal memakai foto close-up. */
+  videoUrl?: string;
+}
+
+/** Satu jabatan di halaman Job Desk: tanggung jawab + checklist tugas harian. */
+export interface JobDeskRole extends BaseContent {
+  role: string;
+  summary: string;
+  responsibilities: string[];
+  tasks: string[];
+}
+
+/** Satu SOP resmi: tujuan, langkah bernomor, catatan penting. */
+export interface Sop extends BaseContent {
+  title: string;
+  purpose: string;
+  steps: string[];
+  notes: string;
 }
 
 export interface ContentCollections {
@@ -204,6 +222,8 @@ export interface ContentCollections {
   scenarios: Scenario[];
   quiz: QuizQuestion[];
   products: Product[];
+  jobdesk: JobDeskRole[];
+  sops: Sop[];
 }
 
 export interface MaterialProgress {

@@ -11,5 +11,10 @@ export function createSeedSnapshot(): AcademySnapshot {
     levels: snapshot.levels?.length ? snapshot.levels : DEFAULT_LEVELS,
     materialQuizzes: snapshot.materialQuizzes ?? {},
     quizAttempts: snapshot.quizAttempts ?? [],
+    content: {
+      ...snapshot.content,
+      jobdesk: snapshot.content.jobdesk ?? [],
+      sops: snapshot.content.sops ?? [],
+    },
   };
 }

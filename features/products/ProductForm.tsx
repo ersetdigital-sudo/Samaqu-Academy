@@ -5,6 +5,7 @@ import { useData } from '@/components/providers/DataProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
 import { PipeTable } from '@/components/ui/PipeTable';
+import { SeriesVideoField } from '@/features/products/SeriesVideoField';
 import { PRODUCT_CATEGORIES, PRODUCT_PHOTO_LABELS, PRODUCT_STATUSES } from '@/lib/constants';
 import {
   getProductFields,
@@ -12,6 +13,7 @@ import {
   normalizeSeriesTerm,
   type ProductField,
 } from '@/lib/product-schema';
+import { deleteSeriesVideo } from '@/lib/storage/series-videos';
 import type { Product, ProductCategory } from '@/lib/types';
 import { newId } from '@/lib/utils/id';
 
@@ -101,6 +103,10 @@ export function ProductForm({
     if (photo && !/^https?:\/\//i.test(photo)) {
       nextErrors.image = 'URL foto harus diawali http:// atau https://';
     }
+    const video = String(values.videoUrl ?? '').trim();
+    if (video && !/^https?:\/\//i.test(video)) {
+      nextErrors.videoUrl = 'URL video tidak valid';
+    }
     const code = String(values.code ?? '').trim();
     if (code) {
       const duplicate = snapshot.content.products.find(
@@ -147,6 +153,7 @@ export function ProductForm({
       placket: text('placket'),
       customerPitch: text('customerPitch'),
       memberIds: Array.isArray(values.memberIds) ? values.memberIds : [],
+      videoUrl: text('videoUrl'),
       image: image.trim(),
       sample: false,
       updatedAt: Date.now(),
@@ -154,6 +161,10 @@ export function ProductForm({
 
     try {
       await upsertContent('products', item);
+      // Video diganti atau dihapus: file lama di storage ikut dibersihkan (link YouTube diabaikan).
+      if (current?.videoUrl && current.videoUrl !== item.videoUrl) {
+        deleteSeriesVideo(current.videoUrl).catch(() => undefined);
+      }
       showToast(current ? 'Perubahan berhasil disimpan' : 'Data berhasil ditambahkan');
       onSaved(item);
     } catch (cause) {
@@ -234,6 +245,15 @@ export function ProductForm({
               ))}
           </datalist>
         </>
+      );
+    }
+
+    if (field.type === 'video') {
+      return (
+        <SeriesVideoField
+          value={String(value ?? '')}
+          onChange={(url) => setValue(field.key, url)}
+        />
       );
     }
 

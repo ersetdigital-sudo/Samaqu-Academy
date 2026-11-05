@@ -472,6 +472,202 @@ Docs contradicted the original assumptions. Authoritative findings:
   terkunci, progres 0/3, 25 soal tampil, simpan soal baru berhasil. Hapus soal lewat dialog
   belum terverifikasi otomatis (tombol "Hapus" ganda), data uji dihapus manual.
 
+### 2026-11-05 — Product Knowledge: kode seri dihapus, video per seri
+
+- Seri tidak lagi punya kode/SKU: key `code` hilang dari `PRODUCT_SCHEMA['Product Series']`
+  (form, validasi duplikat, kartu, matriks, pencarian, salinan "Copy Info"). `Product.code`
+  tetap ada untuk kode bahan (B-01) dan kode produk (TH-001) karena `product.fabric`
+  mereferensikan `bahan.code` — ini referensi silang, bukan SKU seri.
+- `Product.videoUrl` (+ kolom `content_items.video_url`, migration `0009`) menyimpan link YouTube
+  per seri. Form punya "Link Video YouTube" dengan validasi `youtubeVideoId()` dari
+  `features/learning/MaterialVideo`. Modal detail seri memakai `MaterialVideo` (thumbnail + tombol
+  play, tanpa autoplay) full lebar 16:9; tanpa video → `.series-hero` (foto close-up kartu,
+  `object-cover`). Kartu menampilkan badge `.thumb-play` kalau video terisi.
+- `price` keluar dari schema seri ("Harga Mulai (Rp)"); baris "Produk dalam Seri Ini" dan teks
+  "0 produk" disembunyikan saat kosong; urutan baris modal: Kerah, Placket / Klep, Karakteristik,
+  Cara menjelaskan ke customer, Produk dalam Seri Ini.
+- `lib/data/supabase-repository.ts` membaca `content_items` dengan `select('*')` dan memakai
+  `row.video_url` hanya kalau `data.videoUrl` belum ada, jadi form (JSONB) dan SQL sama-sama jalan
+  walau migration belum diterapkan.
+- Migration `0008` menghapus key `code` dari `data` baris Product Series. Tidak ada kolom, FK,
+  atau unique index untuk kode seri — seri adalah JSONB — jadi tidak ada DDL drop. **Belum
+  dijalankan ke production** (butuh persetujuan owner).
+- Verifikasi: `npm run typecheck`, `next build` (19 route static), `npm run audit` (products
+  245.9 KB gzip), preview owner: 6 seri tanpa kode di matriks/kartu, urutan baris modal benar,
+  form menolak link non-YouTube, mobile tanpa overflow.
+- Catatan: 6 link YouTube seri dan kolom `video_url` belum diisi, jadi tampilan video (badge kartu
+  + hero video di modal) belum terverifikasi di preview.
+
+### 2026-11-05 — Popup seri menyesuaikan video Shorts
+
+- Keluhan: popup seri untuk video Shorts (9:16) tampil sebagai modal 900px (`.mbox.lg`) sehingga
+  video kecil di tengah dengan ruang kosong besar, dan saat diputar muncul pilar hitam kiri-kanan.
+- `openModal` menerima opsi `portrait` → `.mbox.portrait` dengan lebar `min(400px, calc(72vh * 0.5625 + 52px))`
+  (ikut tinggi layar supaya video tetap mengisi penuh). `.mbox.portrait .video-frame.is-vert`
+  memakai `max-width:none`, jadi bingkai 9:16 selebar isi popup.
+- `ProductsView.openProductDetail` memilih varian ini hanya saat seri punya link `/shorts/`
+  (`isYoutubeShort`). Seri tanpa video Shorts tetap modal besar; tidak ada perubahan data.
+- Verifikasi: `npm run typecheck`, `npm run build` (static), preview owner 920px: `.mbox.portrait`
+  400px, frame video 333×592 (9:16) tanpa celah samping, thumbnail `oar2.jpg` termuat, tombol play
+  mengganti frame dengan iframe `youtube-nocookie` id yang sama, skor tanpa overflow horizontal.
+  Pemutaran video asli diblokir "Sign in to confirm you're not a bot" di browser uji (bukan defect app).
+
+### 2026-11-05 — Popup seri kembali ke gaya Learning Center
+
+- Keluhan: popup sempit 9:16 (`.mbox.portrait`) membuat isi seri sesak dan terasa terpisah dari
+  halaman Product Knowledge; owner minta "samain kaya Learning Center".
+- Varian `portrait` dihapus total: `openModal` hanya punya `large` lagi, `.mbox.portrait` dan
+  `.video-frame.is-vert` dibuang dari CSS, `isYoutubeShort`/prop `vertical` hilang dari
+  `MaterialVideo`. Semua seri (termasuk link Shorts) membuka modal lebar `.mbox.lg` dengan bingkai
+  video 16:9 `MaterialVideo` — persis perlakuan video di detail materi Learning Center.
+- Tidak ada perubahan data, migration, atau perilaku selain ukuran/bentuk popup.
+- Verifikasi: `npm run typecheck` dan `npm run build` (19 route static) lulus.
+
+### 2026-11-05 — Detail produk jadi halaman bergaya Learning Center
+
+- Keluhan lanjutan: popup lebar 16:9 masih terasa salah; owner menunjuk UI/UX detail Learning
+  Center. Penyebabnya struktur: Learning Center membuka materi sebagai halaman (back link,
+  kartu konten `padding:32`, judul 27px, `lead`, lalu video 16:9 selebar kartu), bukan popup.
+- `ProductsView` tidak lagi memakai modal untuk detail: `?open=<id>` dirender langsung sebagai
+  halaman (`openedProduct`), tombol kembali menghapus param `open`. Efek/ref modal detail dihapus;
+  `openProductDetail` sekarang `router.push` (section + open).
+- `ProductDetail` memakai kerangka Learning Center: `btn ghost` "Product Knowledge" + Edit/Hapus
+  di atas, kartu `card content` 32px, `eyebrow` kategori, `h1`, `lead`, status + tanggal, video
+  16:9 selebar kartu, lalu tabel field. Seri menambah sidebar `.split` "Series lainnya" (AppLink
+  ke `?section=series&open=…`), meniru daftar materi di Learning Center.
+- Copy Info tetap di bawah kartu; form/konfirmasi hapus tetap modal.
+- Verifikasi: `npm run typecheck`; preview owner 920px: kartu 721px, video 655×368 (16:9), h1 27px,
+  tanpa `.mbox`, back link kembali ke daftar, sidebar seri lain muncul.
+
+### 2026-11-05 — Video seri Shorts tanpa pilar hitam
+
+- Keluhan: video seri (link `/shorts/`, contoh Jiharkah 0:28) masih diputar di bingkai 16:9,
+  jadi YouTube memberi pilar hitam kiri-kanan.
+- `MaterialVideo` menambah `youtubeVideoIsShort()` dan kelas `is-vert` pada bingkai hanya untuk
+  link Shorts; `styles/pages.css` memberi `.video-frame.is-vert` rasio 9:16 dengan lebar
+  `min(100%, 420px, (100vh - 160px) * 9/16)` dan `margin-inline:auto` supaya pas di kartu.
+- Thumbnail tetap `hqdefault.jpg`: pilar hitamnya terpotong oleh `object-fit: cover` di bingkai
+  9:16 (`oar2.jpg` tidak selalu tersedia). Link non-Shorts tetap 16:9, tidak berubah.
+- Verifikasi: `npx tsc --noEmit` lulus; aturan `.video-frame.is-vert` terkonfirmasi ada di CSS
+  yang disajikan dev server. Tampilan di browser belum dicek ulang otomatis.
+
+### 2026-11-05 — Tabel spesifikasi seri di samping video
+
+- Keluhan: tabel spesifikasi (Kerah, Placket, Karakteristik, Cara menjelaskan) menumpuk di
+  bawah video, padahal ruang di sampingnya kosong.
+- `ProductDetail` merender tabel field seri di grid baru `.pd-series`
+  (`minmax(0,0.9fr) minmax(0,1.2fr)`): video/foto di kiri, tabel di kanan. Urutan DOM tidak
+  berubah, jadi `Copy Info` dan perilaku lain tetap. Di bawah 760px grid jadi satu kolom.
+- `styles/components.css`: `.pd-series` + reset `margin-top` untuk `.video-frame.mt` /
+  `.series-hero.mt` di dalam grid. Size Chart / Bahan tetap memakai `.pd-split`.
+- Verifikasi: `npx tsc --noEmit` lulus; preview owner 920px: grid 655px → video 287×510 (9:16),
+  tabel 350px, tanpa overflow. Mobile 390px: kolom bertumpuk 277px, tanpa overflow.
+
+### 2026-11-05 — Video seri bisa diperbesar, layout lebih lega
+
+- Keluhan: video seri terasa kecil dan tidak bisa di-zoom.
+- `MaterialVideo` kini punya prop `zoomable`: badge "Perbesar" di pojok kanan atas bingkai
+  membuka `.lightbox.video-lightbox` berisi pemutar 9:16 setinggi layar (Escape, backdrop, X
+  menutup). Poster dipindah ke `.video-poster` di dalam bingkai, jadi frame tetap satu-satunya
+  container berposisi; rule `button.video-frame` diganti `.video-poster`/`.video-zoom`.
+- `.pd-detail` menyempitkan panel "Series lainnya" ke 260px (kartu detail 548→661px di 1280px)
+  dan `.pd-series` jadi 1fr/1fr. Di bawah 1180px `.split` tetap menumpuk sidebar ke bawah.
+- Verifikasi: `npx tsc --noEmit` lulus; preview: badge "Perbesar" di pojok video, lightbox
+  509×904 (9:16) berisi iframe, Escape menutup, play inline memakai id video yang sama, tanpa
+  overflow di 1280/768/390. YouTube menampilkan bot-check di browser uji (bukan defect app).
+  Materi Learning Center belum punya video, jadi jalur non-zoomable hanya dicek dari kode.
+
+### 2026-11-05 — Video seri pindah ke hosting sendiri (Supabase Storage)
+
+- Keluhan: overlay YouTube Shorts (logo, Suka/Bagikan, nama channel) menutupi teks video.
+- Bucket baru `series-videos` lewat migration `0010_series_videos_bucket.sql`: public read
+  (anon + authenticated), insert/update/delete hanya `public.is_owner()`, `file_size_limit`
+  50 MB, `allowed_mime_types` `video/mp4`. **Belum dijalankan ke production** (butuh persetujuan
+  owner). Kolom `video_url` tetap dari migration `0009`.
+- `lib/storage/series-videos.ts`: `uploadSeriesVideo` (MP4 + batas 50 MB, kembalikan URL publik)
+  dan `deleteSeriesVideo` (hapus file lama; link YouTube diabaikan).
+- Form seri: field `videoUrl` berganti tipe jadi `video` → `SeriesVideoField` (input file MP4,
+  tombol "Hapus video"). `ProductForm.handleSubmit` menghapus file lama dari storage setelah
+  upsert kalau URL-nya berubah. `upsertContent` kini menulis `content_items.video_url` juga.
+- Detail seri: `SeriesVideo` memakai `<video controls playsInline preload="metadata">` (tanpa
+  autoplay, 9:16, rounded, `.series-video` di `pages.css`) plus tombol "Perbesar" ke fullscreen
+  native. Link YouTube lama tetap dirender `MaterialVideo` (komponen Learning Center tidak
+  diubah) sampai semua video dipindah.
+- Verifikasi: `npm run typecheck` lulus; preview owner: detail Jiharkah masih memakai embed lama
+  (`.video-frame` + Perbesar), form "Video Seri" berisi input `video/mp4` + "Hapus video", label
+  "Link Video YouTube" hilang. Upload nyata dan pemutar `<video>` belum terverifikasi karena
+  bucket `series-videos` belum ada di production.
+
+### 2026-11-05 — Video seri: "Perbesar" tidak lagi terpotong
+
+- Keluhan: setelah klik "Perbesar", video tampil seukuran aslinya (1080×1920) lalu terpotong
+  bingkai, bukan mengecil mengikuti layar.
+- Penyebab: `.series-video:fullscreen` memakai `display: grid; place-items: center`, sehingga
+  tinggi `100%` pada `<video>` tidak punya acuan (baris grid auto) dan video digambar pada
+  ukuran intrinsiknya; `overflow: hidden` di bingkai memotong sisanya.
+- Fix (`styles/pages.css`): bingkai fullscreen jadi `display: block` + latar hitam, video
+  `width/height: 100%` + `object-fit: contain` (tanpa `max-width`), jadi video 9:16 selalu utuh
+  di tengah layar. Tombol "Perbesar" disembunyikan saat sudah fullscreen (`SeriesVideo`).
+- Verifikasi: `npm run typecheck` lulus; CSS tersaji berisi aturan baru; preview 920px: video
+  inline tetap 319×566 (9:16), tombol Perbesar ada, tanpa error console. Tampilan fullscreen
+  **belum terverifikasi otomatis** — Fullscreen API ditolak di browser uji ("Permissions check
+  failed"), perlu dicek manual di browser biasa.
+
+### 2026-11-05 — "Perbesar" video seri pakai overlay, bukan Fullscreen API
+
+- Gejala: log dev server berisi `unhandledRejection: TypeError: Permissions check failed`
+  setiap kali detail seri dibuka lalu "Perbesar" diklik.
+- Penyebab: iframe preview tidak memberi izin `fullscreen`, jadi `element.requestFullscreen()`
+  ditolak dan promise-nya tidak ditangani; tombolnya pun tidak melakukan apa pun di preview.
+- Fix: `SeriesVideo` membuang Fullscreen API. "Perbesar" menyalakan state `zoom` →
+  `.series-video.is-zoomed` (overlay `position: fixed; inset: 0`, latar hitam, video
+  `object-fit: contain`), ditutup lewat tombol X atau Escape (capture, sama seperti
+  `MaterialVideo`). Elemen `<video>` tidak dilepas, jadi posisi putar ikut terbawa.
+  Aturan `.series-video:fullscreen` di `styles/pages.css` diganti `.is-zoomed`.
+- Verifikasi: `npm run typecheck` lulus; preview owner (920px) detail Jiharkah: klik "Perbesar"
+  membuka overlay tanpa error console, Escape/X menutup.
+
+### 2026-11-05 — Menu Job Desk & SOP
+
+- Dua halaman baru di grup "Learning & Service": `/jobdesk` (satu kartu per jabatan: ringkasan,
+  tanggung jawab, checklist tugas harian) dan `/sop` (judul, tujuan, langkah bernomor, catatan
+  penting). Keduanya CRUD owner seperti section lain (`RecordForm` + `ConfirmDialog`).
+- Data tetap di `content_items` dengan tipe baru `jobdesk` dan `sop` (JSONB `data`), tanpa tabel
+  baru: `JobDeskRole`/`Sop` di `lib/types.ts`, `jobdesk`/`sops` di `ContentCollections`,
+  `TYPE_BY_KEY` + `APPEND_COLLECTIONS` + `isContent`/`normalizeContent` ikut ditambah.
+- **Blocker DB:** `content_items_type_check` (0001) masih hanya mengizinkan 10 tipe lama, jadi
+  simpan Job Desk/SOP ditolak DB (`violates check constraint content_items_type_check`).
+  Migration `0011_jobdesk_sop_types.sql` membuat ulang constraint dengan `jobdesk` + `sop`
+  (atomic, idempotent, tanpa mengubah baris). **Belum dijalankan ke production** (butuh
+  persetujuan owner).
+- Verifikasi: `npm run typecheck` dan `npm run build` (21 route static, termasuk `/jobdesk` dan
+  `/sop`) lulus; preview owner: dua menu muncul di sidebar, kedua halaman render, form
+  tambah/ubah terbuka dan batal menutup, empty state tampil, 375px tanpa overflow, tanpa error
+  console. Simpan ke DB **belum terverifikasi** sampai migration 0011 dijalankan.
+
+### 2026-11-05 — Data contoh Job Desk & SOP diisi
+
+- Migration `0011_jobdesk_sop_types.sql` sudah dijalankan ke production; `content_items_type_check`
+  kini menerima `jobdesk` dan `sop`, jadi halaman admin bisa menyimpan data.
+- Diisi data awal agar halamannya ada gambaran: 4 job desk (`jbd_admin_cs`, `jbd_marketplace`,
+  `jbd_gudang`, `jbd_leader_cs`) dan 6 SOP (`sop_chat_pertama`, `sop_followup_belum_bayar`,
+  `sop_komplain_terlambat`, `sop_tukar_ukuran_retur`, `sop_eskalasi_leader`, `sop_klaim_cacat`).
+  Semua baris `content_items` dengan `sort_order` 1..N, disisipkan `on conflict (id) do nothing`
+  supaya editan owner tidak tertimpa.
+- Verifikasi preview owner 920px: `/sop` menampilkan 6 kartu, `/jobdesk` 4 kartu, tanpa error
+  console dan tanpa overflow horizontal.
+
+### 2026-11-05 — Edge Function `ai` + `ai-admin` di-deploy ulang
+
+- Owner menyetujui deploy; `npx supabase functions deploy ai ai-admin --use-api --no-verify-jwt
+  --remote=rbjxjdgqtcwwbvuwtlpg --yes` dijalankan dari container `web`. Hasil
+  `functions list`: `ai` versi 7, `ai-admin` versi 6, keduanya `ACTIVE`.
+- Yang kini aktif termasuk `_shared/knowledge-labels.ts` + `_shared/knowledge-documents.ts`
+  terbaru, jadi tipe `jobdesk` dan `sop` ikut dikirim sebagai dokumen knowledge ke AI.
+- Verifikasi: `POST /functions/v1/ai` tanpa token → 401 `{"ok":false,"error":"Sesi tidak valid.
+  Login ulang."}` dan preflight `OPTIONS` → 200 (fungsi hidup, JWT dicek di dalam fungsi).
+  Jawaban AI yang benar-benar menyebut Job Desk/SOP **belum** diuji (butuh login owner).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

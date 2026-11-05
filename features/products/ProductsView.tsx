@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from '@/components/providers/DataProvider';
 import { useModal } from '@/components/providers/ModalProvider';
 import { useRole } from '@/components/providers/RoleProvider';
@@ -44,8 +44,6 @@ export function ProductsView() {
   const [query, setQuery] = useState('');
   // Chip filter lives in the URL (`?section=product&category=...`), so it can never go stale.
   const garment: string = isGarmentCategory(categoryParam) ? categoryParam : 'Semua';
-  const openedRef = useRef<string | null>(null);
-  const openDetailRef = useRef<(id: string) => boolean>(() => false);
 
   useEffect(() => {
     if (hydrated) void setVisitedProducts();
@@ -85,7 +83,7 @@ export function ProductsView() {
         products.find(
           (entry) => entry.category === 'Fabric Collection' && entry.code === product.fabric,
         )?.name ?? '';
-      return [product.name, product.code, product.series, product.fabric, fabricName, product.composition]
+      return [product.name, product.series, product.fabric, fabricName, product.composition]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -109,23 +107,19 @@ export function ProductsView() {
     );
   };
 
+  // Detail dibuka sebagai halaman (bukan popup), sama seperti detail materi di Learning Center.
   const openProductDetail = (product: Product) => {
-    openModal(
-      <ProductDetail
-        product={product}
-        imageUrl={product.image}
-        products={products}
-        canManage={canManage}
-        onClose={closeModal}
-        onEdit={() => openProductForm(product)}
-        onDelete={() => confirmDeleteProduct(product)}
-        onOpenProduct={(id) => {
-          const next = products.find((entry) => entry.id === id);
-          if (next) openProductDetail(next);
-        }}
-      />,
-      { large: true },
-    );
+    const params = new URLSearchParams(searchParams.toString());
+    const target = sectionForCategory(product.category);
+    if (target) params.set('section', target);
+    params.set('open', product.id);
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  };
+
+  const closeProductDetail = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('open');
+    router.push(`/products?${params.toString()}`, { scroll: false });
   };
 
   const openProductForm = (current?: Product, initialCategory?: ProductCategory) => {
@@ -169,25 +163,29 @@ export function ProductsView() {
     );
   };
 
-  openDetailRef.current = (id: string) => {
-    const product = products.find((entry) => entry.id === id);
-    if (!product) return false;
-    openProductDetail(product);
-    return true;
-  };
+  // `?open=` menampilkan halaman detail produk menggantikan daftar section.
+  const openedProduct = useMemo(
+    () => (openId ? products.find((entry) => entry.id === openId) ?? null : null),
+    [openId, products],
+  );
 
-  useEffect(() => {
-    if (!openId || openedRef.current === openId) return;
-    if (openDetailRef.current(openId)) openedRef.current = openId;
-  }, [openId, products]);
-
-  // A deep link that only carries `?open=` still needs a section behind the modal.
-  useEffect(() => {
-    if (!openId || section) return;
-    const product = products.find((entry) => entry.id === openId);
-    const target = product ? sectionForCategory(product.category) : null;
-    if (target) router.replace(`/products?section=${target}&open=${openId}`, { scroll: false });
-  }, [openId, products, router, section]);
+  if (openedProduct) {
+    return (
+      <ProductDetail
+        product={openedProduct}
+        imageUrl={openedProduct.image}
+        products={products}
+        canManage={canManage}
+        onClose={closeProductDetail}
+        onEdit={() => openProductForm(openedProduct)}
+        onDelete={() => confirmDeleteProduct(openedProduct)}
+        onOpenProduct={(id) => {
+          const next = products.find((entry) => entry.id === id);
+          if (next) openProductDetail(next);
+        }}
+      />
+    );
+  }
 
   const renderGrid = (items: Product[]) => (
     <div className="grid g3 mt">
@@ -259,7 +257,7 @@ export function ProductsView() {
               <EmptyState
                 icon="search-x"
                 title="Tidak ada yang cocok"
-                subtitle="Coba kata kunci lain, misalnya nama seri, kode, atau jenis bahan."
+                subtitle="Coba kata kunci lain, misalnya nama seri atau jenis bahan."
               />
             </div>
           )}

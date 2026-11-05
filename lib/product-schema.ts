@@ -9,6 +9,7 @@ export type ProductFieldType =
   | 'series'
   | 'fabric'
   | 'table'
+  | 'video'
   | 'members';
 
 export interface ProductField {
@@ -25,7 +26,7 @@ export interface ProductField {
 
 const GARMENT: ProductField[] = [
   { key: 'name', label: 'Nama Produk', required: true, section: 'Informasi Umum', placeholder: 'Contoh: Thobe [Nama]' },
-  { key: 'code', label: 'Kode Produk / SKU', required: true, section: 'Informasi Umum', placeholder: 'Contoh: TH-001' },
+  { key: 'code', label: 'Kode Produk', required: true, section: 'Informasi Umum', placeholder: 'Contoh: TH-001' },
   { key: 'series', label: 'Product Series', type: 'series', section: 'Informasi Umum' },
   { key: 'status', label: 'Status Ketersediaan', type: 'select', required: true, section: 'Informasi Umum', options: PRODUCT_STATUSES },
   { key: 'description', label: 'Deskripsi Produk', type: 'textarea', required: true, section: 'Informasi Umum', full: true },
@@ -76,15 +77,15 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
     { key: 'measurement', label: 'Detail Pengukuran', type: 'textarea', section: 'Panduan', full: true, placeholder: 'Contoh: Panjang diukur dari bahu ke bawah…' },
     { key: 'guide', label: 'Panduan Memilih Ukuran', type: 'textarea', section: 'Panduan', full: true },
   ],
+  // Urutan field = urutan baris di modal detail seri (Kerah, Placket, Karakteristik, …).
   'Product Series': [
     { key: 'name', label: 'Nama Seri', required: true, section: 'Informasi Seri' },
-    { key: 'code', label: 'Kode Seri', required: true, section: 'Informasi Seri' },
+    { key: 'description', label: 'Deskripsi Seri', type: 'textarea', required: true, section: 'Informasi Seri', full: true },
     { key: 'collar', label: 'Kerah', type: 'select', section: 'Informasi Seri', options: SERIES_COLLARS },
     { key: 'placket', label: 'Placket / Klep', type: 'select', section: 'Informasi Seri', options: SERIES_PLACKETS },
-    { key: 'price', label: 'Harga Mulai (Rp)', type: 'number', section: 'Informasi Seri', hint: 'Harga acuan size M, kain B-01.' },
-    { key: 'description', label: 'Deskripsi Seri', type: 'textarea', required: true, section: 'Informasi Seri', full: true },
-    { key: 'customerPitch', label: 'Cara menjelaskan ke customer', type: 'textarea', section: 'Informasi Seri', full: true },
     { key: 'characteristics', label: 'Karakteristik', type: 'textarea', section: 'Informasi Seri', full: true },
+    { key: 'customerPitch', label: 'Cara menjelaskan ke customer', type: 'textarea', section: 'Informasi Seri', full: true },
+    { key: 'videoUrl', label: 'Video Seri', type: 'video', section: 'Informasi Seri', full: true, hint: 'Upload file MP4 (maks 50 MB). Kosongkan kalau seri ini belum punya video.' },
     { key: 'memberIds', label: 'Produk dalam Seri Ini', type: 'members', section: 'Produk Terkait', full: true },
   ],
 };

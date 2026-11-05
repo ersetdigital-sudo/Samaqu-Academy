@@ -1209,6 +1209,31 @@ th {
   }
 }
 
+/* Detail seri: daftar "Series lainnya" cukup sempit, video + tabel dapat ruang lebih. */
+.pd-detail {
+  grid-template-columns: minmax(0, 1fr) 260px;
+}
+
+/* Detail seri: video/foto di samping tabel spesifikasi, bukan bertumpuk. */
+.pd-series {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* Bingkai video & hero sudah punya jarak dari grid-nya sendiri. */
+.pd-series .video-frame.mt,
+.pd-series .series-hero.mt {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .pd-series {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Foto bisa dibuka layar penuh lalu di-zoom */
 .shot-zoom {
   display: block;

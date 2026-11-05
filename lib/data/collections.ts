@@ -7,6 +7,8 @@ export const APPEND_COLLECTIONS = new Set<ContentCollectionKey>([
   'problems',
   'scenarios',
   'quiz',
+  'jobdesk',
+  'sops',
 ]);
 
 export function sortCollections(content: ContentCollections): ContentCollections {

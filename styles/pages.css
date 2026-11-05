@@ -23,6 +23,7 @@
 }
 
 .product-thumb {
+  position: relative;
   height: 150px;
   border-radius: 9px;
   background: var(--gl2);
@@ -30,6 +31,37 @@
   place-items: center;
   color: #a3a3a0;
   overflow: hidden;
+}
+
+/* Badge play kecil di pojok foto kartu seri yang punya video. */
+.thumb-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  pointer-events: none;
+}
+
+/* Modal detail seri tanpa video: foto close-up full lebar, 16:9, terpotong rapi. */
+.series-hero {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--gl2);
+}
+
+.series-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .product-thumb img {
@@ -781,12 +813,108 @@
   display: block;
 }
 
-button.video-frame {
+/* Video seri yang di-host sendiri (bucket series-videos): 9:16, rounded, tinggi mengikuti layar */
+.series-video {
+  position: relative;
+  /* Lebar ikut tinggi layar supaya video 9:16 tetap utuh dan tidak melebihi modal. */
+  width: min(100%, 420px, calc((100vh - 200px) * 9 / 16));
+  aspect-ratio: 9 / 16;
+  margin-inline: auto;
+  border-radius: var(--r);
+  overflow: hidden;
+  background: #111;
+}
+
+.series-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* Pemutar besar dari tombol "Perbesar": overlay setinggi layar, tanpa sudut membulat.
+   Overlay CSS dipakai (bukan Fullscreen API) karena iframe preview memblokir requestFullscreen.
+   `display: block` + video 100%/100% memberi acuan tinggi yang pasti; di dalam grid auto
+   tinggi video jadi `auto`, sehingga video digambar seukuran aslinya (mis. 1080×1920)
+   lalu terpotong bingkai. `object-fit: contain` menjaga video 9:16 tetap utuh. */
+.series-video.is-zoomed {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: auto;
+  max-width: none;
+  height: 100%;
+  aspect-ratio: auto;
+  margin: 0;
+  border-radius: 0;
+  display: block;
+  background: #000;
+}
+
+.series-video.is-zoomed video {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
+/* Video Shorts 9:16: bingkai ikut rasio video supaya tidak ada pilar hitam kiri-kanan. */
+.video-frame.is-vert {
+  aspect-ratio: 9 / 16;
+  max-width: min(100%, 420px, calc((100vh - 160px) * 9 / 16));
+  margin-inline: auto;
+}
+
+/* Pemutar besar: video 9:16 setinggi layar, di atas latar gelap */
+.video-lightbox {
+  align-items: center;
+  justify-content: center;
+}
+
+.video-lightbox .video-frame {
+  width: min(calc((100vh - 120px) * 9 / 16), calc(100vw - 48px));
+  max-width: none;
+  margin: 0;
+}
+
+.video-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
 }
 
-button.video-frame:hover img {
+.video-poster:hover img {
   opacity: 0.85;
+}
+
+/* Tombol perbesar menempel di pojok video (detail seri) */
+.video-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 26, 25, 0.72);
+  color: #fff;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.video-zoom:hover {
+  background: rgba(24, 26, 25, 0.92);
 }
 
 .video-play {

@@ -25,6 +25,8 @@ const TYPE_BY_KEY: Record<ContentCollectionKey, string> = {
   scenarios: 'scenario',
   quiz: 'quiz',
   products: 'product',
+  jobdesk: 'jobdesk',
+  sops: 'sop',
 };
 
 const KEY_BY_TYPE: Record<string, ContentCollectionKey> = Object.fromEntries(
@@ -44,6 +46,8 @@ interface ContentRow {
   sort_order: number;
   level_id?: number | null;
   is_required?: boolean | null;
+  /** Kolom khusus seri produk (migration 0009); null kalau belum diisi. */
+  video_url?: string | null;
   data: Record<string, unknown> | null;
   updated_at: string;
 }
@@ -130,6 +134,8 @@ function mapContent(rows: ContentRow[]): ContentCollections {
     scenarios: [],
     quiz: [],
     products: [],
+    jobdesk: [],
+    sops: [],
   };
 
   rows.forEach((row) => {
@@ -142,6 +148,10 @@ function mapContent(rows: ContentRow[]): ContentCollections {
       updatedAt: toMillis(row.updated_at),
       ...(key === 'materials'
         ? { levelId: row.level_id ?? null, isRequired: row.is_required !== false }
+        : {}),
+      // Seri: `data.videoUrl` (hasil form) menang; kolom `video_url` dipakai kalau data belum punya key.
+      ...(key === 'products' && row.video_url && !(row.data && 'videoUrl' in row.data)
+        ? { videoUrl: row.video_url }
         : {}),
     };
     (content[key] as unknown[]).push(item);
@@ -275,7 +285,8 @@ export function createSupabaseRepository(
       ] = await Promise.all([
           supabase
             .from('content_items')
-            .select('id, type, sort_order, level_id, is_required, data, updated_at')
+            // `*` supaya kolom opsional (mis. `video_url` seri) terbaca walau migration belum jalan.
+            .select('*')
             .order('type')
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true }),
@@ -388,6 +399,10 @@ export function createSupabaseRepository(
           updated_at: new Date().toISOString(),
           ...(type === 'material'
             ? { level_id: levelId == null ? null : Number(levelId), is_required: isRequired !== false }
+            : {}),
+          // Seri: URL video juga disimpan di kolom `video_url` (migration 0010), bukan hanya JSONB.
+          ...(type === 'product'
+            ? { video_url: String((data as { videoUrl?: string }).videoUrl ?? '').trim() || null }
             : {}),
         },
         { onConflict: 'id' },

@@ -2,10 +2,12 @@
 
 import type { ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
+import { AppLink } from '@/components/ui/AppLink';
 import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
+import { SeriesVideo } from '@/features/products/SeriesVideo';
 import { getProductFields, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
@@ -128,12 +130,33 @@ export function ProductDetail({
     showToast(ok ? 'Info produk berhasil disalin' : 'Gagal menyalin', ok ? 'ok' : 'err');
   };
 
-  const fields = getProductFields(product.category).filter(
-    (field) => !['name', 'description'].includes(String(field.key)),
-  );
+  const isSeries = product.category === 'Product Series';
+  const fields = getProductFields(product.category).filter((field) => {
+    if (['name', 'description', 'videoUrl'].includes(String(field.key))) return false;
+    // Baris "Produk dalam Seri Ini" tidak ditampilkan kalau seri belum punya anggota.
+    if (field.key === 'memberIds' && !(Array.isArray(product.memberIds) && product.memberIds.length)) {
+      return false;
+    }
+    return true;
+  });
   // Size chart dan lembar bahan tampil berdampingan dengan tabel agar gambarnya besar dan bisa di-zoom.
   const hasMediaPanel =
     product.category === 'Size Chart' || product.category === 'Fabric Collection';
+
+  // Sidebar "Series lainnya", mengikuti daftar materi di detail Learning Center.
+  const otherSeries = isSeries
+    ? products.filter((entry) => entry.category === 'Product Series' && entry.id !== product.id)
+    : [];
+
+  // Seri: video milik sendiri (<video> native). Link YouTube lama tetap memakai embed lama.
+  // Tanpa video -> foto close-up.
+  const seriesHeader = !isSeries ? null : product.videoUrl ? (
+    <SeriesVideo videoUrl={product.videoUrl} title={product.name} />
+  ) : imageUrl ? (
+    <div className="series-hero mt">
+      <img src={imageUrl} alt="" />
+    </div>
+  ) : null;
 
   const imageBlock = imageUrl ? (
     <img
@@ -166,28 +189,34 @@ export function ProductDetail({
     </table>
   );
 
-  return (
-    <>
-      <div className="row sp">
-        <div className="row">
-          <span className="tag">{product.category}</span>
-          <ProductStatusTag status={product.status} />
-        </div>
-        <button className="icb" onClick={onClose} aria-label="Tutup">
-          <Icon name="x" />
-        </button>
-      </div>
-
-      {hasMediaPanel ? null : imageBlock}
-
-      <h2 className="mt">{product.name}</h2>
+  // Susunan halaman mengikuti detail materi di Learning Center: back link + Edit/Hapus di atas,
+  // lalu kartu konten lebar dengan daftar seri lain di sampingnya.
+  const detailCard = (
+    <div className="card content" style={{ padding: 32 }}>
+      <div className="eyebrow">{product.category}</div>
+      <h1>{product.name}</h1>
       {product.description ? (
-        <p className="sm muted mt1" style={{ whiteSpace: 'pre-wrap' }}>
+        <p className="lead mt1" style={{ whiteSpace: 'pre-wrap' }}>
           {product.description}
         </p>
       ) : null}
+      <div className="row mt sm muted wrap">
+        <ProductStatusTag status={product.status} />
+        <span>Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}</span>
+      </div>
 
-      {hasMediaPanel && imageUrl ? (
+      {!isSeries && !hasMediaPanel ? imageBlock : null}
+
+      {isSeries ? (
+        seriesHeader ? (
+          <div className="pd-series mt">
+            <div>{seriesHeader}</div>
+            <div>{fieldsTable}</div>
+          </div>
+        ) : (
+          <div className="mt">{fieldsTable}</div>
+        )
+      ) : hasMediaPanel && imageUrl ? (
         <div className="pd-split mt">
           <ImageZoom
             src={imageUrl}
@@ -199,28 +228,63 @@ export function ProductDetail({
         <div className="mt">{fieldsTable}</div>
       )}
 
-      <p className="sm muted mt">
-        Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}
-      </p>
-
-      <div className="row mt wrap">
+      <div className="row mt2 wrap" style={{ borderTop: '1px solid var(--b)', paddingTop: 18 }}>
         <button className="btn" onClick={copyInfo}>
           <Icon name="copy" />
           Copy Info
         </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="row sp wrap">
+        <button className="btn ghost" onClick={onClose}>
+          <Icon name="arrow-left" />
+          Product Knowledge
+        </button>
         {canManage ? (
-          <>
-            <button className="btn p" onClick={onEdit}>
+          <div className="row">
+            <button className="btn sm" onClick={onEdit}>
               <Icon name="pencil" />
               Edit
             </button>
-            <button className="btn danger" onClick={onDelete}>
+            <button className="btn sm danger" onClick={onDelete}>
               <Icon name="trash-2" />
               Hapus
             </button>
-          </>
+          </div>
         ) : null}
       </div>
+
+      {otherSeries.length ? (
+        <div className="split pd-detail mt">
+          {detailCard}
+          <div>
+            <div className="card">
+              <h3>Series lainnya</h3>
+              <div className="mt1">
+                {otherSeries.map((entry) => (
+                  <AppLink
+                    key={entry.id}
+                    href={`/products?section=series&open=${encodeURIComponent(entry.id)}`}
+                    className="li ck"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <span className="sm" style={{ flex: 1 }}>
+                      {entry.name}
+                    </span>
+                    <Icon name="chevron-right" size={16} />
+                  </AppLink>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt">{detailCard}</div>
+      )}
     </>
   );
 }

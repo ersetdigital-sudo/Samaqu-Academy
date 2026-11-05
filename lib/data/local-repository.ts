@@ -41,6 +41,8 @@ function isContent(value: unknown): value is ContentCollections {
     'scenarios',
     'quiz',
     'products',
+    'jobdesk',
+    'sops',
   ].every((key) => Array.isArray(content[key]));
 }
 

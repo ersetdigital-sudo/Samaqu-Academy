@@ -67,7 +67,6 @@ export function SeriesMatrix({ series, onOpen }: SeriesMatrixProps) {
                             </span>
                             <span className="series-cell-name">
                               <b>{item.name}</b>
-                              <span className="sm muted">{item.code}</span>
                             </span>
                           </button>
                         ))

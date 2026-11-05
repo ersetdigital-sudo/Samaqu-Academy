@@ -281,6 +281,7 @@ export function normalizeProducts(items: Legacy[] = []): Product[] {
       measurement: asString(item.measure ?? item.measurement),
       guide: asString(item.guide),
       memberIds: asStringArray(item.members ?? item.memberIds),
+      videoUrl: asString(item.videoUrl),
       sample: item.sample === true,
       updatedAt: asNumber(item.updated ?? item.updatedAt, now()),
     };
@@ -395,6 +396,8 @@ export function normalizeContent(input: LegacyContentInput): ContentCollections 
     scenarios: normalizeScenarios(input.scenarios),
     quiz: normalizeQuiz(input.quiz),
     products: normalizeProducts(input.products),
+    jobdesk: [],
+    sops: [],
   };
 }
 

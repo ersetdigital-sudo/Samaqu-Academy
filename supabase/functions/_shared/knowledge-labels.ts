@@ -9,6 +9,8 @@ export const TYPE_LABELS: Record<string, string> = {
   scenario: 'Training & Assessment',
   quiz: 'Training & Assessment',
   product: 'Product Knowledge',
+  jobdesk: 'Job Desk',
+  sop: 'SOP',
 };
 
 export const FIELD_LABELS: Record<string, string> = {
@@ -78,6 +80,10 @@ export const FIELD_LABELS: Record<string, string> = {
   table: 'Tabel',
   measurement: 'Ukuran',
   guide: 'Panduan',
+  role: 'Jabatan',
+  purpose: 'Tujuan',
+  responsibilities: 'Tanggung jawab',
+  tasks: 'Checklist tugas harian',
 };
 
 export const SKIP_FIELDS = new Set([
@@ -90,6 +96,7 @@ export const SKIP_FIELDS = new Set([
   'imageUrl',
   'imagePath',
   'photo',
+  'videoUrl',
   'memberIds',
   'materialId',
   'sortOrder',

@@ -67,7 +67,7 @@ function serializeData(data: Record<string, unknown>): string {
 }
 
 function itemTitle(type: string, data: Record<string, unknown>): string {
-  const title = String(data.title ?? data.name ?? data.question ?? '').trim();
+  const title = String(data.title ?? data.name ?? data.question ?? data.role ?? '').trim();
   if (title) return title.slice(0, 140);
   return `${TYPE_LABELS[type] ?? type} ${String(data.code ?? '').trim()}`.trim();
 }

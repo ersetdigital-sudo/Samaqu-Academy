@@ -476,7 +476,7 @@ function SectionView({
               <Link className="answer-link" href={`/products?open=${encodeURIComponent(product.id)}`}>
                 {product.name}
               </Link>
-              {product.code ? ` · ${product.code}` : ''}
+              {product.category !== 'Product Series' && product.code ? ` · ${product.code}` : ''}
               {product.status ? ` · ${product.status}` : ''}
             </li>
           ))}
