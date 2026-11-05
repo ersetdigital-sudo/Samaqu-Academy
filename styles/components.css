@@ -1028,6 +1028,28 @@ th {
   color: #fff;
 }
 
+/* Label Chat: alur 5 tahap */
+.journey.j5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .journey.j5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 16px;
+  }
+
+  .journey.j5:before {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .journey.j5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .branch {
   margin-top: 18px;
   border: 1.5px dashed #e2b1a9;
