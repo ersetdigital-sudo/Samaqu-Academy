@@ -10,7 +10,6 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { isYoutubeShort } from '@/features/learning/MaterialVideo';
 import type { Product, ProductCategory } from '@/lib/types';
 import { ProductCard } from './ProductCard';
 import { ProductDetail } from './ProductDetail';
@@ -111,8 +110,7 @@ export function ProductsView() {
   };
 
   const openProductDetail = (product: Product) => {
-    // Video Shorts (9:16): popup menyempit mengikuti video supaya tidak ada ruang kosong di samping.
-    const portrait = product.category === 'Product Series' && isYoutubeShort(product.videoUrl);
+    // Satu popup lebar untuk semua seri, sama seperti detail materi di Learning Center.
     openModal(
       <ProductDetail
         product={product}
@@ -127,7 +125,7 @@ export function ProductsView() {
           if (next) openProductDetail(next);
         }}
       />,
-      { large: !portrait, portrait },
+      { large: true },
     );
   };
 

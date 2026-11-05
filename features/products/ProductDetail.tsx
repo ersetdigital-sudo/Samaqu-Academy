@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
 import { ProductStatusTag } from '@/components/ui/badges';
-import { isYoutubeShort, MaterialVideo, youtubeVideoId } from '@/features/learning/MaterialVideo';
+import { MaterialVideo, youtubeVideoId } from '@/features/learning/MaterialVideo';
 import { getProductFields, normalizeSeriesTerm } from '@/lib/product-schema';
 import type { Product } from '@/lib/types';
 import { copyToClipboard } from '@/lib/utils/clipboard';
@@ -142,14 +142,10 @@ export function ProductDetail({
   const hasMediaPanel =
     product.category === 'Size Chart' || product.category === 'Fabric Collection';
 
-  // Seri: video YouTube (thumbnail + tombol play); Shorts tampil vertikal 9:16, video biasa 16:9.
+  // Seri: video YouTube 16:9 seperti Learning Center (thumbnail + tombol play).
   // Tanpa video -> foto close-up.
   const seriesHeader = !isSeries ? null : youtubeVideoId(product.videoUrl) ? (
-    <MaterialVideo
-      videoUrl={product.videoUrl}
-      title={product.name}
-      vertical={isYoutubeShort(product.videoUrl)}
-    />
+    <MaterialVideo videoUrl={product.videoUrl} title={product.name} />
   ) : imageUrl ? (
     <div className="series-hero mt">
       <img src={imageUrl} alt="" />

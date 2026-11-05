@@ -512,6 +512,17 @@ Docs contradicted the original assumptions. Authoritative findings:
   mengganti frame dengan iframe `youtube-nocookie` id yang sama, skor tanpa overflow horizontal.
   Pemutaran video asli diblokir "Sign in to confirm you're not a bot" di browser uji (bukan defect app).
 
+### 2026-11-05 — Popup seri kembali ke gaya Learning Center
+
+- Keluhan: popup sempit 9:16 (`.mbox.portrait`) membuat isi seri sesak dan terasa terpisah dari
+  halaman Product Knowledge; owner minta "samain kaya Learning Center".
+- Varian `portrait` dihapus total: `openModal` hanya punya `large` lagi, `.mbox.portrait` dan
+  `.video-frame.is-vert` dibuang dari CSS, `isYoutubeShort`/prop `vertical` hilang dari
+  `MaterialVideo`. Semua seri (termasuk link Shorts) membuka modal lebar `.mbox.lg` dengan bingkai
+  video 16:9 `MaterialVideo` — persis perlakuan video di detail materi Learning Center.
+- Tidak ada perubahan data, migration, atau perilaku selain ukuran/bentuk popup.
+- Verifikasi: `npm run typecheck` dan `npm run build` (19 route static) lulus.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

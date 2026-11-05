@@ -802,15 +802,6 @@ textarea.inp {
   max-width: 900px;
 }
 
-/* Popup seri dengan video Shorts: lebar mengikuti video 9:16, tanpa ruang kosong di kiri-kanan. */
-.mbox.portrait {
-  max-width: min(400px, calc(72vh * 0.5625 + 52px));
-}
-
-.mbox.portrait .video-frame.is-vert {
-  max-width: none;
-}
-
 .fsec {
   margin-top: 24px;
   padding-bottom: 8px;
