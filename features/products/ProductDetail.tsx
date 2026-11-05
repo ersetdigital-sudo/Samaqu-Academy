@@ -151,7 +151,7 @@ export function ProductDetail({
   // Seri: video YouTube 16:9 seperti Learning Center (thumbnail + tombol play).
   // Tanpa video -> foto close-up.
   const seriesHeader = !isSeries ? null : youtubeVideoId(product.videoUrl) ? (
-    <MaterialVideo videoUrl={product.videoUrl} title={product.name} />
+    <MaterialVideo videoUrl={product.videoUrl} title={product.name} zoomable />
   ) : imageUrl ? (
     <div className="series-hero mt">
       <img src={imageUrl} alt="" />
@@ -259,7 +259,7 @@ export function ProductDetail({
       </div>
 
       {otherSeries.length ? (
-        <div className="split mt">
+        <div className="split pd-detail mt">
           {detailCard}
           <div>
             <div className="card">

@@ -563,6 +563,20 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Verifikasi: `npx tsc --noEmit` lulus; preview owner 920px: grid 655px → video 287×510 (9:16),
   tabel 350px, tanpa overflow. Mobile 390px: kolom bertumpuk 277px, tanpa overflow.
 
+### 2026-11-05 — Video seri bisa diperbesar, layout lebih lega
+
+- Keluhan: video seri terasa kecil dan tidak bisa di-zoom.
+- `MaterialVideo` kini punya prop `zoomable`: badge "Perbesar" di pojok kanan atas bingkai
+  membuka `.lightbox.video-lightbox` berisi pemutar 9:16 setinggi layar (Escape, backdrop, X
+  menutup). Poster dipindah ke `.video-poster` di dalam bingkai, jadi frame tetap satu-satunya
+  container berposisi; rule `button.video-frame` diganti `.video-poster`/`.video-zoom`.
+- `.pd-detail` menyempitkan panel "Series lainnya" ke 260px (kartu detail 548→661px di 1280px)
+  dan `.pd-series` jadi 1fr/1fr. Di bawah 1180px `.split` tetap menumpuk sidebar ke bawah.
+- Verifikasi: `npx tsc --noEmit` lulus; preview: badge "Perbesar" di pojok video, lightbox
+  509×904 (9:16) berisi iframe, Escape menutup, play inline memakai id video yang sama, tanpa
+  overflow di 1280/768/390. YouTube menampilkan bot-check di browser uji (bukan defect app).
+  Materi Learning Center belum punya video, jadi jalur non-zoomable hanya dicek dari kode.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

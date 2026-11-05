@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 
 // youtu.be/ID · watch?v=ID · embed/ID · shorts/ID · live/ID
@@ -23,42 +23,93 @@ interface MaterialVideoProps {
   title: string;
   /** Halaman materi: video langsung diputar tanpa klik tambahan. */
   autoPlay?: boolean;
+  /** Tombol "Perbesar video": membuka pemutar setinggi layar. */
+  zoomable?: boolean;
 }
 
-export function MaterialVideo({ videoUrl, title, autoPlay = false }: MaterialVideoProps) {
+export function MaterialVideo({ videoUrl, title, autoPlay = false, zoomable = false }: MaterialVideoProps) {
   const [playing, setPlaying] = useState(autoPlay);
+  const [zoom, setZoom] = useState(false);
   const id = youtubeVideoId(videoUrl);
+
+  useEffect(() => {
+    if (!zoom) return;
+    // Capture fase: Escape hanya menutup pemutar besar, bukan modal/halaman di belakangnya.
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setZoom(false);
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [zoom]);
+
   if (!id) return null;
 
   // `hqdefault` untuk Shorts masih berpilar hitam, tapi `object-fit: cover` di bingkai
   // 9:16 memotong pilarnya; `oar2` tidak tersedia untuk semua video.
   const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   const frameClass = youtubeVideoIsShort(videoUrl) ? 'video-frame is-vert mt' : 'video-frame mt';
+  const playerSrc = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`;
 
-  if (playing) {
-    return (
-      <div className={frameClass}>
+  const frame = (
+    <div className={frameClass}>
+      {playing ? (
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`}
+          src={playerSrc}
           title={`Video: ${title}`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
-      </div>
-    );
-  }
+      ) : (
+        <button
+          type="button"
+          className="video-poster"
+          onClick={() => setPlaying(true)}
+          aria-label={`Putar video: ${title}`}
+        >
+          <img src={thumb} alt="" loading="lazy" />
+          <span className="video-play">
+            <Icon name="play" size={22} />
+          </span>
+        </button>
+      )}
+      {zoomable ? (
+        <button type="button" className="video-zoom" onClick={() => setZoom(true)}>
+          <Icon name="scan-search" size={13} />
+          Perbesar
+        </button>
+      ) : null}
+    </div>
+  );
+
+  if (!zoomable) return frame;
 
   return (
-    <button
-      type="button"
-      className={frameClass}
-      onClick={() => setPlaying(true)}
-      aria-label={`Putar video: ${title}`}
-    >
-      <img src={thumb} alt="" loading="lazy" />
-      <span className="video-play">
-        <Icon name="play" size={22} />
-      </span>
-    </button>
+    <>
+      {frame}
+      {zoom ? (
+        <div
+          className="lightbox video-lightbox"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setZoom(false);
+          }}
+        >
+          <button className="lightbox-x" type="button" onClick={() => setZoom(false)} aria-label="Tutup">
+            <Icon name="x" />
+          </button>
+          <div className={frameClass}>
+            <iframe
+              src={playerSrc}
+              title={`Video: ${title}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

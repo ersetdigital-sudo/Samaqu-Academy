@@ -820,12 +820,54 @@
   margin-inline: auto;
 }
 
-button.video-frame {
+/* Pemutar besar: video 9:16 setinggi layar, di atas latar gelap */
+.video-lightbox {
+  align-items: center;
+  justify-content: center;
+}
+
+.video-lightbox .video-frame {
+  width: min(calc((100vh - 120px) * 9 / 16), calc(100vw - 48px));
+  max-width: none;
+  margin: 0;
+}
+
+.video-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
 }
 
-button.video-frame:hover img {
+.video-poster:hover img {
   opacity: 0.85;
+}
+
+/* Tombol perbesar menempel di pojok video (detail seri) */
+.video-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 26, 25, 0.72);
+  color: #fff;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.video-zoom:hover {
+  background: rgba(24, 26, 25, 0.92);
 }
 
 .video-play {
