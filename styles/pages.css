@@ -833,20 +833,26 @@
   background: #000;
 }
 
-/* Fullscreen dari tombol "Perbesar": video setinggi layar, tanpa sudut membulat.
+/* Pemutar besar dari tombol "Perbesar": overlay setinggi layar, tanpa sudut membulat.
+   Overlay CSS dipakai (bukan Fullscreen API) karena iframe preview memblokir requestFullscreen.
    `display: block` + video 100%/100% memberi acuan tinggi yang pasti; di dalam grid auto
    tinggi video jadi `auto`, sehingga video digambar seukuran aslinya (mis. 1080×1920)
    lalu terpotong bingkai. `object-fit: contain` menjaga video 9:16 tetap utuh. */
-.series-video:fullscreen {
+.series-video.is-zoomed {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: auto;
+  max-width: none;
   height: 100%;
-  width: 100%;
   aspect-ratio: auto;
+  margin: 0;
   border-radius: 0;
   display: block;
   background: #000;
 }
 
-.series-video:fullscreen video {
+.series-video.is-zoomed video {
   width: 100%;
   height: 100%;
   max-width: none;

@@ -613,6 +613,20 @@ Docs contradicted the original assumptions. Authoritative findings:
   **belum terverifikasi otomatis** — Fullscreen API ditolak di browser uji ("Permissions check
   failed"), perlu dicek manual di browser biasa.
 
+### 2026-11-05 — "Perbesar" video seri pakai overlay, bukan Fullscreen API
+
+- Gejala: log dev server berisi `unhandledRejection: TypeError: Permissions check failed`
+  setiap kali detail seri dibuka lalu "Perbesar" diklik.
+- Penyebab: iframe preview tidak memberi izin `fullscreen`, jadi `element.requestFullscreen()`
+  ditolak dan promise-nya tidak ditangani; tombolnya pun tidak melakukan apa pun di preview.
+- Fix: `SeriesVideo` membuang Fullscreen API. "Perbesar" menyalakan state `zoom` →
+  `.series-video.is-zoomed` (overlay `position: fixed; inset: 0`, latar hitam, video
+  `object-fit: contain`), ditutup lewat tombol X atau Escape (capture, sama seperti
+  `MaterialVideo`). Elemen `<video>` tidak dilepas, jadi posisi putar ikut terbawa.
+  Aturan `.series-video:fullscreen` di `styles/pages.css` diganti `.is-zoomed`.
+- Verifikasi: `npm run typecheck` lulus; preview owner (920px) detail Jiharkah: klik "Perbesar"
+  membuka overlay tanpa error console, Escape/X menutup.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

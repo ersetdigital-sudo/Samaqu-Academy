@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { MaterialVideo, youtubeVideoId } from '@/features/learning/MaterialVideo';
 
@@ -23,28 +23,32 @@ export function SeriesVideo({ videoUrl, title }: SeriesVideoProps) {
 }
 
 function NativeSeriesVideo({ src, title }: { src: string; title: string }) {
-  const wrap = useRef<HTMLDivElement>(null);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(false);
 
   useEffect(() => {
-    const handleChange = () => setFullscreen(document.fullscreenElement === wrap.current);
-    document.addEventListener('fullscreenchange', handleChange);
-    return () => document.removeEventListener('fullscreenchange', handleChange);
-  }, []);
+    if (!zoom) return;
+    // Capture fase: Escape hanya menutup pemutar besar, bukan modal/halaman di belakangnya.
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      setZoom(false);
+    };
+    document.addEventListener('keydown', handleKey, true);
+    return () => document.removeEventListener('keydown', handleKey, true);
+  }, [zoom]);
 
-  const toggleFullscreen = async () => {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-    await wrap.current?.requestFullscreen?.();
-  };
-
+  // Pemutar besar memakai overlay layar penuh (bukan Fullscreen API) supaya tetap jalan di dalam
+  // iframe preview yang memblokir permintaan fullscreen. Elemen <video> tidak dilepas, jadi posisi
+  // putar ikut terbawa dan tidak ada dua video berjalan bersamaan.
   return (
-    <div className="series-video" ref={wrap}>
+    <div className={`series-video${zoom ? ' is-zoomed' : ''}`}>
       <video src={src} controls playsInline preload="metadata" aria-label={`Video: ${title}`} />
-      {fullscreen ? null : (
-        <button type="button" className="video-zoom" onClick={toggleFullscreen}>
+      {zoom ? (
+        <button type="button" className="lightbox-x" onClick={() => setZoom(false)} aria-label="Tutup">
+          <Icon name="x" />
+        </button>
+      ) : (
+        <button type="button" className="video-zoom" onClick={() => setZoom(true)}>
           <Icon name="scan-search" size={13} />
           Perbesar
         </button>
