@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
+import { AppLink } from '@/components/ui/AppLink';
 import { Icon } from '@/components/ui/Icon';
 import { ImageZoom } from '@/components/ui/ImageZoom';
 import { PipeTable } from '@/components/ui/PipeTable';
@@ -142,6 +143,11 @@ export function ProductDetail({
   const hasMediaPanel =
     product.category === 'Size Chart' || product.category === 'Fabric Collection';
 
+  // Sidebar "Series lainnya", mengikuti daftar materi di detail Learning Center.
+  const otherSeries = isSeries
+    ? products.filter((entry) => entry.category === 'Product Series' && entry.id !== product.id)
+    : [];
+
   // Seri: video YouTube 16:9 seperti Learning Center (thumbnail + tombol play).
   // Tanpa video -> foto close-up.
   const seriesHeader = !isSeries ? null : youtubeVideoId(product.videoUrl) ? (
@@ -183,26 +189,23 @@ export function ProductDetail({
     </table>
   );
 
-  return (
-    <>
-      <div className="row sp">
-        <div className="row">
-          <span className="tag">{product.category}</span>
-          <ProductStatusTag status={product.status} />
-        </div>
-        <button className="icb" onClick={onClose} aria-label="Tutup">
-          <Icon name="x" />
-        </button>
-      </div>
-
-      {isSeries ? seriesHeader : hasMediaPanel ? null : imageBlock}
-
-      <h2 className="mt">{product.name}</h2>
+  // Susunan halaman mengikuti detail materi di Learning Center: back link + Edit/Hapus di atas,
+  // lalu kartu konten lebar dengan daftar seri lain di sampingnya.
+  const detailCard = (
+    <div className="card content" style={{ padding: 32 }}>
+      <div className="eyebrow">{product.category}</div>
+      <h1>{product.name}</h1>
       {product.description ? (
-        <p className="sm muted mt1" style={{ whiteSpace: 'pre-wrap' }}>
+        <p className="lead mt1" style={{ whiteSpace: 'pre-wrap' }}>
           {product.description}
         </p>
       ) : null}
+      <div className="row mt sm muted wrap">
+        <ProductStatusTag status={product.status} />
+        <span>Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}</span>
+      </div>
+
+      {isSeries ? seriesHeader : hasMediaPanel ? null : imageBlock}
 
       {hasMediaPanel && imageUrl ? (
         <div className="pd-split mt">
@@ -216,28 +219,63 @@ export function ProductDetail({
         <div className="mt">{fieldsTable}</div>
       )}
 
-      <p className="sm muted mt">
-        Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}
-      </p>
-
-      <div className="row mt wrap">
+      <div className="row mt2 wrap" style={{ borderTop: '1px solid var(--b)', paddingTop: 18 }}>
         <button className="btn" onClick={copyInfo}>
           <Icon name="copy" />
           Copy Info
         </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="row sp wrap">
+        <button className="btn ghost" onClick={onClose}>
+          <Icon name="arrow-left" />
+          Product Knowledge
+        </button>
         {canManage ? (
-          <>
-            <button className="btn p" onClick={onEdit}>
+          <div className="row">
+            <button className="btn sm" onClick={onEdit}>
               <Icon name="pencil" />
               Edit
             </button>
-            <button className="btn danger" onClick={onDelete}>
+            <button className="btn sm danger" onClick={onDelete}>
               <Icon name="trash-2" />
               Hapus
             </button>
-          </>
+          </div>
         ) : null}
       </div>
+
+      {otherSeries.length ? (
+        <div className="split mt">
+          {detailCard}
+          <div>
+            <div className="card">
+              <h3>Series lainnya</h3>
+              <div className="mt1">
+                {otherSeries.map((entry) => (
+                  <AppLink
+                    key={entry.id}
+                    href={`/products?section=series&open=${encodeURIComponent(entry.id)}`}
+                    className="li ck"
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <span className="sm" style={{ flex: 1 }}>
+                      {entry.name}
+                    </span>
+                    <Icon name="chevron-right" size={16} />
+                  </AppLink>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt">{detailCard}</div>
+      )}
     </>
   );
 }

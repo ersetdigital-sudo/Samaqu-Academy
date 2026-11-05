@@ -523,6 +523,22 @@ Docs contradicted the original assumptions. Authoritative findings:
 - Tidak ada perubahan data, migration, atau perilaku selain ukuran/bentuk popup.
 - Verifikasi: `npm run typecheck` dan `npm run build` (19 route static) lulus.
 
+### 2026-11-05 — Detail produk jadi halaman bergaya Learning Center
+
+- Keluhan lanjutan: popup lebar 16:9 masih terasa salah; owner menunjuk UI/UX detail Learning
+  Center. Penyebabnya struktur: Learning Center membuka materi sebagai halaman (back link,
+  kartu konten `padding:32`, judul 27px, `lead`, lalu video 16:9 selebar kartu), bukan popup.
+- `ProductsView` tidak lagi memakai modal untuk detail: `?open=<id>` dirender langsung sebagai
+  halaman (`openedProduct`), tombol kembali menghapus param `open`. Efek/ref modal detail dihapus;
+  `openProductDetail` sekarang `router.push` (section + open).
+- `ProductDetail` memakai kerangka Learning Center: `btn ghost` "Product Knowledge" + Edit/Hapus
+  di atas, kartu `card content` 32px, `eyebrow` kategori, `h1`, `lead`, status + tanggal, video
+  16:9 selebar kartu, lalu tabel field. Seri menambah sidebar `.split` "Series lainnya" (AppLink
+  ke `?section=series&open=…`), meniru daftar materi di Learning Center.
+- Copy Info tetap di bawah kartu; form/konfirmasi hapus tetap modal.
+- Verifikasi: `npm run typecheck`; preview owner 920px: kartu 721px, video 655×368 (16:9), h1 27px,
+  tanpa `.mbox`, back link kembali ke daftar, sidebar seri lain muncul.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
