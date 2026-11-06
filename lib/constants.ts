@@ -67,6 +67,7 @@ export const SCRIPT_CATEGORIES = [
   'Size Consultation',
   'Fabric Inquiry',
   'Price Inquiry',
+  'Create Your Price',
   'Ordering',
   'Payment Confirmation',
   'Follow Up',

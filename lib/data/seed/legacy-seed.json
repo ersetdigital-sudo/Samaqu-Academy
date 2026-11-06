@@ -197,6 +197,23 @@
         "updatedAt": 1793688992906
       },
       {
+        "id": "scr_seed5",
+        "title": "Menjelaskan program Create Your Price",
+        "category": "Create Your Price",
+        "situation": "Customer ingin tahu program Create Your Price.",
+        "response": "Create Your Price adalah program dari SAMAQU yang memberikan kebebasan kepada customer untuk menentukan sendiri harga produk yang ingin dibayarkan, Kak. 😊\n\nNamun, ada batas harga minimum yang sudah ditentukan oleh SAMAQU, jadi harga yang dipilih tidak boleh di bawah harga minimum tersebut. Dan untuk harga minimumnya bisa kakak cek dilink ini : https://www.samaqu.id/id/open-order\n\nBiasanya program ini diterapkan saat periode Open Order. Jadi, Kakak tetap bisa menentukan harga sendiri selama tidak kurang dari harga minimum yang berlaku, ya. 😊",
+        "variants": [
+          "Jadi, Kakak bebas menentukan harga produk SAMAQU sendiri, asalkan tidak di bawah harga minimum yang sudah kami tentukan😊Dan untuk harga minimumnya bisa kakak cek dilink ini, https://www.samaqu.id/id/open-order"
+        ],
+        "notes": "Program ini dibuka berkala dan produknya bergilir. Cek dulu apakah Open Order sedang buka sebelum menawarkan. Kalau sedang tutup, arahkan customer ke katalog samaqu.id/id/katalog.\nGunakan bahasa santai, ramah, dan mudah dipahami.\nTekankan bahwa customer bebas menentukan harga, tetapi tetap ada batas minimum.\nJangan menyampaikan bahwa Create Your Price hanya berlaku saat Open Order.\nJika customer bertanya harga minimum produk tertentu, cek harga minimum terbaru di katalog atau panel admin.\nJangan menjanjikan harga di bawah minimum.",
+        "tags": [
+          "program",
+          "cyp"
+        ],
+        "sample": false,
+        "updatedAt": 1793950286839
+      },
+      {
         "id": "scr_seed6",
         "title": "Ringkasan pesanan",
         "category": "Ordering",
@@ -563,26 +580,29 @@
           "Tanyakan apa yang membuat customer ragu",
           "Pilihkan 1 opsi paling sesuai kebutuhannya + alasan singkat",
           "Kuatkan dengan foto real / foto perbandingan bila perlu",
-          "Sampaikan promo resmi: free cover + hanger untuk pembelian pertama",
+          "Jelaskan Create Your Price bila sedang dibuka (cek status Open Order dulu)",
+          "Sampaikan promo resmi untuk customer baru: free cover + hanger pembelian pertama",
           "Arahkan ke langkah order dengan natural (assumptive close: \"Saya siapkan yang ... ya Kak?\")"
         ],
-        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Acaranya buat apa Kak?\n\nC: Buat nikahan saudara\nA: Kalau buat nikahan saya saranin navy Kak, tetap formal tapi lebih segar di foto dibanding hitam. Saya kirimkan foto real navy-nya ya\n\nC: Oke kak bagus\nA: Siap, saya siapkan yang navy ya Kak. Pembelian pertama dapat free cover + hanger juga",
+        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Acaranya buat apa Kak?\nC: Buat nikahan saudara\nA: Kalau buat nikahan saya saranin navy Kak, tetap formal tapi lebih segar di foto dibanding hitam. Saya kirimkan foto real navy-nya ya\nC: Oke kak bagus\nA: Siap, saya siapkan yang navy ya Kak. Pembelian pertama dapat free cover + hanger juga",
         "avoid": [
           "Memaksa customer segera membeli",
           "Membantah keberatan customer",
           "Menjanjikan promo yang tidak resmi",
+          "Menawarkan Create Your Price saat Open Order sedang tutup",
           "Menjawab \"dua-duanya bagus\" tanpa memberi rekomendasi",
           "Klaim \"paling laris/favorit\" tanpa data",
           "Memakai emoji berlebihan"
         ],
         "nextStep": "Checkout & Payment",
         "scriptCategories": [
-          "Price Inquiry"
+          "Price Inquiry",
+          "Create Your Price"
         ],
         "problemIds": [],
         "special": false,
         "sample": true,
-        "updatedAt": 1793949700072
+        "updatedAt": 1793950286839
       },
       {
         "id": "flow_5",
