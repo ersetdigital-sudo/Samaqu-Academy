@@ -131,7 +131,7 @@ export function WaInboxView() {
       else setError(res.error || 'Gagal memuat log bot.');
     };
     void load();
-    const timer = setInterval(() => void load(), 10_000);
+    const timer = setInterval(() => void load(), 3_000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -217,8 +217,8 @@ export function WaInboxView() {
               <div key={run.id} className="wa-log">
                 <div className="wa-log-top">
                   <b>{waktu(run.created_at)}</b>
-                  <span className={`tag ${run.error ? 'rd' : run.mode === 'live' ? 'gr' : 'yl'}`}>
-                    {run.mode}
+                  <span className={`tag ${run.error ? 'rd' : run.mode === 'running' ? 'yl' : run.mode === 'live' ? 'gr' : 'yl'}`}>
+                    {run.mode === 'running' ? 'berjalan' : run.mode}
                   </span>
                   <span className="xs muted">{run.duration_ms ?? 0} ms</span>
                 </div>

@@ -98,8 +98,30 @@ async function handoverSenders(service: SupabaseClient): Promise<Set<string>> {
   }
 }
 
-async function recordRun(
+async function startRun(service: SupabaseClient, mode: string): Promise<number | null> {
+  try {
+    // Run yang tidak pernah selesai (timeout/crash) ditandai supaya tidak "berjalan" selamanya.
+    const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await service
+      .from('wa_agent_runs')
+      .update({ mode: 'error', error: 'run tidak selesai', note: 'timeout / terputus' })
+      .eq('mode', 'running')
+      .lt('created_at', staleBefore);
+
+    const { data } = await service
+      .from('wa_agent_runs')
+      .insert({ mode: 'running', note: `berjalan (${mode})…` })
+      .select('id')
+      .single();
+    return data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function finishRun(
   service: SupabaseClient,
+  id: number | null,
   entry: {
     mode: string;
     handled?: number;
@@ -113,19 +135,24 @@ async function recordRun(
     note?: string | null;
   },
 ): Promise<void> {
+  const payload = {
+    mode: entry.mode,
+    handled: entry.handled ?? 0,
+    replied: entry.replied ?? 0,
+    held: entry.held ?? 0,
+    leftover: entry.leftover ?? 0,
+    rounds: entry.rounds ?? 0,
+    tools: entry.tools ?? [],
+    duration_ms: entry.duration_ms ?? null,
+    error: entry.error ?? null,
+    note: entry.note ?? null,
+  };
   try {
-    await service.from('wa_agent_runs').insert({
-      mode: entry.mode,
-      handled: entry.handled ?? 0,
-      replied: entry.replied ?? 0,
-      held: entry.held ?? 0,
-      leftover: entry.leftover ?? 0,
-      rounds: entry.rounds ?? 0,
-      tools: entry.tools ?? [],
-      duration_ms: entry.duration_ms ?? null,
-      error: entry.error ?? null,
-      note: entry.note ?? null,
-    });
+    if (id) {
+      await service.from('wa_agent_runs').update(payload).eq('id', id);
+    } else {
+      await service.from('wa_agent_runs').insert(payload);
+    }
   } catch (error) {
     console.error('gagal simpan log run', error);
   }
@@ -146,6 +173,7 @@ Deno.serve(async (req) => {
   }
 
   const startedAt = Date.now();
+  let runId: number | null = null;
 
   try {
     const url = new URL(req.url);
@@ -166,11 +194,18 @@ Deno.serve(async (req) => {
 
     const dry = isDry() && !testMode;
     const ctx: ToolContext = { dry, senders: new Map(), handled: new Set(), outbox: [] };
+    const runIdLocal = await startRun(service, testMode ? 'test' : dry ? 'dry' : 'live');
+    runId = runIdLocal;
     let items: any[] = [];
 
     if (dry || testMode) {
       const pesanRaw = String(body.pesan || '').trim();
       if (dry && !pesanRaw) {
+        await finishRun(service, runId, {
+          mode: 'dry',
+          note: 'tanpa pesan uji',
+          duration_ms: Date.now() - startedAt,
+        });
         return json({
           ok: true,
           dry: true,
@@ -188,7 +223,7 @@ Deno.serve(async (req) => {
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
       items = Array.isArray(inbox?.items) ? inbox.items : [];
       if (!items.length) {
-        await recordRun(service, {
+        await finishRun(service, runId, {
           mode: 'live',
           note: 'tidak ada pesan baru',
           duration_ms: Date.now() - startedAt,
@@ -211,7 +246,7 @@ Deno.serve(async (req) => {
       }
       items = items.filter((item) => !held.has(String(item.sender || '')));
       if (!items.length) {
-        await recordRun(service, {
+        await finishRun(service, runId, {
           mode: 'live',
           held: heldItems.length,
           note: 'semua pesan diambil alih admin',
@@ -290,11 +325,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Pengaman: kalau model sudah menyusun balasan tapi lupa memanggil kirim_wa,
+    // kirim otomatis untuk satu pesan yang tersisa (jangan biarkan nyangkut).
+    if (answer && !/^laporan\s*:/i.test(answer.trim())) {
+      const unanswered = items.filter((item) => !ctx.handled.has(String(item.id)));
+      if (unanswered.length === 1) {
+        const item = unanswered[0];
+        if (ctx.dry) {
+          ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
+          ctx.handled.add(String(item.id));
+        } else {
+          try {
+            await opsFetch('/api/ops/wa-inbox', {
+              method: 'POST',
+              body: JSON.stringify({
+                target: String(item.sender || ''),
+                message: answer,
+                inbox_id: String(item.id),
+              }),
+            });
+            ctx.handled.add(String(item.id));
+            ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
+          } catch (error) {
+            console.error('gagal kirim otomatis', error);
+          }
+        }
+      }
+    }
+
     const replied = [...ctx.handled].length;
     const leftover = items.filter((item) => !ctx.handled.has(String(item.id))).map((item) => item.id);
     const toolNames = [...new Set(usedTools)];
 
-    await recordRun(service, {
+    await finishRun(service, runId, {
       mode: testMode ? 'test' : dry ? 'dry' : 'live',
       handled: items.length,
       replied,
@@ -321,7 +384,7 @@ Deno.serve(async (req) => {
     const message = errorMessage(error);
     console.error('wa-agent error', message);
     try {
-      await recordRun(serviceClient(), {
+      await finishRun(serviceClient(), runId, {
         mode: 'error',
         error: message.slice(0, 500),
         duration_ms: Date.now() - startedAt,

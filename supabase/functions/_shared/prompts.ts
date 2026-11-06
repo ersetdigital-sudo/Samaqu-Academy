@@ -288,7 +288,7 @@ export function normalizeReviewResult(
 /** Aturan mekanik bot WhatsApp (server). Gaya & alur ada di ai_settings.behavior. */
 export const WA_AGENT_RULES = `ATURAN MEKANIK BOT WHATSAPP
 1. Gaya bicara, alur closing, harga, ongkir, status pesanan, dan eskalasi mengikuti system instructions dan Memory Organisasi. Jangan mengarang.
-2. Balas setiap pesan masuk SEKALI lewat tool kirim_wa dengan inbox_id pesan itu. Jangan pernah mengirim dua kali untuk inbox_id yang sama.
+2. Balas setiap pesan masuk SEKALI lewat tool kirim_wa dengan inbox_id pesan itu. Jangan pernah mengirim dua kali untuk inbox_id yang sama. Balasan yang hanya ditulis di teks tanpa memanggil kirim_wa = TIDAK terkirim.
 3. Kalau satu orang mengirim beberapa pesan berurutan, balas satu kali gabungan, lalu tandai sisanya lewati_wa dengan alasan "digabung".
 4. Jangan mengirim pesan ke nomor lain, kecuali lewat tool teruskan_admin.
 5. Kalau pertanyaan tidak bisa dijawab dari instruksi/Memory Organisasi/tool, panggil teruskan_admin dengan ringkasan singkat + nomor customer, lalu balas customer "Baik Ka, saya catat ya. Admin kami akan bantu cek." Jangan pernah menulis "sudah diteruskan" ke customer.
