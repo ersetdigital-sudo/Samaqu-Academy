@@ -537,16 +537,19 @@
         ],
         "steps": [
           "Cek stok sebelum menyebut ready",
-          "Rekomendasikan 1–2 pilihan yang paling sesuai",
-          "Jelaskan keunggulan dengan data dari Product Knowledge",
-          "Cocokkan ukuran dengan size chart",
-          "Tawarkan foto atau video detail bila perlu"
+          "Rekomendasikan 1 pilihan paling sesuai + alasan singkat",
+          "Jelaskan keunggulan hanya dengan data resmi dari Product Knowledge",
+          "Minta TB & BB, lalu cocokkan dengan tabel rekomendasi size",
+          "Tawarkan foto detail atau foto perbandingan series bila customer bingung"
         ],
-        "example": "C: Bahannya panas gak kak?\nA: Untuk seri ini bahannya [kode bahan], Kak. Karakteristiknya [info resmi]. Kami kirimkan foto detail bahannya ya biar lebih kebayang.",
+        "example": "C: Kak, bedanya Jiharkah sama Nahawand apa ya?\nA: Bedanya di kerah Kak. Jiharkah kerah bulat, Nahawand kerah kemeja, dua-duanya plaket polos jadi kesannya simpel dan rapi.\n\nC: Buat kondangan bagusan yang mana?\nA: Kalau buat kondangan saya saranin Nahawand Kak, kerah kemejanya bikin kelihatan lebih formal. Boleh info tinggi dan berat badannya? Biar saya cocokkan ukurannya\n\nC: 168, 62 kg\nA: Untuk TB 168 BB 62, size M paling pas Kak. Mau warna yang gelap atau yang kalem?\n\n(Kalau data belum ada)\n\nC: Bahannya panas gak kak?\nA: Saya cek dulu detail bahannya ya Kak, biar infonya akurat. Sambil nunggu, mau dipakai buat acara atau harian?",
         "avoid": [
           "Mengarang karakteristik bahan",
           "Menyebut stok tanpa mengecek",
-          "Merekomendasikan terlalu banyak produk sekaligus"
+          "Menyebut angka stok ke customer (cukup \"ready\" / \"tinggal sedikit\")",
+          "Menyebut harga sebelum customer menanyakannya",
+          "Merekomendasikan terlalu banyak produk sekaligus",
+          "Menanyakan lebih dari satu hal dalam satu balasan"
         ],
         "nextStep": "Purchase Assistance",
         "scriptCategories": [
@@ -559,7 +562,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793949552486
       },
       {
         "id": "flow_4",
