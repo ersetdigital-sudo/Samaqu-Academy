@@ -298,6 +298,8 @@ export interface ToolContext {
   handled: Set<string>;
   /** Pesan yang akan dikirim (hanya terisi di mode dry, untuk diperiksa). */
   outbox: Array<{ nomor: string; pesan: string; inbox_id?: string }>;
+  /** true = pesan pembuka cocok pola iklan (Create Your Price / cara order). */
+  adLead?: boolean;
 }
 
 export interface ToolResult {
@@ -530,7 +532,7 @@ export async function executeTool(
           tanggal: wibToday(),
           jam: wibClock(),
           kontak,
-          sumber: String(args.sumber || 'WA'),
+          sumber: ctx.adLead ? 'Meta ads' : String(args.sumber || 'WA'),
           status: args.status === 'closing' ? 'closing' : 'belum_closing',
           nominal: 0,
           catatan: String(args.catatan || '').trim(),

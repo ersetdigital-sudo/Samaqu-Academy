@@ -49,6 +49,12 @@ async function samaquPatch(pathname: string, body: unknown): Promise<void> {
   }
 }
 
+function looksLikeAdLead(text: string): boolean {
+  const t = String(text || '').toLowerCase();
+  if (t.includes('create your price')) return true;
+  return t.includes('info lebih lanjut') && t.includes('cara order');
+}
+
 /** Baca tabel SAMAQU (service role) tanpa menulis apa pun. */
 async function samaquGet(pathname: string): Promise<any> {
   if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) return null;
@@ -411,6 +417,7 @@ Deno.serve(async (req) => {
     }
 
     const question = items.map((item) => String(item.message || '')).join('\n').slice(0, 2000);
+    ctx.adLead = looksLikeAdLead(question);
     const memory = await memoryContext(service, question);
 
     const system = [
@@ -585,6 +592,7 @@ Deno.serve(async (req) => {
       ok: true,
       dry,
       test: testMode,
+      adLead: ctx.adLead ?? false,
       handled: items.length,
       replied,
       rounds,
