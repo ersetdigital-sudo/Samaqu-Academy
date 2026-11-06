@@ -6,3 +6,9 @@ verify_jwt = false
 
 [functions.ai-admin]
 verify_jwt = false
+
+[functions.wa-agent]
+verify_jwt = false
+
+[functions.wa-admin]
+verify_jwt = false

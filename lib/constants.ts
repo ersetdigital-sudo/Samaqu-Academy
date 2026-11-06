@@ -38,6 +38,10 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'CRM',
+    items: [{ label: 'WA Inbox', href: '/wa', icon: 'message-square-text' }],
+  },
+  {
     label: 'Development',
     items: [
       { label: 'Training & Assessment', href: '/training', icon: 'clipboard-check' },

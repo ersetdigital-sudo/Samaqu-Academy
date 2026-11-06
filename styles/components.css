@@ -1622,3 +1622,16 @@ th {
     font-size: 26px;
   }
 }
+
+/* CRM WA Inbox */
+.wa-grid {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .wa-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
