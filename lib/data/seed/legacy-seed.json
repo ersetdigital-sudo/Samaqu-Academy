@@ -635,22 +635,28 @@
         "goal": "Memberi kepastian bahwa pembayaran diterima dan pesanan sedang diproses.",
         "whenToUse": "Setelah customer mengirim bukti pembayaran.",
         "info": [
-          "Bukti transfer dan nominal",
-          "Nomor pesanan",
-          "Estimasi proses dari gudang"
+          "Bukti transfer",
+          "Nominal sesuai total",
+          "Nama pengirim transfer",
+          "Layanan J&T yang dipilih (ECO/EZ)"
         ],
         "steps": [
-          "Verifikasi pembayaran di mutasi",
-          "Kirim konfirmasi pesanan diproses",
-          "Teruskan pesanan ke tim gudang",
-          "Update status pesanan ke customer",
-          "Kirim nomor resi setelah tersedia"
+          "Minta foto bukti transfer kalau customer belum mengirim",
+          "Cek mutasi BSI: nominal harus sama dengan total",
+          "Kirim konfirmasi pembayaran diterima (hanya setelah mutasi dicek)",
+          "Input transaksi di ops berstatus Lunas (pesanan website: ubah status ke Lunas, jangan input ulang)",
+          "Buat resi sesuai layanan yang dipilih customer (ECO/EZ)",
+          "Kirim nomor resi + link cek resi ke customer",
+          "Ganti label chat: Closing -> Dikirim",
+          "Catatan: transfer masuk sebelum jam 16.00 dikirim hari itu, setelahnya dikirim besok."
         ],
-        "example": "C: Kak sudah transfer ya\nA: Terima kasih, Kak. Kami cek dulu pembayarannya ya.\nA: Pembayaran sudah kami terima 😊 Pesanan langsung kami proses, nanti resinya kami kirim ke sini.",
+        "example": "C: Kak sudah transfer ya\nA: Siap Kak, boleh kirim foto bukti transfernya?\nC: (mengirim foto bukti transfer Rp379.000)\nA: Terima kasih Kak, saya cek dulu ya\n(admin cek mutasi BSI, nominal sesuai)\nA: Pembayarannya sudah masuk ya Kak Budi, terima kasih. Pesanannya dikirim hari ini, resinya nanti saya kirim ke sini\n(malamnya)\nA: Kak Budi, paketnya sudah dikirim ya. Ini resi J&T-nya: JO0000000000. Bisa dilacak di samaqu.id/cek-resi\n(Nama, nominal, dan nomor resi di atas hanya contoh (dummy).)",
         "avoid": [
-          "Konfirmasi diterima sebelum cek mutasi",
-          "Lupa mengirim resi",
-          "Memberi estimasi tanpa info dari gudang"
+          "Konfirmasi pembayaran diterima sebelum cek mutasi",
+          "Tidak mencocokkan nominal transfer dengan total pesanan",
+          "Salah memilih layanan J&T saat buat resi",
+          "Lupa mengirim resi ke customer",
+          "Menjanjikan tanggal sampai yang pasti (cukup sebut estimasi J&T)"
         ],
         "nextStep": "After Sales",
         "scriptCategories": [
@@ -663,7 +669,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793950198903
       },
       {
         "id": "flow_7",
