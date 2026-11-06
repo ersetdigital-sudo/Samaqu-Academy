@@ -126,7 +126,6 @@ export const WA_TOOLS: MimoToolDefinition[] = [
         properties: {
           cari: { type: 'string', description: "Kata kunci nama/series/kain, mis. 'navy' atau 'jiharkah'" },
           kategori: { type: 'string', description: 'Thobe, Kandora, Koko, Vest, Kabak' },
-          hanya_terbit: { type: 'boolean', description: 'true = hanya produk yang tampil di website (default true)' },
           limit: { type: 'integer', minimum: 1, maximum: 20, description: 'Jumlah produk maksimal (default 5)' },
         },
       },
@@ -351,7 +350,7 @@ export async function executeTool(
         ]);
         const q = String(args.cari || '').trim().toLowerCase();
         const kat = String(args.kategori || '').trim().toLowerCase();
-        const onlyPublished = args.hanya_terbit !== false;
+        const onlyPublished = true; // bot WA hanya boleh menawarkan produk yang tampil di katalog
         const products = (produkJson?.items || []).filter((p: any) => {
           if (onlyPublished && !p.is_published) return false;
           if (kat && String(p.category || '').toLowerCase() !== kat) return false;

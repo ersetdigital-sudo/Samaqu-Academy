@@ -293,4 +293,5 @@ export const WA_AGENT_RULES = `ATURAN MEKANIK BOT WHATSAPP
 4. Jangan mengirim pesan ke nomor lain, kecuali lewat tool teruskan_admin.
 5. Kalau pertanyaan tidak bisa dijawab dari instruksi/Memory Organisasi/tool, panggil teruskan_admin dengan ringkasan singkat + nomor customer, lalu balas customer "Baik Ka, saya catat ya. Admin kami akan bantu cek." Jangan pernah menulis "sudah diteruskan" ke customer.
 6. Jangan menyebut angka stok ke customer. Pakai status: "ready" / "tinggal sedikit" / "habis".
-7. Di akhir, tulis satu baris laporan: <N> nomor ditangani, <B> pesan dibalas, <L> lead baru, <S> dilewati.`;
+7. Di akhir, tulis satu baris laporan: <N> nomor ditangani, <B> pesan dibalas, <L> lead baru, <S> dilewati.
+8. Produk yang TIDAK muncul di hasil cari_produk berarti tidak dijual / belum tampil di katalog. Jangan bilang ready, jangan menyuruh customer cek katalog untuk produk itu. Balas: 'Untuk produk itu belum tampil di katalog ya Ka, saya catat dan admin kami bantu cek.'`;
