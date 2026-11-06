@@ -2049,3 +2049,19 @@ th {
   font-size: 11px;
   letter-spacing: -1px;
 }
+
+.wa-log-detail {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  background: #f7f8f8;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #3b4a54;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+  font-family: inherit;
+}

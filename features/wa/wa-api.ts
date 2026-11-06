@@ -37,6 +37,7 @@ export interface WaRun {
   duration_ms: number | null;
   error: string | null;
   note: string | null;
+  detail: string | null;
 }
 
 export interface WaStats {

@@ -232,6 +232,7 @@ export function WaInboxView() {
                 ) : null}
                 {run.error ? <div className="wa-log-err">{run.error}</div> : null}
                 {run.note ? <div className="wa-log-note">{run.note}</div> : null}
+                {run.detail ? <pre className="wa-log-detail">{run.detail}</pre> : null}
               </div>
             ))
           )}

@@ -154,6 +154,7 @@ async function finishRun(
     duration_ms?: number;
     error?: string | null;
     note?: string | null;
+    detail?: string | null;
   },
 ): Promise<void> {
   const payload = {
@@ -167,6 +168,7 @@ async function finishRun(
     duration_ms: entry.duration_ms ?? null,
     error: entry.error ?? null,
     note: entry.note ?? null,
+    detail: entry.detail ?? null,
   };
   try {
     if (id) {
@@ -394,6 +396,20 @@ Deno.serve(async (req) => {
     }
     const toolNames = [...new Set(usedTools)];
 
+    const detailParts: string[] = [];
+    if (ctx.outbox.length) {
+      detailParts.push(
+        'BALASAN TERKIRIM:\n' +
+          ctx.outbox
+            .map((item) => `• ke ${item.nomor}${item.inbox_id ? ` [${item.inbox_id}]` : ''}\n${item.pesan}`)
+            .join('\n\n'),
+      );
+    }
+    if (answer) detailParts.push(`CATATAN MODEL:\n${answer}`);
+    if (toolNames.length) detailParts.push(`TOOL: ${toolNames.join(', ')}`);
+    if (leftover.length) detailParts.push(`BELUM TERJAWAB: ${leftover.join(', ')}`);
+    const detail = detailParts.join('\n\n').slice(0, 6000);
+
     await finishRun(service, runId, {
       mode: testMode ? 'test' : dry ? 'dry' : 'live',
       handled: items.length,
@@ -403,6 +419,7 @@ Deno.serve(async (req) => {
       tools: toolNames,
       duration_ms: Date.now() - startedAt,
       note: answer ? answer.slice(0, 500) : null,
+      detail,
     });
 
     return json({
