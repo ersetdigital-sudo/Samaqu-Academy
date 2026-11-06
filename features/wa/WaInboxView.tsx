@@ -94,13 +94,24 @@ export function WaInboxView() {
 
   useEffect(() => {
     void refreshList();
-    const timer = setInterval(() => void refreshList(), 30_000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => void refreshList(), 10_000);
+    const onFocus = () => void refreshList();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [refreshList]);
 
   useEffect(() => {
     if (selected) void openThread(selected);
     else setMessages([]);
+  }, [selected, openThread]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const timer = setInterval(() => void openThread(selected), 8_000);
+    return () => clearInterval(timer);
   }, [selected, openThread]);
 
   useEffect(() => {
