@@ -358,7 +358,7 @@ export function WaInboxView() {
                 <b>{current.name || rapikanNomor(current.sender)}</b>
                 <small>{rapikanNomor(current.sender)}</small>
               </div>
-              {current.handover ? <span className="wa-flag chat">diambil alih admin</span> : null}
+              {current.handover ? <span className="wa-flag wa-flag-head">diambil alih admin</span> : null}
               <button
                 className={`btn ${current.handover ? '' : 'p'} sm`}
                 type="button"
