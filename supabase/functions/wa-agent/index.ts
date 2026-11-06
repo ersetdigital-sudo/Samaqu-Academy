@@ -291,6 +291,32 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Satu run = satu percakapan. Pesan dari nomor lain dikembalikan ke antrean,
+      // supaya pesan beruntun dari orang yang sama dibalas SEKALI (tidak "Siap Ka" berulang).
+      const bySender = new Map<string, any[]>();
+      for (const item of items) {
+        const key = String(item.sender || '');
+        if (!bySender.has(key)) bySender.set(key, []);
+        bySender.get(key)!.push(item);
+      }
+      if (bySender.size > 1) {
+        const ordered = [...bySender.entries()].sort((a, b) =>
+          String(b[1][b[1].length - 1]?.created_at || '').localeCompare(
+            String(a[1][a[1].length - 1]?.created_at || ''),
+          ),
+        );
+        const keepSender = ordered[0][0];
+        const dropIds = items
+          .filter((item) => String(item.sender || '') !== keepSender)
+          .map((item) => String(item.id));
+        await samaquPatch(`wa_inbox?id=in.(${dropIds.join(',')})&status=eq.processing`, {
+          status: 'pending',
+          claimed_at: null,
+          updated_at: new Date().toISOString(),
+        });
+        items = items.filter((item) => String(item.sender || '') === keepSender);
+      }
+
       for (const item of items) ctx.senders.set(String(item.id), String(item.sender || ''));
     }
 
@@ -355,11 +381,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Pengaman: kalau model sudah menyusun balasan tapi lupa memanggil kirim_wa,
-    // kirim otomatis untuk satu pesan yang tersisa (jangan biarkan nyangkut).
-    if (answer && !/^laporan\s*:/i.test(answer.trim())) {
+    // Pesan lain dari pengirim yang sama (sudah dibalas satu kali) ditandai digabung,
+    // supaya tidak dibalas lagi di run berikutnya.
+    const handledSenders = new Set(
+      items
+        .filter((item) => ctx.handled.has(String(item.id)))
+        .map((item) => String(item.sender || '')),
+    );
+    const extras = items.filter(
+      (item) => !ctx.handled.has(String(item.id)) && handledSenders.has(String(item.sender || '')),
+    );
+    for (const item of extras) {
+      try {
+        await opsFetch('/api/ops/wa-inbox', {
+          method: 'PATCH',
+          body: JSON.stringify({ id: item.id, action: 'skip', note: 'digabung' }),
+        });
+        ctx.handled.add(String(item.id));
+      } catch {
+        // coba lagi run berikutnya
+      }
+    }
+
+    // Pengaman: model sudah menyusun balasan tapi TIDAK memanggil kirim_wa sama sekali.
+    // Hanya jalan kalau belum ada satu pun balasan terkirim di run ini.
+    if (answer && !/^laporan\s*:/i.test(answer.trim()) && ctx.outbox.length === 0) {
       const unanswered = items.filter((item) => !ctx.handled.has(String(item.id)));
-      if (unanswered.length === 1) {
+      if (unanswered.length >= 1) {
         const item = unanswered[0];
         if (ctx.dry) {
           ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
@@ -378,6 +426,22 @@ Deno.serve(async (req) => {
             ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
           } catch (error) {
             console.error('gagal kirim otomatis', error);
+          }
+        }
+
+        for (const rest of unanswered.slice(1)) {
+          if (ctx.dry) {
+            ctx.handled.add(String(rest.id));
+            continue;
+          }
+          try {
+            await opsFetch('/api/ops/wa-inbox', {
+              method: 'PATCH',
+              body: JSON.stringify({ id: rest.id, action: 'skip', note: 'digabung' }),
+            });
+            ctx.handled.add(String(rest.id));
+          } catch {
+            // biarkan; run berikutnya
           }
         }
       }
