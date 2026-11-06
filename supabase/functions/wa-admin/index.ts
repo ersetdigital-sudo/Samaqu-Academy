@@ -147,6 +147,16 @@ async function stats() {
   return { pending, processing, sent, skipped, total: list.length };
 }
 
+async function runs(limit = 50) {
+  const { data, error } = await serviceClient()
+    .from('wa_agent_runs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 async function reply(sender: string, message: string, by: string | null) {
   const target = norm(sender);
   const text = String(message || '').trim();
@@ -218,6 +228,9 @@ Deno.serve(async (req) => {
     }
     if (action === 'stats') {
       return json({ ok: true, stats: await stats() });
+    }
+    if (action === 'logs') {
+      return json({ ok: true, items: await runs(Math.min(Math.max(Number(body.limit) || 50, 1), 200)) });
     }
     return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
   } catch (error) {

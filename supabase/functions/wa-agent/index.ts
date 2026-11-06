@@ -98,6 +98,39 @@ async function handoverSenders(service: SupabaseClient): Promise<Set<string>> {
   }
 }
 
+async function recordRun(
+  service: SupabaseClient,
+  entry: {
+    mode: string;
+    handled?: number;
+    replied?: number;
+    held?: number;
+    leftover?: number;
+    rounds?: number;
+    tools?: string[];
+    duration_ms?: number;
+    error?: string | null;
+    note?: string | null;
+  },
+): Promise<void> {
+  try {
+    await service.from('wa_agent_runs').insert({
+      mode: entry.mode,
+      handled: entry.handled ?? 0,
+      replied: entry.replied ?? 0,
+      held: entry.held ?? 0,
+      leftover: entry.leftover ?? 0,
+      rounds: entry.rounds ?? 0,
+      tools: entry.tools ?? [],
+      duration_ms: entry.duration_ms ?? null,
+      error: entry.error ?? null,
+      note: entry.note ?? null,
+    });
+  } catch (error) {
+    console.error('gagal simpan log run', error);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
 
@@ -111,6 +144,8 @@ Deno.serve(async (req) => {
       base_url: Deno.env.get('SAMAQU_BASE_URL') || 'https://www.samaqu.id',
     });
   }
+
+  const startedAt = Date.now();
 
   try {
     const url = new URL(req.url);
@@ -152,7 +187,14 @@ Deno.serve(async (req) => {
     } else {
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
       items = Array.isArray(inbox?.items) ? inbox.items : [];
-      if (!items.length) return json({ ok: true, dry, handled: 0, note: 'Tidak ada pesan baru.' });
+      if (!items.length) {
+        await recordRun(service, {
+          mode: 'live',
+          note: 'tidak ada pesan baru',
+          duration_ms: Date.now() - startedAt,
+        });
+        return json({ ok: true, dry, handled: 0, note: 'Tidak ada pesan baru.' });
+      }
 
       // Percakapan yang sudah diambil alih admin tidak dibalas bot.
       const held = await handoverSenders(service);
@@ -169,6 +211,12 @@ Deno.serve(async (req) => {
       }
       items = items.filter((item) => !held.has(String(item.sender || '')));
       if (!items.length) {
+        await recordRun(service, {
+          mode: 'live',
+          held: heldItems.length,
+          note: 'semua pesan diambil alih admin',
+          duration_ms: Date.now() - startedAt,
+        });
         return json({
           ok: true,
           dry,
@@ -243,6 +291,20 @@ Deno.serve(async (req) => {
     }
 
     const replied = [...ctx.handled].length;
+    const leftover = items.filter((item) => !ctx.handled.has(String(item.id))).map((item) => item.id);
+    const toolNames = [...new Set(usedTools)];
+
+    await recordRun(service, {
+      mode: testMode ? 'test' : dry ? 'dry' : 'live',
+      handled: items.length,
+      replied,
+      leftover: leftover.length,
+      rounds,
+      tools: toolNames,
+      duration_ms: Date.now() - startedAt,
+      note: answer ? answer.slice(0, 500) : null,
+    });
+
     return json({
       ok: true,
       dry,
@@ -250,14 +312,23 @@ Deno.serve(async (req) => {
       handled: items.length,
       replied,
       rounds,
-      tools: [...new Set(usedTools)],
+      tools: toolNames,
       outbox: ctx.outbox,
       answer: dry ? answer : undefined,
-      leftover: items.filter((item) => !ctx.handled.has(String(item.id))).map((item) => item.id),
+      leftover,
     });
   } catch (error) {
     const message = errorMessage(error);
     console.error('wa-agent error', message);
+    try {
+      await recordRun(serviceClient(), {
+        mode: 'error',
+        error: message.slice(0, 500),
+        duration_ms: Date.now() - startedAt,
+      });
+    } catch {
+      // jangan sampai logging menggagalkan respons
+    }
     return json({ ok: false, error: message }, 500);
   }
 });

@@ -24,6 +24,21 @@ export interface WaMessage {
   error?: string | null;
 }
 
+export interface WaRun {
+  id: number;
+  created_at: string;
+  mode: string;
+  handled: number;
+  replied: number;
+  held: number;
+  leftover: number;
+  rounds: number;
+  tools: string[];
+  duration_ms: number | null;
+  error: string | null;
+  note: string | null;
+}
+
 export interface WaStats {
   pending: number;
   processing: number;
@@ -83,4 +98,8 @@ export function takeOver(sender: string) {
 
 export function releaseConversation(sender: string) {
   return invoke<Record<string, never>>('release', { sender });
+}
+
+export function loadRuns(limit = 50) {
+  return invoke<{ items: WaRun[] }>('logs', { limit });
 }

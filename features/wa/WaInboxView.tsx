@@ -5,11 +5,13 @@ import { Icon } from '@/components/ui/Icon';
 import {
   loadConversations,
   loadMessages,
+  loadRuns,
   releaseConversation,
   sendReply,
   takeOver,
   type WaConversation,
   type WaMessage,
+  type WaRun,
   type WaStats,
 } from './wa-api';
 
@@ -64,6 +66,9 @@ export function WaInboxView() {
   const [handoverBusy, setHandoverBusy] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'chat' | 'log'>('chat');
+  const [runs, setRuns] = useState<WaRun[]>([]);
+  const [loadingRuns, setLoadingRuns] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   const refreshList = useCallback(async () => {
@@ -115,6 +120,25 @@ export function WaInboxView() {
   }, [selected, openThread]);
 
   useEffect(() => {
+    if (tab !== 'log') return;
+    let cancelled = false;
+    const load = async () => {
+      setLoadingRuns(true);
+      const res = await loadRuns();
+      if (cancelled) return;
+      setLoadingRuns(false);
+      if (res.ok) setRuns(res.data?.items || []);
+      else setError(res.error || 'Gagal memuat log bot.');
+    };
+    void load();
+    const timer = setInterval(() => void load(), 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [tab]);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [messages]);
 
@@ -163,7 +187,56 @@ export function WaInboxView() {
   }
 
   return (
-    <div className={`wa-shell${selected ? ' on-chat' : ''}`}>
+    <>
+      <div className="wa-tabs">
+        <button type="button" className={`chip${tab === 'chat' ? ' on' : ''}`} onClick={() => setTab('chat')}>
+          Chat
+        </button>
+        <button type="button" className={`chip${tab === 'log' ? ' on' : ''}`} onClick={() => setTab('log')}>
+          Log Bot
+        </button>
+        <span className="xs muted" style={{ marginLeft: 'auto' }}>
+          {stats ? `${stats.pending} belum dibalas · ${stats.sent} terkirim` : ''}
+        </span>
+      </div>
+
+      {error ? (
+        <div className="wa-error-inline" role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      {tab === 'log' ? (
+        <div className="wa-logs">
+          {loadingRuns && runs.length === 0 ? (
+            <div className="empty">Memuat log…</div>
+          ) : runs.length === 0 ? (
+            <div className="empty">Belum ada log run.</div>
+          ) : (
+            runs.map((run) => (
+              <div key={run.id} className="wa-log">
+                <div className="wa-log-top">
+                  <b>{waktu(run.created_at)}</b>
+                  <span className={`tag ${run.error ? 'rd' : run.mode === 'live' ? 'gr' : 'yl'}`}>
+                    {run.mode}
+                  </span>
+                  <span className="xs muted">{run.duration_ms ?? 0} ms</span>
+                </div>
+                <div className="wa-log-line">
+                  masuk {run.handled} · dibalas {run.replied} · sisa {run.leftover} · putaran {run.rounds}
+                  {run.held ? ` · ditahan ${run.held}` : ''}
+                </div>
+                {run.tools?.length ? (
+                  <div className="xs muted">tool: {run.tools.join(', ')}</div>
+                ) : null}
+                {run.error ? <div className="wa-log-err">{run.error}</div> : null}
+                {run.note ? <div className="wa-log-note">{run.note}</div> : null}
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className={`wa-shell${selected ? ' on-chat' : ''}`}>
       <aside className="wa-side">
         <div className="wa-side-head">
           <div className="wa-me">CS</div>
@@ -329,12 +402,8 @@ export function WaInboxView() {
           </>
         )}
       </section>
-
-      {error ? (
-        <div className="wa-error" role="alert">
-          {error}
         </div>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }
