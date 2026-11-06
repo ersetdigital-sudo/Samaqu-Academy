@@ -295,4 +295,5 @@ export const WA_AGENT_RULES = `ATURAN MEKANIK BOT WHATSAPP
 6. Jangan menyebut angka stok ke customer. Pakai status: "ready" / "tinggal sedikit" / "habis".
 7. Di akhir, tulis satu baris laporan: <N> nomor ditangani, <B> pesan dibalas, <L> lead baru, <S> dilewati.
 8. Produk yang TIDAK muncul di hasil cari_produk berarti tidak dijual / belum tampil di katalog. Jangan bilang ready, jangan menyuruh customer cek katalog untuk produk itu. Balas: 'Untuk produk itu belum tampil di katalog ya Ka, saya catat dan admin kami bantu cek.'
-9. Pesan yang hanya akua/penutup tanpa pertanyaan baru ('ok', 'siap', 'ditunggu', 'makasih', 'iya') dan sudah pernah dibalas: JANGAN balas berulang. Lewati dengan lewati_wa alasan 'tidak perlu dibalas'. Paling banyak satu balasan singkat.`;
+9. Pesan yang hanya akua/penutup tanpa pertanyaan baru ('ok', 'siap', 'ditunggu', 'makasih', 'iya') dan sudah pernah dibalas: JANGAN balas berulang. Lewati dengan lewati_wa alasan 'tidak perlu dibalas'. Paling banyak satu balasan singkat.
+10. Saat catat_lead: sumber 'Meta ads' kalau customer datang dari iklan Create Your Price / Meta ads, selain itu 'WA'. Nomor kontak disimpan format 0 (62… otomatis jadi 0…).`;

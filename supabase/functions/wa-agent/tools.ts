@@ -514,12 +514,22 @@ export async function executeTool(
 
       case 'catat_lead': {
         if (ctx.dry) return { text: `DRY: lead ${args.kontak} tidak disimpan (mode uji).` };
-        const dup = await findLeadsByKontak(String(args.kontak || ''));
-        if (dup.length) return { text: `Nomor ${args.kontak} sudah tercatat sebagai lead. Tidak dibuat baru.` };
+        const rawKontak = String(args.kontak || '').trim();
+        const digits = rawKontak.replace(/\D/g, '');
+        // Nomor disimpan format lokal 0… (62… atau 8… diubah ke 0…).
+        const kontak = digits.length >= 8
+          ? digits.startsWith('62')
+            ? `0${digits.slice(2)}`
+            : digits.startsWith('0')
+              ? digits
+              : `0${digits}`
+          : rawKontak;
+        const dup = await findLeadsByKontak(kontak);
+        if (dup.length) return { text: `Nomor ${kontak} sudah tercatat sebagai lead. Tidak dibuat baru.` };
         const row = {
           tanggal: wibToday(),
           jam: wibClock(),
-          kontak: String(args.kontak || '').trim(),
+          kontak,
           sumber: String(args.sumber || 'WA'),
           status: args.status === 'closing' ? 'closing' : 'belum_closing',
           nominal: 0,

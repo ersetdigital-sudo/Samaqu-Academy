@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppLink as Link } from '@/components/ui/AppLink';
 import { Icon } from '@/components/ui/Icon';
+import { useRole } from '@/components/providers/RoleProvider';
 import {
   loadConversations,
   loadMessages,
@@ -71,6 +73,9 @@ export function WaInboxView() {
   const [runs, setRuns] = useState<WaRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [shellHeight, setShellHeight] = useState(0);
+  const { role } = useRole();
 
   const refreshList = useCallback(async () => {
     const res = await loadConversations();
@@ -139,6 +144,20 @@ export function WaInboxView() {
     };
   }, [tab]);
 
+  // Tinggi panel dihitung dari posisi nyata di layar, supaya kolom balasan selalu kelihatan.
+  useEffect(() => {
+    if (tab !== 'chat') return;
+    const calc = () => {
+      const el = shellRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setShellHeight(Math.max(420, Math.floor(window.innerHeight - top - 16)));
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, [tab]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
   }, [messages]);
@@ -199,6 +218,11 @@ export function WaInboxView() {
         <span className="xs muted" style={{ marginLeft: 'auto' }}>
           {stats ? `${stats.pending} belum dibalas · ${stats.sent} terkirim` : ''}
         </span>
+        {role === 'owner' ? (
+          <Link href="/settings/memory" className="btn ghost sm">
+            Instruksi & Contoh AI
+          </Link>
+        ) : null}
       </div>
 
       {error ? (
@@ -238,7 +262,11 @@ export function WaInboxView() {
           )}
         </div>
       ) : (
-        <div className={`wa-shell${selected ? ' on-chat' : ''}`}>
+        <div
+          ref={shellRef}
+          className={`wa-shell${selected ? ' on-chat' : ''}`}
+          style={shellHeight ? { height: `${shellHeight}px` } : undefined}
+        >
       <aside className="wa-side">
         <div className="wa-side-head">
           <div className="wa-me">CS</div>
