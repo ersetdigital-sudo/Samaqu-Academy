@@ -22,7 +22,6 @@ export const CATEGORY_SYNONYMS: [RegExp, string][] = [
   [/ukuran|size|kekecilan|kebesaran/, 'Size Consultation'],
   [/bahan|kain|fabric|panas|adem/, 'Fabric Inquiry'],
   [/harga|mahal|diskon|murah|promo/, 'Price Inquiry'],
-  [/create your price|cyp/, 'Create Your Price'],
   [/refund|retur|tukar|purna|after sales/, 'After Sales'],
   [/stok|ready|tersedia|produk/, 'Product Inquiry'],
 ];

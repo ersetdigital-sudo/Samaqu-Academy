@@ -162,7 +162,6 @@ export const SCENARIO_ICONS: Record<string, string> = {
   Ordering: 'shopping-cart',
   'Payment Confirmation': 'credit-card',
   'After Sales': 'heart-handshake',
-  'Create Your Price': 'tag',
   'Greeting & Opening': 'hand',
 };
 

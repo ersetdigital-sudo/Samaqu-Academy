@@ -201,17 +201,17 @@
         "title": "Menjelaskan program Create Your Price",
         "category": "Create Your Price",
         "situation": "Customer ingin tahu program Create Your Price.",
-        "response": "Create Your Price adalah program [isi penjelasan resmi], Kak. Kami bantu jelaskan langkahnya satu per satu, ya.",
+        "response": "Create Your Price adalah program dari SAMAQU yang memberikan kebebasan kepada customer untuk menentukan sendiri harga produk yang ingin dibayarkan, Kak. 😊\n\nNamun, ada batas harga minimum yang sudah ditentukan oleh SAMAQU, jadi harga yang dipilih tidak boleh di bawah harga minimum tersebut. Dan untuk harga minimumnya bisa kakak cek dilink ini : https://www.samaqu.id/id/open-order\n\nBiasanya program ini diterapkan saat periode Open Order. Jadi, Kakak tetap bisa menentukan harga sendiri selama tidak kurang dari harga minimum yang berlaku, ya. 😊",
         "variants": [
-          "Singkatnya, Kakak bisa [mekanisme resmi]. Mau kami bantu mulai?"
+          "Jadi, Kakak bebas menentukan harga produk SAMAQU sendiri, asalkan tidak di bawah harga minimum yang sudah kami tentukan😊Dan untuk harga minimumnya bisa kakak cek dilink ini, https://www.samaqu.id/id/open-order"
         ],
-        "notes": "Gunakan penjelasan resmi program. Jelaskan bertahap, jangan sekaligus panjang.",
+        "notes": "Program ini dibuka berkala dan produknya bergilir. Cek dulu apakah Open Order sedang buka sebelum menawarkan. Kalau sedang tutup, arahkan customer ke katalog samaqu.id/id/katalog.\nGunakan bahasa santai, ramah, dan mudah dipahami.\nTekankan bahwa customer bebas menentukan harga, tetapi tetap ada batas minimum.\nJangan menyampaikan bahwa Create Your Price hanya berlaku saat Open Order.\nJika customer bertanya harga minimum produk tertentu, cek harga minimum terbaru di katalog atau panel admin.\nJangan menjanjikan harga di bawah minimum.",
         "tags": [
           "program",
           "cyp"
         ],
-        "sample": true,
-        "updatedAt": 1793688992906
+        "sample": false,
+        "updatedAt": 1793950286839
       },
       {
         "id": "scr_seed6",
@@ -537,16 +537,19 @@
         ],
         "steps": [
           "Cek stok sebelum menyebut ready",
-          "Rekomendasikan 1–2 pilihan yang paling sesuai",
-          "Jelaskan keunggulan dengan data dari Product Knowledge",
-          "Cocokkan ukuran dengan size chart",
-          "Tawarkan foto atau video detail bila perlu"
+          "Rekomendasikan 1 pilihan paling sesuai + alasan singkat",
+          "Jelaskan keunggulan hanya dengan data resmi dari Product Knowledge",
+          "Minta TB & BB, lalu cocokkan dengan tabel rekomendasi size",
+          "Tawarkan foto detail atau foto perbandingan series bila customer bingung"
         ],
-        "example": "C: Bahannya panas gak kak?\nA: Untuk seri ini bahannya [kode bahan], Kak. Karakteristiknya [info resmi]. Kami kirimkan foto detail bahannya ya biar lebih kebayang.",
+        "example": "C: Kak, bedanya Jiharkah sama Nahawand apa ya?\nA: Bedanya di kerah Kak. Jiharkah kerah bulat, Nahawand kerah kemeja, dua-duanya plaket polos jadi kesannya simpel dan rapi.\n\nC: Buat kondangan bagusan yang mana?\nA: Kalau buat kondangan saya saranin Nahawand Kak, kerah kemejanya bikin kelihatan lebih formal. Boleh info tinggi dan berat badannya? Biar saya cocokkan ukurannya\n\nC: 168, 62 kg\nA: Untuk TB 168 BB 62, size M paling pas Kak. Mau warna yang gelap atau yang kalem?\n\n(Kalau data belum ada)\n\nC: Bahannya panas gak kak?\nA: Saya cek dulu detail bahannya ya Kak, biar infonya akurat. Sambil nunggu, mau dipakai buat acara atau harian?",
         "avoid": [
           "Mengarang karakteristik bahan",
           "Menyebut stok tanpa mengecek",
-          "Merekomendasikan terlalu banyak produk sekaligus"
+          "Menyebut angka stok ke customer (cukup \"ready\" / \"tinggal sedikit\")",
+          "Menyebut harga sebelum customer menanyakannya",
+          "Merekomendasikan terlalu banyak produk sekaligus",
+          "Menanyakan lebih dari satu hal dalam satu balasan"
         ],
         "nextStep": "Purchase Assistance",
         "scriptCategories": [
@@ -559,7 +562,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793949552486
       },
       {
         "id": "flow_4",
@@ -571,20 +574,25 @@
         "info": [
           "Apa yang membuat customer ragu",
           "Warna dan seri yang sedang dipertimbangkan",
-          "Promo resmi yang berlaku"
+          "Untuk acara apa / dipakai kapan"
         ],
         "steps": [
           "Tanyakan apa yang membuat customer ragu",
-          "Jawab keberatan dengan informasi dan bukti visual",
-          "Jelaskan Create Your Price bila relevan (pakai penjelasan resmi)",
-          "Beri ruang customer untuk memutuskan",
-          "Arahkan ke langkah order dengan natural"
+          "Pilihkan 1 opsi paling sesuai kebutuhannya + alasan singkat",
+          "Kuatkan dengan foto real / foto perbandingan bila perlu",
+          "Jelaskan Create Your Price bila sedang dibuka (cek status Open Order dulu)",
+          "Sampaikan promo resmi untuk customer baru: free cover + hanger pembelian pertama",
+          "Arahkan ke langkah order dengan natural (assumptive close: \"Saya siapkan yang ... ya Kak?\")"
         ],
-        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Dua-duanya cocok buat acara formal, Kak 😊 Kalau mau kesan lebih kalem, navy biasanya jadi favorit. Mau kami kirimkan foto real keduanya?",
+        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Acaranya buat apa Kak?\nC: Buat nikahan saudara\nA: Kalau buat nikahan saya saranin navy Kak, tetap formal tapi lebih segar di foto dibanding hitam. Saya kirimkan foto real navy-nya ya\nC: Oke kak bagus\nA: Siap, saya siapkan yang navy ya Kak. Pembelian pertama dapat free cover + hanger juga",
         "avoid": [
           "Memaksa customer segera membeli",
-          "Membantah keberatan harga",
-          "Menjanjikan promo yang tidak resmi"
+          "Membantah keberatan customer",
+          "Menjanjikan promo yang tidak resmi",
+          "Menawarkan Create Your Price saat Open Order sedang tutup",
+          "Menjawab \"dua-duanya bagus\" tanpa memberi rekomendasi",
+          "Klaim \"paling laris/favorit\" tanpa data",
+          "Memakai emoji berlebihan"
         ],
         "nextStep": "Checkout & Payment",
         "scriptCategories": [
@@ -594,7 +602,7 @@
         "problemIds": [],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793950286839
       },
       {
         "id": "flow_5",
@@ -604,26 +612,28 @@
         "goal": "Memastikan pesanan tercatat benar dan customer mudah menyelesaikan pembayaran.",
         "whenToUse": "Saat customer sudah memutuskan untuk membeli.",
         "info": [
-          "Nama dan nomor penerima",
-          "Alamat lengkap",
-          "Produk, warna, ukuran, dan jumlah",
-          "Pilihan ekspedisi",
-          "Metode pembayaran"
+          "Nama penerima",
+          "Alamat lengkap + kecamatan",
+          "No WA",
+          "Produk, warna, seri, ukuran, jumlah",
+          "Layanan J&T (ECO/EZ)"
         ],
         "steps": [
-          "Minta data penerima dalam satu pesan yang rapi",
-          "Cek kembali produk, warna, ukuran, dan jumlah",
-          "Periksa kelengkapan alamat",
-          "Hitung ongkir sesuai ekspedisi",
-          "Kirim invoice / ringkasan pesanan",
-          "Jelaskan cara pembayaran resmi",
+          "Kirim form data (Nama, Alamat lengkap, Kecamatan, No WA) dalam satu pesan",
+          "Cek ulang produk, warna, seri, ukuran, dan jumlah sesuai chat terakhir",
+          "Pastikan alamat lengkap sampai kecamatan",
+          "Cek ongkir J&T di ops, kirim rincian + opsi ECO dan EZ beserta totalnya",
+          "Setelah customer pilih layanan, kirim rekening resmi: BSI 7153280058 a.n. Ardo Babus Abdullah",
+          "Minta customer kirim bukti transfer",
           "Hindari mengulang informasi yang sudah dikirim"
         ],
-        "example": "C: Oke kak aku ambil yang navy L\nA: Siap, Kak 😊 Boleh dibantu isi data ini ya: Nama penerima / No. HP / Alamat lengkap / Ekspedisi\nC: (customer mengirim data)\nA: Terima kasih, Kak. Ini ringkasan pesanannya, mohon dicek dulu ya.",
+        "example": "C: Oke kak aku ambil yang Superblack Jiharkah L\nA: Siap Kak, saya siapkan ya. Boleh kirim datanya seperti ini:\nNama:\nAlamat lengkap:\nKecamatan:\nNo WA:\nC: Nama: Budi Santoso\nAlamat lengkap: Jl. Melati No. 12, RT 03/RW 05, Kel. Sukamaju, Kota Bandung\nKecamatan: Cibeunying Kidul\nNo WA: 081234567890\nA: Ini rincian pesanannya Kak:\nThobe Superblack Jiharkah L x1 — Rp359.000\n\nOngkir J&T ke Cibeunying Kidul, Bandung:\nECO (3–5 hari) — Rp15.000 → Total Rp374.000\nEZ (2–3 hari) — Rp20.000 → Total Rp379.000\n\nKakak mau pakai yang ECO atau EZ?\nC: EZ aja kak\nA: Siap Kak, totalnya Rp379.000. Silakan transfer ke:\nBSI 7153280058\na.n. Ardo Babus Abdullah\n\nKalau sudah transfer, kirim bukti transfernya di sini ya Kak. Pembelian pertama dapat free cover + hanger juga\n(Data customer dan ongkir di atas hanya contoh (dummy).)",
         "avoid": [
           "Meminta data satu per satu sampai berulang",
-          "Lupa konfirmasi ukuran dan alamat",
-          "Mengirim informasi pembayaran yang tidak resmi"
+          "Lupa konfirmasi ukuran, seri, dan alamat",
+          "Mengirim rekening sebelum customer memilih layanan ongkir",
+          "Mengirim informasi pembayaran yang tidak resmi",
+          "Salah memilih layanan J&T saat buat resi (harus sesuai pilihan customer)"
         ],
         "nextStep": "Order Confirmation",
         "scriptCategories": [
@@ -635,7 +645,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793950084952
       },
       {
         "id": "flow_6",
@@ -645,22 +655,28 @@
         "goal": "Memberi kepastian bahwa pembayaran diterima dan pesanan sedang diproses.",
         "whenToUse": "Setelah customer mengirim bukti pembayaran.",
         "info": [
-          "Bukti transfer dan nominal",
-          "Nomor pesanan",
-          "Estimasi proses dari gudang"
+          "Bukti transfer",
+          "Nominal sesuai total",
+          "Nama pengirim transfer",
+          "Layanan J&T yang dipilih (ECO/EZ)"
         ],
         "steps": [
-          "Verifikasi pembayaran di mutasi",
-          "Kirim konfirmasi pesanan diproses",
-          "Teruskan pesanan ke tim gudang",
-          "Update status pesanan ke customer",
-          "Kirim nomor resi setelah tersedia"
+          "Minta foto bukti transfer kalau customer belum mengirim",
+          "Cek mutasi BSI: nominal harus sama dengan total",
+          "Kirim konfirmasi pembayaran diterima (hanya setelah mutasi dicek)",
+          "Input transaksi di ops berstatus Lunas (pesanan website: ubah status ke Lunas, jangan input ulang)",
+          "Buat resi sesuai layanan yang dipilih customer (ECO/EZ)",
+          "Kirim nomor resi + link cek resi ke customer",
+          "Ganti label chat: Closing -> Dikirim",
+          "Catatan: transfer masuk sebelum jam 16.00 dikirim hari itu, setelahnya dikirim besok."
         ],
-        "example": "C: Kak sudah transfer ya\nA: Terima kasih, Kak. Kami cek dulu pembayarannya ya.\nA: Pembayaran sudah kami terima 😊 Pesanan langsung kami proses, nanti resinya kami kirim ke sini.",
+        "example": "C: Kak sudah transfer ya\nA: Siap Kak, boleh kirim foto bukti transfernya?\nC: (mengirim foto bukti transfer Rp379.000)\nA: Terima kasih Kak, saya cek dulu ya\n(admin cek mutasi BSI, nominal sesuai)\nA: Pembayarannya sudah masuk ya Kak Budi, terima kasih. Pesanannya dikirim hari ini, resinya nanti saya kirim ke sini\n(malamnya)\nA: Kak Budi, paketnya sudah dikirim ya. Ini resi J&T-nya: JO0000000000. Bisa dilacak di samaqu.id/cek-resi\n(Nama, nominal, dan nomor resi di atas hanya contoh (dummy).)",
         "avoid": [
-          "Konfirmasi diterima sebelum cek mutasi",
-          "Lupa mengirim resi",
-          "Memberi estimasi tanpa info dari gudang"
+          "Konfirmasi pembayaran diterima sebelum cek mutasi",
+          "Tidak mencocokkan nominal transfer dengan total pesanan",
+          "Salah memilih layanan J&T saat buat resi",
+          "Lupa mengirim resi ke customer",
+          "Menjanjikan tanggal sampai yang pasti (cukup sebut estimasi J&T)"
         ],
         "nextStep": "After Sales",
         "scriptCategories": [
@@ -673,7 +689,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793950198903
       },
       {
         "id": "flow_7",

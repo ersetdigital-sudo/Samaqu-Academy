@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
+import { normalizeChatText } from '@/lib/utils/chat';
 import { Icon } from './Icon';
 
 export type RecordFieldType =
@@ -92,7 +93,9 @@ function toOutputValue(field: RecordField, value: RecordValue): RecordValue {
       : [];
   }
   if (field.type === 'check') return Boolean(value);
-  if (field.type === 'lines' || field.type === 'chat') {
+  // Percakapan disimpan satu pesan per baris, walau ditempel sebagai satu baris berkoma.
+  if (field.type === 'chat') return normalizeChatText(String(value ?? ''));
+  if (field.type === 'lines') {
     return String(value)
       .split('\n')
       .map((line) => line.trim())

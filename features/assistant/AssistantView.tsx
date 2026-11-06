@@ -81,7 +81,6 @@ export function AssistantView() {
     items.push('Customer komplain jahitan lepas, gimana balasnya?');
     items.push('Customer bilang harganya mahal, harus jawab apa?');
     items.push('Bagaimana cara merekomendasikan ukuran thobe?');
-    items.push('Bagaimana menjelaskan Create Your Price?');
     items.push('Bagaimana menangani customer yang meminta refund?');
     return [...new Set(items)];
   }, [snapshot.content.products]);

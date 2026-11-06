@@ -35,11 +35,6 @@ const KNOWLEDGE_BASE = [
       'Data detail bahan B-01 dan A-02 belum tersedia di knowledge base contoh ini.\n\nYang bisa dilakukan admin:\n• Rujuk halaman Product Knowledge → Fabric Collection.\n• Kirim foto detail bahan resmi kepada customer.\n• Jika ragu, konfirmasi ke tim produk sebelum menjawab.\n\nJangan mengarang karakteristik bahan.',
   },
   {
-    keywords: ['create your price', 'cyp'],
-    answer:
-      'Cara menjelaskan Create Your Price:\n1. Jelaskan konsep program secara singkat (gunakan definisi resmi).\n2. Jelaskan langkah-langkahnya satu per satu.\n3. Beri contoh sederhana.\n4. Tanyakan apakah customer ingin dibantu memulai.\n\nGunakan script "Create Your Price" di Script Library sebagai acuan.',
-  },
-  {
     keywords: ['refund', 'retur', 'kembali'],
     answer:
       'Menangani customer yang meminta refund:\n1. Tunjukkan empati dan minta maaf atas ketidaknyamanan.\n2. Minta nomor pesanan dan bukti (foto/video).\n3. Cek kelayakan berdasarkan kebijakan retur resmi.\n4. Jelaskan opsi yang tersedia (tukar/refund) sesuai SOP.\n5. Eskalasi ke supervisor bila di luar kewenangan.\n\nJangan menjanjikan refund sebelum verifikasi.',
