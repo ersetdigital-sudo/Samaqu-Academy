@@ -67,7 +67,6 @@ export const SCRIPT_CATEGORIES = [
   'Size Consultation',
   'Fabric Inquiry',
   'Price Inquiry',
-  'Create Your Price',
   'Ordering',
   'Payment Confirmation',
   'Follow Up',
@@ -162,7 +161,6 @@ export const SCENARIO_ICONS: Record<string, string> = {
   Ordering: 'shopping-cart',
   'Payment Confirmation': 'credit-card',
   'After Sales': 'heart-handshake',
-  'Create Your Price': 'tag',
   'Greeting & Opening': 'hand',
 };
 

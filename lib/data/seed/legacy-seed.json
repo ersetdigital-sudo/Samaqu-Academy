@@ -197,23 +197,6 @@
         "updatedAt": 1793688992906
       },
       {
-        "id": "scr_seed5",
-        "title": "Menjelaskan program Create Your Price",
-        "category": "Create Your Price",
-        "situation": "Customer ingin tahu program Create Your Price.",
-        "response": "Create Your Price adalah program [isi penjelasan resmi], Kak. Kami bantu jelaskan langkahnya satu per satu, ya.",
-        "variants": [
-          "Singkatnya, Kakak bisa [mekanisme resmi]. Mau kami bantu mulai?"
-        ],
-        "notes": "Gunakan penjelasan resmi program. Jelaskan bertahap, jangan sekaligus panjang.",
-        "tags": [
-          "program",
-          "cyp"
-        ],
-        "sample": true,
-        "updatedAt": 1793688992906
-      },
-      {
         "id": "scr_seed6",
         "title": "Ringkasan pesanan",
         "category": "Ordering",
