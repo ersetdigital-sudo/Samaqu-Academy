@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { PageHeader } from '@/components/ui/PageHeader';
 import {
   loadConversations,
   loadMessages,
@@ -18,9 +17,21 @@ function waktu(iso: string | null | undefined): string {
   if (!iso) return '-';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '-';
+  const now = new Date();
+  const sameDay =
+    d.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) ===
+    now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
+  return new Intl.DateTimeFormat('id-ID', sameDay
+    ? { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' }
+    : { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Asia/Jakarta' }
+  ).format(d);
+}
+
+function jam(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
   return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'short',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -31,6 +42,13 @@ function waktu(iso: string | null | undefined): string {
 function rapikanNomor(sender: string): string {
   const digits = String(sender || '').replace(/\D/g, '');
   return digits.startsWith('62') ? `0${digits.slice(2)}` : digits;
+}
+
+function inisial(name: string, sender: string): string {
+  const text = (name || rapikanNomor(sender) || '?').trim();
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
 export function WaInboxView() {
@@ -134,229 +152,178 @@ export function WaInboxView() {
   }
 
   return (
-    <>
-      <PageHeader
-        eyebrow="CRM"
-        title="WA Inbox"
-        subtitle="Percakapan WhatsApp customer: lihat riwayat, balas manual, dan pantau yang belum dibalas."
-        actions={
-          <button className="btn ghost sm" type="button" onClick={() => void refreshList()}>
-            <Icon name="refresh-cw" size={15} />
-            Muat ulang
+    <div className={`wa-shell${selected ? ' on-chat' : ''}`}>
+      <aside className="wa-side">
+        <div className="wa-side-head">
+          <div className="wa-me">CS</div>
+          <div className="wa-side-title">
+            <b>WhatsApp CS</b>
+            <small>SAMAQU</small>
+          </div>
+          <button className="wa-icb" type="button" title="Muat ulang" onClick={() => void refreshList()}>
+            <Icon name="refresh-cw" size={16} />
           </button>
-        }
-      />
+        </div>
+
+        <div className="wa-search">
+          <input
+            className="inp"
+            placeholder="Cari atau mulai chat"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+
+        <div className="wa-filters">
+          <button type="button" className={`chip${onlyPending ? '' : ' on'}`} onClick={() => setOnlyPending(false)}>
+            Semua
+          </button>
+          <button type="button" className={`chip${onlyPending ? ' on' : ''}`} onClick={() => setOnlyPending(true)}>
+            Belum dibalas{stats?.pending ? ` (${stats.pending})` : ''}
+          </button>
+        </div>
+
+        <div className="wa-list">
+          {loading ? (
+            <div className="empty">Memuat percakapan…</div>
+          ) : filtered.length === 0 ? (
+            <div className="empty">Tidak ada percakapan.</div>
+          ) : (
+            filtered.map((item) => (
+              <button
+                key={item.sender}
+                type="button"
+                className={`wa-item${item.sender === selected ? ' on' : ''}`}
+                onClick={() => setSelected(item.sender)}
+              >
+                <div className="wa-av">{inisial(item.name, item.sender)}</div>
+                <div className="wa-item-body">
+                  <div className="wa-item-top">
+                    <b>{item.name || rapikanNomor(item.sender)}</b>
+                    <span>{waktu(item.lastAt)}</span>
+                  </div>
+                  <div className="wa-item-bottom">
+                    <span className="wa-preview">{item.lastMessage || '—'}</span>
+                    {item.pending > 0 ? <span className="wa-badge">{item.pending}</span> : null}
+                  </div>
+                  {item.handover ? <span className="wa-flag">diambil alih admin</span> : null}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <section className="wa-chat">
+        {!current ? (
+          <div className="wa-empty">
+            <div className="wa-empty-mark">
+              <Icon name="message-square-text" size={38} />
+            </div>
+            <h2>WA Inbox SAMAQU</h2>
+            <p>Pilih percakapan di kiri untuk melihat riwayat dan membalas.</p>
+          </div>
+        ) : (
+          <>
+            <header className="wa-chat-head">
+              <button
+                className="wa-icb wa-back"
+                type="button"
+                title="Kembali"
+                onClick={() => setSelected('')}
+              >
+                <Icon name="arrow-left" size={18} />
+              </button>
+              <div className="wa-av">{inisial(current.name, current.sender)}</div>
+              <div className="wa-chat-title">
+                <b>{current.name || rapikanNomor(current.sender)}</b>
+                <small>{rapikanNomor(current.sender)}</small>
+              </div>
+              {current.handover ? <span className="wa-flag chat">diambil alih admin</span> : null}
+              <button
+                className={`btn ${current.handover ? '' : 'p'} sm`}
+                type="button"
+                onClick={() => void onToggleHandover()}
+                disabled={handoverBusy}
+              >
+                {current.handover ? 'Kembalikan ke bot' : 'Ambil alih'}
+              </button>
+              <button
+                className="wa-icb"
+                type="button"
+                title="Muat ulang percakapan"
+                onClick={() => void openThread(current.sender)}
+              >
+                <Icon name="refresh-cw" size={16} />
+              </button>
+            </header>
+
+            <div className="wa-thread">
+              {loadingThread ? (
+                <div className="empty">Memuat pesan…</div>
+              ) : messages.length === 0 ? (
+                <div className="empty">Belum ada pesan.</div>
+              ) : (
+                messages.map((row) => (
+                  <div key={row.id} className="wa-row">
+                    {row.message ? (
+                      <div className="wa-bubble in">
+                        <div className="wa-text">{row.message}</div>
+                        <div className="wa-time">
+                          {jam(row.created_at)}
+                          {row.status === 'skipped' ? ' · dilewati' : ''}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {row.reply_text ? (
+                      <div className="wa-bubble out">
+                        <div className="wa-text">{row.reply_text}</div>
+                        <div className="wa-time">
+                          {jam(row.replied_at)}
+                          {row.error === 'dibalas manual' ? ' · manual' : ' · bot'}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))
+              )}
+              <div ref={endRef} />
+            </div>
+
+            <footer className="wa-composer">
+              <textarea
+                className="wa-input"
+                rows={1}
+                placeholder="Ketik pesan"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    void onSend();
+                  }
+                }}
+              />
+              <button
+                className="wa-send"
+                type="button"
+                title="Kirim"
+                onClick={() => void onSend()}
+                disabled={sending || !draft.trim()}
+              >
+                <Icon name="arrow-right" size={18} />
+              </button>
+            </footer>
+          </>
+        )}
+      </section>
 
       {error ? (
-        <div className="card" style={{ padding: '10px 14px', marginBottom: 12, color: 'var(--rd, #b42318)' }}>
+        <div className="wa-error" role="alert">
           {error}
         </div>
       ) : null}
-
-      <div className="wa-grid">
-        <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', minHeight: 520 }}>
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line, #e5e7eb)' }}>
-            <div className="row sp" style={{ marginBottom: 8 }}>
-              <h3 style={{ margin: 0 }}>Percakapan</h3>
-              <span className="tag gr">{items.length}</span>
-            </div>
-            <input
-              className="inp"
-              placeholder="Cari nama / nomor / isi pesan"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <div className="chips" style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                className={`chip${onlyPending ? '' : ' on'}`}
-                onClick={() => setOnlyPending(false)}
-              >
-                Semua
-              </button>
-              <button
-                type="button"
-                className={`chip${onlyPending ? ' on' : ''}`}
-                onClick={() => setOnlyPending(true)}
-              >
-                Belum dibalas {stats?.pending ? `(${stats.pending})` : ''}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ overflowY: 'auto', flex: 1 }}>
-            {loading ? (
-              <div className="empty">Memuat percakapan…</div>
-            ) : filtered.length === 0 ? (
-              <div className="empty">Tidak ada percakapan pada filter ini.</div>
-            ) : (
-              filtered.map((item) => {
-                const active = item.sender === selected;
-                return (
-                  <button
-                    key={item.sender}
-                    type="button"
-                    onClick={() => setSelected(item.sender)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '10px 14px',
-                      border: 0,
-                      borderBottom: '1px solid var(--line, #eee)',
-                      background: active ? 'var(--bg2, #f5f5f5)' : 'transparent',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div className="row sp" style={{ gap: 8 }}>
-                      <b style={{ fontSize: 13.5 }}>{item.name || rapikanNomor(item.sender)}</b>
-                      <span className="xs muted">{waktu(item.lastAt)}</span>
-                    </div>
-                    <div className="xs muted" style={{ marginTop: 2 }}>
-                      {rapikanNomor(item.sender)}
-                    </div>
-                    <div
-                      className="xs"
-                      style={{
-                        marginTop: 4,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {item.lastMessage}
-                    </div>
-                    {item.pending > 0 ? (
-                      <span className="tag yl" style={{ marginTop: 6, display: 'inline-flex' }}>
-                        {item.pending} belum dibalas
-                      </span>
-                    ) : null}
-                    {item.handover ? (
-                      <span className="tag gr" style={{ marginTop: 6, marginLeft: 6, display: 'inline-flex' }}>
-                        diambil alih admin
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: 0, display: 'flex', flexDirection: 'column', minHeight: 520 }}>
-          {!current ? (
-            <div className="empty" style={{ margin: 'auto' }}>
-              Pilih percakapan di kiri.
-            </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  padding: '12px 16px',
-                  borderBottom: '1px solid var(--line, #e5e7eb)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <b>{current.name || rapikanNomor(current.sender)}</b>
-                  <div className="xs muted">{rapikanNomor(current.sender)}</div>
-                </div>
-                {current.pending > 0 ? <span className="tag yl">{current.pending} belum dibalas</span> : null}
-                {current.handover ? <span className="tag gr">diambil alih admin</span> : null}
-                <button
-                  className={`btn ${current.handover ? '' : 'p'} sm`}
-                  type="button"
-                  onClick={() => void onToggleHandover()}
-                  disabled={handoverBusy}
-                >
-                  {current.handover ? 'Kembalikan ke bot' : 'Ambil alih'}
-                </button>
-                <button
-                  className="btn ghost sm"
-                  type="button"
-                  onClick={() => void openThread(current.sender)}
-                  title="Muat ulang percakapan"
-                >
-                  <Icon name="refresh-cw" size={14} />
-                </button>
-              </div>
-
-              <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {loadingThread ? (
-                  <div className="empty">Memuat pesan…</div>
-                ) : messages.length === 0 ? (
-                  <div className="empty">Belum ada pesan.</div>
-                ) : (
-                  messages.map((row) => (
-                    <div key={row.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {row.message ? (
-                        <div
-                          style={{
-                            alignSelf: 'flex-start',
-                            maxWidth: '82%',
-                            background: 'var(--bg2, #f2f3f5)',
-                            padding: '8px 12px',
-                            borderRadius: 12,
-                          }}
-                        >
-                          <div style={{ fontSize: 13.5, whiteSpace: 'pre-wrap' }}>{row.message}</div>
-                          <div className="xs muted" style={{ marginTop: 4 }}>
-                            {waktu(row.created_at)}
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {row.reply_text ? (
-                        <div
-                          style={{
-                            alignSelf: 'flex-end',
-                            maxWidth: '82%',
-                            background: '#111',
-                            color: '#fff',
-                            padding: '8px 12px',
-                            borderRadius: 12,
-                          }}
-                        >
-                          <div style={{ fontSize: 13.5, whiteSpace: 'pre-wrap' }}>{row.reply_text}</div>
-                          <div className="xs" style={{ marginTop: 4, opacity: 0.7 }}>
-                            {waktu(row.replied_at)}
-                            {row.error === 'dibalas manual' ? ' · manual' : ''}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ))
-                )}
-                <div ref={endRef} />
-              </div>
-
-              <div style={{ padding: 12, borderTop: '1px solid var(--line, #e5e7eb)' }}>
-                <textarea
-                  className="inp"
-                  rows={2}
-                  placeholder="Tulis balasan…"
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
-                <div className="row sp" style={{ marginTop: 8 }}>
-                  <span className="xs muted">Terkirim lewat device CS SAMAQU.</span>
-                  <button
-                    className="btn p sm"
-                    type="button"
-                    onClick={() => void onSend()}
-                    disabled={sending || !draft.trim()}
-                  >
-                    {sending ? 'Mengirim…' : 'Kirim'}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
