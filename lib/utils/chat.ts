@@ -24,7 +24,7 @@ export function normalizeChatText(text: string): string {
 
 export function parseChatText(text: string): ChatLine[] {
   const lines: ChatLine[] = [];
-  let newBlock = true;
+  let blankLineBefore = false;
   let lastRole: 'c' | 'a' = 'c';
 
   normalizeChatText(text)
@@ -32,7 +32,7 @@ export function parseChatText(text: string): ChatLine[] {
     .forEach((raw) => {
       const line = raw.trim();
       if (!line) {
-        newBlock = true;
+        blankLineBefore = true;
         return;
       }
 
@@ -43,20 +43,20 @@ export function parseChatText(text: string): ChatLine[] {
       lastRole = role;
 
       if (!body) {
-        newBlock = false;
+        blankLineBefore = false;
         return;
       }
 
       if (/^\(.*\)$/.test(body)) {
         lines.push({ kind: 'note', role, text: body });
-      } else if (!marked && !newBlock && previous?.kind === 'message') {
-        // Baris tanpa penanda peran melanjutkan bubble sebelumnya.
-        previous.text = `${previous.text} ${body}`.trim();
+      } else if (!marked && previous?.kind === 'message') {
+        // Baris tanpa penanda peran melanjutkan pesan sebelumnya; baris baru tetap dipertahankan.
+        previous.text = `${previous.text}${blankLineBefore ? '\n\n' : '\n'}${body}`.trim();
       } else {
         lines.push({ kind: 'message', role, text: body });
       }
 
-      newBlock = false;
+      blankLineBefore = false;
     });
 
   return lines;

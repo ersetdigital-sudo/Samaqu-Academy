@@ -592,26 +592,28 @@
         "goal": "Memastikan pesanan tercatat benar dan customer mudah menyelesaikan pembayaran.",
         "whenToUse": "Saat customer sudah memutuskan untuk membeli.",
         "info": [
-          "Nama dan nomor penerima",
-          "Alamat lengkap",
-          "Produk, warna, ukuran, dan jumlah",
-          "Pilihan ekspedisi",
-          "Metode pembayaran"
+          "Nama penerima",
+          "Alamat lengkap + kecamatan",
+          "No WA",
+          "Produk, warna, seri, ukuran, jumlah",
+          "Layanan J&T (ECO/EZ)"
         ],
         "steps": [
-          "Minta data penerima dalam satu pesan yang rapi",
-          "Cek kembali produk, warna, ukuran, dan jumlah",
-          "Periksa kelengkapan alamat",
-          "Hitung ongkir sesuai ekspedisi",
-          "Kirim invoice / ringkasan pesanan",
-          "Jelaskan cara pembayaran resmi",
+          "Kirim form data (Nama, Alamat lengkap, Kecamatan, No WA) dalam satu pesan",
+          "Cek ulang produk, warna, seri, ukuran, dan jumlah sesuai chat terakhir",
+          "Pastikan alamat lengkap sampai kecamatan",
+          "Cek ongkir J&T di ops, kirim rincian + opsi ECO dan EZ beserta totalnya",
+          "Setelah customer pilih layanan, kirim rekening resmi: BSI 7153280058 a.n. Ardo Babus Abdullah",
+          "Minta customer kirim bukti transfer",
           "Hindari mengulang informasi yang sudah dikirim"
         ],
-        "example": "C: Oke kak aku ambil yang navy L\nA: Siap, Kak 😊 Boleh dibantu isi data ini ya: Nama penerima / No. HP / Alamat lengkap / Ekspedisi\nC: (customer mengirim data)\nA: Terima kasih, Kak. Ini ringkasan pesanannya, mohon dicek dulu ya.",
+        "example": "C: Oke kak aku ambil yang Superblack Jiharkah L\nA: Siap Kak, saya siapkan ya. Boleh kirim datanya seperti ini:\nNama:\nAlamat lengkap:\nKecamatan:\nNo WA:\nC: Nama: Budi Santoso\nAlamat lengkap: Jl. Melati No. 12, RT 03/RW 05, Kel. Sukamaju, Kota Bandung\nKecamatan: Cibeunying Kidul\nNo WA: 081234567890\nA: Ini rincian pesanannya Kak:\nThobe Superblack Jiharkah L x1 — Rp359.000\n\nOngkir J&T ke Cibeunying Kidul, Bandung:\nECO (3–5 hari) — Rp15.000 → Total Rp374.000\nEZ (2–3 hari) — Rp20.000 → Total Rp379.000\n\nKakak mau pakai yang ECO atau EZ?\nC: EZ aja kak\nA: Siap Kak, totalnya Rp379.000. Silakan transfer ke:\nBSI 7153280058\na.n. Ardo Babus Abdullah\n\nKalau sudah transfer, kirim bukti transfernya di sini ya Kak. Pembelian pertama dapat free cover + hanger juga\n(Data customer dan ongkir di atas hanya contoh (dummy).)",
         "avoid": [
           "Meminta data satu per satu sampai berulang",
-          "Lupa konfirmasi ukuran dan alamat",
-          "Mengirim informasi pembayaran yang tidak resmi"
+          "Lupa konfirmasi ukuran, seri, dan alamat",
+          "Mengirim rekening sebelum customer memilih layanan ongkir",
+          "Mengirim informasi pembayaran yang tidak resmi",
+          "Salah memilih layanan J&T saat buat resi (harus sesuai pilihan customer)"
         ],
         "nextStep": "Order Confirmation",
         "scriptCategories": [
@@ -623,7 +625,7 @@
         ],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793950084952
       },
       {
         "id": "flow_6",
