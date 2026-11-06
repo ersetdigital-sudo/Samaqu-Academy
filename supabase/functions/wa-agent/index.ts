@@ -55,6 +55,15 @@ function looksLikeAdLead(text: string): boolean {
   return t.includes('info lebih lanjut') && t.includes('cara order');
 }
 
+/** Buang baris laporan internal dari teks yang akan dikirim ke customer. */
+function cleanForCustomer(text: string): string {
+  const lines = String(text || '').split(/\r?\n/);
+  const cut = lines.findIndex((line) =>
+    /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),
+  );
+  return (cut >= 0 ? lines.slice(0, cut) : lines).join('\n').trim();
+}
+
 /** Baca tabel SAMAQU (service role) tanpa menulis apa pun. */
 async function samaquGet(pathname: string): Promise<any> {
   if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) return null;
@@ -502,12 +511,13 @@ Deno.serve(async (req) => {
 
     // Pengaman: model sudah menyusun balasan tapi TIDAK memanggil kirim_wa sama sekali.
     // Hanya jalan kalau belum ada satu pun balasan terkirim di run ini.
-    if (answer && !/^laporan\s*:/i.test(answer.trim()) && ctx.outbox.length === 0) {
+    const outgoing = cleanForCustomer(answer);
+    if (outgoing && ctx.outbox.length === 0) {
       const unanswered = items.filter((item) => !ctx.handled.has(String(item.id)));
       if (unanswered.length >= 1) {
         const item = unanswered[0];
         if (ctx.dry) {
-          ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
+          ctx.outbox.push({ nomor: String(item.sender || ''), pesan: outgoing, inbox_id: String(item.id) });
           ctx.handled.add(String(item.id));
         } else {
           try {
@@ -515,12 +525,12 @@ Deno.serve(async (req) => {
               method: 'POST',
               body: JSON.stringify({
                 target: String(item.sender || ''),
-                message: answer,
+                message: outgoing,
                 inbox_id: String(item.id),
               }),
             });
             ctx.handled.add(String(item.id));
-            ctx.outbox.push({ nomor: String(item.sender || ''), pesan: answer, inbox_id: String(item.id) });
+            ctx.outbox.push({ nomor: String(item.sender || ''), pesan: outgoing, inbox_id: String(item.id) });
           } catch (error) {
             console.error('gagal kirim otomatis', error);
           }

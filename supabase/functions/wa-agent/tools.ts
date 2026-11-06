@@ -307,6 +307,15 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+/** Buang baris laporan internal kalau model tidak sengaja menyertakannya. */
+function cleanOutgoing(text: string): string {
+  const lines = String(text || '').split(/\r?\n/);
+  const cut = lines.findIndex((line) =>
+    /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),
+  );
+  return (cut >= 0 ? lines.slice(0, cut) : lines).join('\n').trim();
+}
+
 function parseArgs(raw: string): Record<string, any> {
   try {
     const value = raw ? JSON.parse(raw) : {};
@@ -582,7 +591,7 @@ export async function executeTool(
 
       case 'kirim_wa': {
         const nomor = normPhone(args.nomor);
-        const pesan = String(args.pesan || '').trim();
+        const pesan = cleanOutgoing(String(args.pesan || '').trim());
         const inboxId = args.inbox_id ? String(args.inbox_id) : '';
         if (!nomor || !pesan) return { isError: true, text: 'nomor dan pesan wajib diisi.' };
 
