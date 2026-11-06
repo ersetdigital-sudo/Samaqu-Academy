@@ -60,6 +60,7 @@ export function WaInboxView() {
   const [messages, setMessages] = useState<WaMessage[]>([]);
   const [search, setSearch] = useState('');
   const [onlyPending, setOnlyPending] = useState(false);
+  const [opened, setOpened] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
@@ -278,7 +279,10 @@ export function WaInboxView() {
                 key={item.sender}
                 type="button"
                 className={`wa-item${item.sender === selected ? ' on' : ''}`}
-                onClick={() => setSelected(item.sender)}
+                onClick={() => {
+                  setSelected(item.sender);
+                  setOpened((prev) => new Set(prev).add(item.sender));
+                }}
               >
                 <div className="wa-av">{inisial(item.name, item.sender)}</div>
                 <div className="wa-item-body">
@@ -288,7 +292,9 @@ export function WaInboxView() {
                   </div>
                   <div className="wa-item-bottom">
                     <span className="wa-preview">{item.lastMessage || '—'}</span>
-                    {item.pending > 0 ? <span className="wa-badge">{item.pending}</span> : null}
+                    {item.pending > 0 && !opened.has(item.sender) ? (
+                      <span className="wa-badge">{item.pending}</span>
+                    ) : null}
                   </div>
                   {item.handover ? <span className="wa-flag">diambil alih admin</span> : null}
                 </div>
@@ -364,6 +370,7 @@ export function WaInboxView() {
                       <div className="wa-bubble out">
                         <div className="wa-text">{row.reply_text}</div>
                         <div className="wa-time">
+                          <span className="wa-tick" title="Terkirim">✓✓</span>
                           {jam(row.replied_at)}
                           {row.error === 'dibalas manual' ? ' · manual' : ' · bot'}
                         </div>

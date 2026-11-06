@@ -26,7 +26,28 @@ import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
  * Persona & memory dibaca dari database Academy (ai_settings.behavior + memory_items).
  */
 
-const MAX_ROUNDS = 6;
+const MAX_ROUNDS = 4;
+
+const SAMAQU_SUPA_URL = Deno.env.get('SAMAQU_SUPABASE_URL') || '';
+const SAMAQU_SERVICE_KEY = Deno.env.get('SAMAQU_SERVICE_ROLE_KEY') || '';
+
+/** Update langsung tabel wa_inbox SAMAQU (service role) untuk melepas pesan macet. */
+async function samaquPatch(pathname: string, body: unknown): Promise<void> {
+  if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) return;
+  try {
+    await fetch(`${SAMAQU_SUPA_URL}/rest/v1/${pathname}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: SAMAQU_SERVICE_KEY,
+        Authorization: `Bearer ${SAMAQU_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    // pengaman; jangan gagalkan run
+  }
+}
 
 function secretOk(req: Request): boolean {
   const expected = Deno.env.get('WA_AGENT_SECRET') || '';
@@ -54,7 +75,7 @@ async function memoryContext(service: SupabaseClient, question: string): Promise
     .limit(300);
   if (error) return '';
   const docs = ((data ?? []) as MemoryRow[]).map(toMemoryDoc);
-  const ranked = rankDocs(docs, question, 6);
+  const ranked = rankDocs(docs, question, 3);
   if (!ranked.length) return '';
   return ranked
     .map(({ doc }) => `[M] ${doc.title} | Kategori: ${doc.category}\n${doc.content}`)
@@ -220,6 +241,13 @@ Deno.serve(async (req) => {
       // Di mode tes, inbox_id tidak didaftarkan supaya model mengirim tanpa inbox_id.
       if (dry) ctx.senders.set(id, pengirim);
     } else {
+      // Lepas pesan yang tertahan "processing" lebih dari 3 menit (run sebelumnya putus).
+      const staleBefore = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      await samaquPatch(
+        `wa_inbox?status=eq.processing&claimed_at=lt.${encodeURIComponent(staleBefore)}`,
+        { status: 'pending', claimed_at: null, updated_at: new Date().toISOString() },
+      );
+
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
       items = Array.isArray(inbox?.items) ? inbox.items : [];
       if (!items.length) {
@@ -298,7 +326,7 @@ Deno.serve(async (req) => {
         messages,
         tools: WA_TOOLS,
         temperature: behavior.temperature,
-        maxTokens: Math.min(behavior.maxTokens || 700, 700),
+        maxTokens: Math.min(behavior.maxTokens || 500, 500),
         thinking: 'disabled',
         timeoutMs: 45_000,
       });
@@ -355,6 +383,15 @@ Deno.serve(async (req) => {
 
     const replied = [...ctx.handled].length;
     const leftover = items.filter((item) => !ctx.handled.has(String(item.id))).map((item) => item.id);
+
+    // Kembalikan pesan yang belum sempat dibalas ke antrean (jangan biarkan "processing").
+    if (leftover.length && !dry) {
+      await samaquPatch(`wa_inbox?id=in.(${leftover.join(',')})&status=eq.processing`, {
+        status: 'pending',
+        claimed_at: null,
+        updated_at: new Date().toISOString(),
+      });
+    }
     const toolNames = [...new Set(usedTools)];
 
     await finishRun(service, runId, {
