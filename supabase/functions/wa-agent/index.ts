@@ -49,6 +49,65 @@ async function samaquPatch(pathname: string, body: unknown): Promise<void> {
   }
 }
 
+/** Baca tabel SAMAQU (service role) tanpa menulis apa pun. */
+async function samaquGet(pathname: string): Promise<any> {
+  if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) return null;
+  try {
+    const res = await fetch(`${SAMAQU_SUPA_URL}/rest/v1/${pathname}`, {
+      headers: { apikey: SAMAQU_SERVICE_KEY, Authorization: `Bearer ${SAMAQU_SERVICE_KEY}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Tunggu 20-25 detik kalau pesan terbaru masih baru, supaya pesan beruntun ikut digabung. */
+async function debounceNewest(): Promise<void> {
+  const rows = await samaquGet(
+    'wa_inbox?select=created_at&status=eq.pending&order=created_at.desc&limit=1',
+  );
+  const createdAt = Array.isArray(rows) ? rows[0]?.created_at : null;
+  if (!createdAt) return;
+  const age = Date.now() - new Date(createdAt).getTime();
+  const wait = Math.min(Math.max(0, 20_000 - age), 25_000);
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+}
+
+/** Kunci per nomor WA: satu percakapan hanya diproses satu run. */
+async function acquireLock(
+  service: SupabaseClient,
+  sender: string,
+  owner: string,
+): Promise<boolean> {
+  try {
+    const staleBefore = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    const { data: existing } = await service
+      .from('wa_agent_locks')
+      .select('locked_at')
+      .eq('sender', sender)
+      .maybeSingle();
+    if (existing?.locked_at && new Date(existing.locked_at).toISOString() > staleBefore) {
+      return false;
+    }
+    const { error } = await service
+      .from('wa_agent_locks')
+      .upsert({ sender, locked_at: new Date().toISOString(), owner }, { onConflict: 'sender' });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+async function releaseLock(service: SupabaseClient, sender: string): Promise<void> {
+  try {
+    await service.from('wa_agent_locks').delete().eq('sender', sender);
+  } catch {
+    // lock basi akan diambil alih setelah 3 menit
+  }
+}
+
 function secretOk(req: Request): boolean {
   const expected = Deno.env.get('WA_AGENT_SECRET') || '';
   if (!expected) return false;
@@ -197,6 +256,7 @@ Deno.serve(async (req) => {
 
   const startedAt = Date.now();
   let runId: number | null = null;
+  let lockedSender: string | null = null;
 
   try {
     const url = new URL(req.url);
@@ -215,7 +275,7 @@ Deno.serve(async (req) => {
       body = {};
     }
 
-    const dry = isDry() && !testMode;
+    const dry = (isDry() || url.searchParams.get('dry') === '1') && !testMode;
     const ctx: ToolContext = { dry, senders: new Map(), handled: new Set(), outbox: [] };
     const runIdLocal = await startRun(service, testMode ? 'test' : dry ? 'dry' : 'live');
     runId = runIdLocal;
@@ -249,6 +309,9 @@ Deno.serve(async (req) => {
         `wa_inbox?status=eq.processing&claimed_at=lt.${encodeURIComponent(staleBefore)}`,
         { status: 'pending', claimed_at: null, updated_at: new Date().toISOString() },
       );
+
+      // Beri jeda 20-25 detik supaya pesan beruntun masuk dulu sebelum dibalas.
+      await debounceNewest();
 
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
       items = Array.isArray(inbox?.items) ? inbox.items : [];
@@ -315,6 +378,33 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         });
         items = items.filter((item) => String(item.sender || '') === keepSender);
+      }
+
+      // Kunci per nomor: cegah chat yang sama diproses dua run bersamaan.
+      const groupSender = String(items[0]?.sender || '');
+      if (groupSender) {
+        const locked = await acquireLock(service, groupSender, String(runId ?? ''));
+        if (!locked) {
+          const ids = items.map((item) => String(item.id));
+          await samaquPatch(`wa_inbox?id=in.(${ids.join(',')})&status=eq.processing`, {
+            status: 'pending',
+            claimed_at: null,
+            updated_at: new Date().toISOString(),
+          });
+          await finishRun(service, runId, {
+            mode: 'live',
+            note: 'percakapan sedang diproses run lain',
+            duration_ms: Date.now() - startedAt,
+          });
+          return json({
+            ok: true,
+            dry,
+            handled: 0,
+            locked: true,
+            note: 'Percakapan sedang diproses run lain.',
+          });
+        }
+        lockedSender = groupSender;
       }
 
       for (const item of items) ctx.senders.set(String(item.id), String(item.sender || ''));
@@ -486,6 +576,11 @@ Deno.serve(async (req) => {
       detail,
     });
 
+    if (lockedSender) {
+      await releaseLock(service, lockedSender);
+      lockedSender = null;
+    }
+
     return json({
       ok: true,
       dry,
@@ -501,6 +596,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = errorMessage(error);
     console.error('wa-agent error', message);
+    try {
+      if (lockedSender) await releaseLock(serviceClient(), lockedSender);
+    } catch {
+      // abaikan
+    }
     try {
       await finishRun(serviceClient(), runId, {
         mode: 'error',
