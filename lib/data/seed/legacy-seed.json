@@ -574,30 +574,32 @@
         "info": [
           "Apa yang membuat customer ragu",
           "Warna dan seri yang sedang dipertimbangkan",
-          "Promo resmi yang berlaku"
+          "Untuk acara apa / dipakai kapan"
         ],
         "steps": [
           "Tanyakan apa yang membuat customer ragu",
-          "Jawab keberatan dengan informasi dan bukti visual",
-          "Jelaskan Create Your Price bila relevan (pakai penjelasan resmi)",
-          "Beri ruang customer untuk memutuskan",
-          "Arahkan ke langkah order dengan natural"
+          "Pilihkan 1 opsi paling sesuai kebutuhannya + alasan singkat",
+          "Kuatkan dengan foto real / foto perbandingan bila perlu",
+          "Sampaikan promo resmi: free cover + hanger untuk pembelian pertama",
+          "Arahkan ke langkah order dengan natural (assumptive close: \"Saya siapkan yang ... ya Kak?\")"
         ],
-        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Dua-duanya cocok buat acara formal, Kak 😊 Kalau mau kesan lebih kalem, navy biasanya jadi favorit. Mau kami kirimkan foto real keduanya?",
+        "example": "C: Hmm masih bingung kak antara hitam atau navy\nA: Acaranya buat apa Kak?\n\nC: Buat nikahan saudara\nA: Kalau buat nikahan saya saranin navy Kak, tetap formal tapi lebih segar di foto dibanding hitam. Saya kirimkan foto real navy-nya ya\n\nC: Oke kak bagus\nA: Siap, saya siapkan yang navy ya Kak. Pembelian pertama dapat free cover + hanger juga",
         "avoid": [
           "Memaksa customer segera membeli",
-          "Membantah keberatan harga",
-          "Menjanjikan promo yang tidak resmi"
+          "Membantah keberatan customer",
+          "Menjanjikan promo yang tidak resmi",
+          "Menjawab \"dua-duanya bagus\" tanpa memberi rekomendasi",
+          "Klaim \"paling laris/favorit\" tanpa data",
+          "Memakai emoji berlebihan"
         ],
         "nextStep": "Checkout & Payment",
         "scriptCategories": [
-          "Price Inquiry",
-          "Create Your Price"
+          "Price Inquiry"
         ],
         "problemIds": [],
         "special": false,
         "sample": true,
-        "updatedAt": 1793688992906
+        "updatedAt": 1793949700072
       },
       {
         "id": "flow_5",
