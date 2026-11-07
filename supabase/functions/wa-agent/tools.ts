@@ -1,5 +1,11 @@
 import type { MimoToolDefinition } from '../_shared/mimo-tools.ts';
 import { buildOngkirText, buildProductText } from '../_shared/wa/tools-core.mjs';
+import {
+  buildClosingAdminMessage,
+  buildClosingAddress,
+  missingClosingFields,
+  normalizePhone,
+} from '../_shared/wa/closing-core.mjs';
 
 /**
  * Tool bot WhatsApp server SAMAQU.
@@ -227,9 +233,21 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           nominal: { type: 'integer', minimum: 1000, description: 'Nominal transfer yang terbaca dari bukti' },
           inbox_id: { type: 'string', description: 'id pesan bukti transfer dari pesan_wa_masuk' },
           proof_url: { type: 'string', description: 'URL gambar bukti (media_url), kalau ada' },
-          nama: { type: 'string', description: 'Nama customer, kalau diketahui' },
+          nama: { type: 'string', description: 'Nama penerima' },
+          alamat: { type: 'string', description: 'Alamat jalan/RT-RW/patokan' },
+          kelurahan: { type: 'string', description: 'Kelurahan/desa (kalau ada)' },
+          kecamatan: { type: 'string', description: 'Kecamatan' },
+          kota: { type: 'string', description: 'Kota/kabupaten' },
+          provinsi: { type: 'string', description: 'Provinsi' },
+          kode_pos: { type: 'string', description: 'Kode pos' },
+          pesanan: { type: 'string', description: 'Rincian produk/series/warna/size/qty' },
+          kurir: { type: 'string', description: 'Kurir, mis. J&T EZ' },
+          ongkir: { type: 'integer', description: 'Ongkir' },
         },
-        required: ['nomor', 'nominal', 'inbox_id'],
+        required: [
+          'nomor', 'nominal', 'inbox_id', 'nama', 'alamat', 'kecamatan', 'kota',
+          'provinsi', 'kode_pos', 'pesanan',
+        ],
       },
     },
   },
@@ -556,30 +574,72 @@ export async function executeTool(
 
       case 'catat_closing': {
         if (ctx.dry) {
-          return { text: `DRY: closing ${args.nomor} · ${rupiah(args.nominal)} tidak disimpan.` };
+          return { text: `DRY: closing ${args.nomor} · ${rupiah(args.nominal)} tidak disimpan/dikirim.` };
         }
-        const rawNomor = String(args.nomor || '').replace(/\D/g, '');
-        const nomor = rawNomor.startsWith('62')
-          ? `0${rawNomor.slice(2)}`
-          : rawNomor.startsWith('0')
-            ? rawNomor
-            : `0${rawNomor}`;
+        const missing = missingClosingFields(args);
+        if (missing.length) {
+          return {
+            isError: true,
+            text: `Data closing belum lengkap: ${missing.join(', ')}. Tanya customer dulu, jangan kirim rekap admin.`,
+          };
+        }
+        const nomor = normalizePhone(args.nomor);
         const nominal = Math.round(Number(args.nominal) || 0);
         const inboxId = String(args.inbox_id || '').trim();
         if (!nomor || nominal <= 0 || !inboxId) {
           return { isError: true, text: 'nomor, nominal (>0), dan inbox_id wajib diisi.' };
         }
         if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
-        const { error } = await ctx.service.from('wa_closings').upsert({
+
+        const payload = {
           inbox_id: inboxId,
           sender: nomor,
           sender_name: String(args.nama || '').trim() || null,
           nominal,
           proof_url: String(args.proof_url || '').trim() || null,
+          address: buildClosingAddress(args),
+          order_detail: String(args.pesanan || '').trim() || null,
           source: 'server',
-        }, { onConflict: 'inbox_id' });
-        if (error) return { isError: true, text: `Gagal catat closing: ${error.message}` };
-        return { text: `Closing tercatat: ${nomor} · ${rupiah(nominal)}.` };
+        };
+        const { data: existing, error: readError } = await ctx.service
+          .from('wa_closings')
+          .select('id,admin_notified_at')
+          .eq('inbox_id', inboxId)
+          .maybeSingle();
+        if (readError) return { isError: true, text: `Gagal cek closing: ${readError.message}` };
+        if (existing?.admin_notified_at) {
+          return { text: `Closing ${nomor} sudah tercatat dan rekap admin sudah dikirim.` };
+        }
+        if (existing) {
+          const { error } = await ctx.service.from('wa_closings').update(payload).eq('id', existing.id);
+          if (error) return { isError: true, text: `Gagal update closing: ${error.message}` };
+        } else {
+          const { error } = await ctx.service.from('wa_closings').insert(payload);
+          if (error) return { isError: true, text: `Gagal catat closing: ${error.message}` };
+        }
+
+        if (!ADMIN_WA) return { isError: true, text: 'Nomor admin belum diisi.' };
+        const message = buildClosingAdminMessage({
+          ...args,
+          nomor,
+          nominal,
+        });
+        try {
+          await opsFetch('/api/ops/wa-inbox', {
+            method: 'POST',
+            body: JSON.stringify({ target: ADMIN_WA, message }),
+          });
+        } catch (error: any) {
+          return {
+            isError: true,
+            text: `Closing tercatat, tapi rekap admin gagal dikirim: ${error.message}. Coba kirim ulang rekap nanti.`,
+          };
+        }
+        await ctx.service
+          .from('wa_closings')
+          .update({ admin_notified_at: new Date().toISOString() })
+          .eq('inbox_id', inboxId);
+        return { text: `Closing tercatat & rekap dikirim ke admin: ${nomor} · ${rupiah(nominal)}.` };
       }
 
       case 'daftar_lead': {

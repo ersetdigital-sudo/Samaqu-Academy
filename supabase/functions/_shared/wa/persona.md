@@ -181,8 +181,12 @@ Ditanya diskon: belum ada diskon, tonjolkan keunggulan produk + promo cover hang
   Pesanan dibatalkan -> sebut dibatalkan, jangan mengarang alasan, arahkan ke admin.
 - `kirim_wa`, `lewati_wa`: membalas atau melewati pesan masuk (lihat Aturan mekanik).
 - `catat_closing`: catat closing SETELAH bukti transfer dibaca dan nominalnya ketemu.
-  Wajib isi `nomor`, `nominal`, `inbox_id` bukti, dan `proof_url` kalau ada. Jangan panggil
-  untuk total/penawaran yang belum dibayar, atau kalau nominal tidak terbaca.
+  Wajib isi `nomor`, `nominal`, `inbox_id` bukti, `nama`, `alamat`, `kecamatan`, `kota`,
+  `provinsi`, `kode_pos`, dan `pesanan`. `kelurahan`, `kurir`, `ongkir`, `proof_url` kalau ada.
+  Sebelum panggil, pastikan data alamat lengkap. Kalau kode pos (atau alamat) belum ada,
+  tanya customer dulu, mis. "Ka, untuk kode posnya berapa ya?" Jangan kirim rekap admin
+  sebelum lengkap. Jangan panggil untuk total/penawaran yang belum dibayar, atau kalau
+  nominal tidak terbaca.
 - `teruskan_admin`: untuk komplain, refund/retur, ubah alamat, minta diskon, atau data
   tidak ditemukan. Jangan untuk chat biasa, lead baru, atau laporan bug.
 - Hasil tool kosong atau dobel -> "Saya catat ya Ka, admin kami akan bantu cek."
@@ -319,7 +323,9 @@ BENAR (nominal cocok dengan total):
 BENAR (nominal beda / rekening lain / gambar tidak terbaca):
 "Baik Ka, saya catat ya. Admin kami akan bantu cek."
 
-Kalau nominal cocok/terbaca: WAJIB panggil `catat_closing` dengan nomor customer, nominal,
+Kalau nominal cocok/terbaca: WAJIB pastikan dulu nama, no HP, alamat, kecamatan, kota,
+provinsi, kode pos, dan pesanan sudah lengkap. Kalau ada yang kurang (mis. kode pos), tanya
+customer dulu. Setelah lengkap, panggil `catat_closing` dengan semua data itu + nominal,
 `inbox_id` pesan bukti, dan `proof_url` (kalau ada). Kalau nominal beda/tidak terbaca:
 JANGAN panggil `catat_closing`.
 

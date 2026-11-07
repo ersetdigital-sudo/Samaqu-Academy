@@ -9,6 +9,7 @@ import {
 } from '../_shared/mimo-tools.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
+import { isWaOnline } from '../_shared/wa/schedule.mjs';
 
 /**
  * Bot CS WhatsApp versi server.
@@ -290,6 +291,9 @@ Deno.serve(async (req) => {
     }
 
     const dry = (isDry() || url.searchParams.get('dry') === '1') && !testMode;
+    if (!dry && !testMode && !isWaOnline()) {
+      return json({ ok: true, off: true, message: 'Di luar jam kerja AI (16.30-07.30; Minggu full).' });
+    }
     const ctx: ToolContext = { dry, senders: new Map(), handled: new Set(), outbox: [], service };
     const runIdLocal = await startRun(service, testMode ? 'test' : dry ? 'dry' : 'live');
     runId = runIdLocal;
