@@ -106,7 +106,6 @@ export async function mimoChatWithTools(options: MimoToolChatOptions): Promise<M
         temperature: options.temperature ?? 0.4,
         max_completion_tokens: options.maxTokens ?? 700,
         thinking: { type: options.thinking ?? 'disabled' },
-        chat_template_kwargs: { enable_thinking: false },
         stream: false,
       }),
       signal: controller.signal,
