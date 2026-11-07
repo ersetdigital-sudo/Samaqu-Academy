@@ -18,7 +18,8 @@
     "audit": "node scripts/audit-bundle.mjs",
     "typecheck": "tsc --noEmit",
     "seed:supabase": "node --env-file=.env.local scripts/seed-supabase.mjs",
-    "owner:create": "node --env-file=.env.local scripts/create-owner.mjs"
+    "owner:create": "node --env-file=.env.local scripts/create-owner.mjs",
+    "sync:wa": "node --env-file=.env.local scripts/sync-wa-knowledge.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

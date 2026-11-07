@@ -7,8 +7,6 @@ import {
   type MimoToolCall,
   type ToolChatMessage,
 } from '../_shared/mimo-tools.ts';
-import { rankDocs } from '../_shared/knowledge-ranking.ts';
-import { toMemoryDoc, type MemoryRow } from '../_shared/knowledge-documents.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 
@@ -26,7 +24,7 @@ import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
  * Persona & memory dibaca dari database Academy (ai_settings.behavior + memory_items).
  */
 
-const MAX_ROUNDS = 4;
+const MAX_ROUNDS = 8;
 
 const SAMAQU_SUPA_URL = Deno.env.get('SAMAQU_SUPABASE_URL') || '';
 const SAMAQU_SERVICE_KEY = Deno.env.get('SAMAQU_SERVICE_ROLE_KEY') || '';
@@ -140,19 +138,16 @@ function batchSize(): number {
   return Number.isFinite(value) ? Math.min(Math.max(value, 1), 5) : 3;
 }
 
-async function memoryContext(service: SupabaseClient, question: string): Promise<string> {
+async function memoryContext(service: SupabaseClient): Promise<string> {
   const { data, error } = await service
     .from('memory_items')
-    .select('id,title,category,content,source,version,updated_at')
+    .select('title,category,content')
     .eq('status', 'published')
-    .order('updated_at', { ascending: false })
-    .limit(300);
+    .order('category', { ascending: true })
+    .order('title', { ascending: true });
   if (error) return '';
-  const docs = ((data ?? []) as MemoryRow[]).map(toMemoryDoc);
-  const ranked = rankDocs(docs, question, 3);
-  if (!ranked.length) return '';
-  return ranked
-    .map(({ doc }) => `[M] ${doc.title} | Kategori: ${doc.category}\n${doc.content}`)
+  return (data ?? [])
+    .map((doc) => `[M] ${doc.title} | Kategori: ${doc.category}\n${doc.content}`)
     .join('\n\n');
 }
 
@@ -317,8 +312,16 @@ Deno.serve(async (req) => {
       const pesan = (pesanRaw || 'Halo, saya mau tanya harga thobe dong').slice(0, 2000);
       const pengirim = String(body.pengirim || '6281234567890').replace(/\D/g, '');
       const nama = String(body.nama || 'Customer Uji');
+      const mediaUrl = String(body.media_url || body.mediaUrl || '').trim();
       const id = testMode ? 'TEST' : 'DRY-TEST';
-      items = [{ id, sender: pengirim, sender_name: nama, message: pesan, riwayat: [] }];
+      items = [{
+        id,
+        sender: pengirim,
+        sender_name: nama,
+        message: pesan,
+        media_url: mediaUrl || null,
+        riwayat: [],
+      }];
       // Di mode tes, inbox_id tidak didaftarkan supaya model mengirim tanpa inbox_id.
       if (dry) ctx.senders.set(id, pengirim);
     } else {
@@ -431,7 +434,7 @@ Deno.serve(async (req) => {
 
     const question = items.map((item) => String(item.message || '')).join('\n').slice(0, 2000);
     ctx.adLead = looksLikeAdLead(question);
-    const memory = await memoryContext(service, question);
+    const memory = await memoryContext(service);
 
     const system = [
       behavior.systemInstructions,

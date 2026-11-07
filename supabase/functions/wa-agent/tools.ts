@@ -1,4 +1,5 @@
 import type { MimoToolDefinition } from '../_shared/mimo-tools.ts';
+import { buildOngkirText, buildProductText } from '../_shared/wa/tools-core.mjs';
 
 /**
  * Tool bot WhatsApp server SAMAQU.
@@ -364,48 +365,14 @@ export async function executeTool(
           opsFetch('/api/ops/products'),
           opsFetch('/api/ops/product-variants?for=sale'),
         ]);
-        const q = String(args.cari || '').trim().toLowerCase();
-        const kat = String(args.kategori || '').trim().toLowerCase();
-        const onlyPublished = true; // bot WA hanya boleh menawarkan produk yang tampil di katalog
-        const products = (produkJson?.items || []).filter((p: any) => {
-          if (onlyPublished && !p.is_published) return false;
-          if (kat && String(p.category || '').toLowerCase() !== kat) return false;
-          if (!q) return true;
-          const hay = [p.name, p.series, p.category, p.jenis_kain?.name, p.colors]
-            .filter(Boolean).join(' ').toLowerCase();
-          return hay.includes(q);
-        });
-        if (!products.length) return { text: 'Tidak ada produk yang cocok.' };
-
-        const byProduct = new Map<string, any[]>();
-        for (const v of varianJson?.items || []) {
-          const key = String(v.product_id);
-          if (!byProduct.has(key)) byProduct.set(key, []);
-          byProduct.get(key)!.push(v);
-        }
-        const limit = Number(args.limit) || 5;
-        const rows = products.slice(0, limit).map((p: any) => {
-          const variants = byProduct.get(String(p.id)) || [];
-          const colors = variants.map((v: any) => {
-            const stock = v.stock_efektif || {};
-            const weights = v.weights || {};
-            const sizes = Object.entries(stock)
-              .map(([size, n]) => `${size} ${Number(n) || 0}${Number(weights[size]) > 0 ? `/${Number(weights[size])}g` : ''}`)
-              .join(' · ');
-            return `  ${v.color || 'default'}: ${sizes || '-'}`;
-          });
-          return (
-            `• ${p.name}${p.series ? ` (${p.series})` : ''} — ${p.category || '-'} — ${rupiah(p.price)}` +
-            `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ''}` +
-            `${p.photo ? ` — foto: ${p.photo}` : ''}` +
-            `${p.is_published === false ? ' — belum tampil di website' : ''}` +
-            `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ''}\n` +
-            (colors.length ? colors.join('\n') : '  (tidak ada ukuran yang dijual)')
-          );
-        });
         return {
-          text: `${Math.min(products.length, limit)} dari ${products.length} produk cocok` +
-            `${q ? ` untuk "${args.cari}"` : ''} (stok = stok efektif):\n${rows.join('\n')}`,
+          text: buildProductText({
+            produkJson,
+            varianJson,
+            cari: String(args.cari || ''),
+            kategori: String(args.kategori || ''),
+            limit: Number(args.limit) || 5,
+          }),
         };
       }
 
@@ -424,13 +391,15 @@ export async function executeTool(
         if (!res.ok) {
           return { isError: true, text: `Gagal cek ongkir: ${json?.error || `HTTP ${res.status}`}.` };
         }
-        if (json?.configured === false) return { text: 'J&T API belum dikonfigurasi di server SAMAQU.' };
-        const rows = Array.isArray(json?.data) ? json.data : [];
-        if (!rows.length) {
-          return { text: `Tidak ada layanan J&T untuk ${args.kecamatan}, ${args.kota} (${args.berat_gram} g).` };
-        }
-        const lines = rows.map((r: any) => `• ${r.service || r.serviceCode} — ${rupiah(r.cost)}${r.etd ? ` — ${r.etd}` : ''}`);
-        return { text: `Ongkir J&T Depok → ${args.kecamatan}, ${args.kota} · ${args.berat_gram} g\n${lines.join('\n')}` };
+        return {
+          text: buildOngkirText({
+            rows: Array.isArray(json?.data) ? json.data : [],
+            kota: String(args.kota || ''),
+            kecamatan: String(args.kecamatan || ''),
+            berat_gram: Number(args.berat_gram) || 0,
+            configured: json?.configured,
+          }),
+        };
       }
 
       case 'cari_area_ongkir': {
@@ -614,7 +583,12 @@ export async function executeTool(
 
         if (ctx.dry) {
           if (inboxId) ctx.handled.add(inboxId);
-          ctx.outbox.push({ nomor, pesan, ...(inboxId ? { inbox_id: inboxId } : {}) });
+          ctx.outbox.push({
+            nomor,
+            pesan,
+            ...(inboxId ? { inbox_id: inboxId } : {}),
+            ...(mediaUrl ? { url: mediaUrl } : {}),
+          });
           return { text: `DRY: balasan untuk ${nomor} tidak dikirim (${pesan.length} karakter).` };
         }
 
@@ -628,7 +602,12 @@ export async function executeTool(
           }),
         });
         if (inboxId) ctx.handled.add(inboxId);
-        ctx.outbox.push({ nomor: json?.target || nomor, pesan, ...(inboxId ? { inbox_id: inboxId } : {}) });
+        ctx.outbox.push({
+          nomor: json?.target || nomor,
+          pesan,
+          ...(inboxId ? { inbox_id: inboxId } : {}),
+          ...(mediaUrl ? { url: mediaUrl } : {}),
+        });
         return { text: `Terkirim ke ${json?.target || nomor}.` };
       }
 
