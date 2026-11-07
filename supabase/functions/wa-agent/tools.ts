@@ -120,7 +120,8 @@ export const WA_TOOLS: MimoToolDefinition[] = [
       name: 'cari_produk',
       description:
         'Cari produk SAMAQU: harga final, stok efektif per ukuran, dan berat per ukuran. WAJIB dipakai ' +
-        'sebelum menyebut harga/stok/ukuran/warna. Harga jangan dibulatkan dan jangan "mulai dari" kalau sama.',
+        'sebelum menyebut harga/stok/ukuran/warna. Harga jangan dibulatkan dan jangan "mulai dari" kalau sama. ' +
+        'Hasil berisi field foto (URL gambar) yang bisa dikirim lewat kirim_wa url.',
       parameters: {
         type: 'object',
         properties: {
@@ -241,13 +242,17 @@ export const WA_TOOLS: MimoToolDefinition[] = [
       name: 'kirim_wa',
       description:
         'Kirim/balas WhatsApp ke pengirim pesan. Untuk balasan, sertakan inbox_id. Tidak boleh dipakai ' +
-        'untuk nomor selain pengirim pesan itu.',
+        'untuk nomor selain pengirim pesan itu. Kalau customer minta foto, sertakan url foto produk dari cari_produk.',
       parameters: {
         type: 'object',
         properties: {
           nomor: { type: 'string', description: 'Nomor tujuan (harus sama dengan pengirim inbox_id)' },
-          pesan: { type: 'string', description: 'Isi pesan' },
+          pesan: { type: 'string', description: 'Isi pesan / caption' },
           inbox_id: { type: 'string', description: 'id pesan dari daftar pesan masuk' },
+          url: {
+            type: 'string',
+            description: 'URL foto produk (opsional) dari field foto cari_produk; dikirim sebagai attachment.',
+          },
         },
         required: ['nomor', 'pesan'],
       },
@@ -392,6 +397,7 @@ export async function executeTool(
           return (
             `• ${p.name}${p.series ? ` (${p.series})` : ''} — ${p.category || '-'} — ${rupiah(p.price)}` +
             `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ''}` +
+            `${p.photo ? ` — foto: ${p.photo}` : ''}` +
             `${p.is_published === false ? ' — belum tampil di website' : ''}` +
             `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ''}\n` +
             (colors.length ? colors.join('\n') : '  (tidak ada ukuran yang dijual)')
@@ -593,6 +599,7 @@ export async function executeTool(
         const nomor = normPhone(args.nomor);
         const pesan = cleanOutgoing(String(args.pesan || '').trim());
         const inboxId = args.inbox_id ? String(args.inbox_id) : '';
+        const mediaUrl = String(args.url || '').trim();
         if (!nomor || !pesan) return { isError: true, text: 'nomor dan pesan wajib diisi.' };
 
         // Kunci kode: hanya boleh membalas pengirim pesan pada inbox_id itu.
@@ -613,7 +620,12 @@ export async function executeTool(
 
         const json = await opsFetch('/api/ops/wa-inbox', {
           method: 'POST',
-          body: JSON.stringify({ target: nomor, message: pesan, inbox_id: inboxId || undefined }),
+          body: JSON.stringify({
+            target: nomor,
+            message: pesan,
+            inbox_id: inboxId || undefined,
+            ...(mediaUrl ? { url: mediaUrl } : {}),
+          }),
         });
         if (inboxId) ctx.handled.add(inboxId);
         ctx.outbox.push({ nomor: json?.target || nomor, pesan, ...(inboxId ? { inbox_id: inboxId } : {}) });

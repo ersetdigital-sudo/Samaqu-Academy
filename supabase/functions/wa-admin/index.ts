@@ -93,6 +93,43 @@ async function setHandover(sender: string, active: boolean, by: string | null) {
     { onConflict: 'sender' },
   );
   if (error) throw new Error(error.message);
+
+  // Catat di Log Bot supaya aksi ambil alih / kembalikan terlihat.
+  try {
+    await serviceClient().from('wa_agent_runs').insert({
+      mode: active ? 'takeover' : 'release',
+      handled: 0,
+      replied: 0,
+      held: 0,
+      leftover: 0,
+      rounds: 0,
+      tools: [],
+      duration_ms: 0,
+      error: null,
+      note: active ? `diambil alih admin: ${sender}` : `dikembalikan ke bot: ${sender}`,
+      detail: by ? `oleh ${by}` : null,
+    });
+  } catch (e) {
+    console.error('gagal menulis log handover', e);
+  }
+
+  // Tutup pesan yang masih pending/processing di SAMAQU. Ini menutup celah bot yang
+  // sudah terlanjur klaim sebelum admin klik "Ambil alih".
+  if (active) {
+    await serviceFetch(
+      `wa_inbox?sender=eq.${encodeURIComponent(sender)}&status=in.(pending,processing)`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'skipped',
+          error: 'diambil alih admin',
+          claimed_at: null,
+          updated_at: now,
+        }),
+      },
+    );
+  }
 }
 
 async function conversations() {
@@ -141,7 +178,7 @@ async function conversations() {
 async function messages(sender: string, limit = 100) {
   if (!sender) throw new Error('Nomor pengirim kosong.');
   const rows = await serviceFetch(
-    `wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text&sender=eq.${encodeURIComponent(sender)}&order=created_at.desc&limit=${limit}`,
+    `wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,error&sender=eq.${encodeURIComponent(sender)}&order=created_at.desc&limit=${limit}`,
   );
   return (Array.isArray(rows) ? rows : []).reverse();
 }

@@ -406,7 +406,9 @@ export function WaInboxView() {
                         <div className="wa-text">{row.message}</div>
                         <div className="wa-time">
                           {jam(row.created_at)}
-                          {row.status === 'skipped' ? ' · dilewati' : ''}
+                          {row.status === 'skipped'
+                            ? ` · dilewati${row.error ? ` (${row.error})` : ''}`
+                            : ''}
                         </div>
                       </div>
                     ) : null}
