@@ -7,7 +7,67 @@ export function rupiah(n) {
   return "Rp" + Number(n || 0).toLocaleString("id-ID");
 }
 
-export function buildProductText({ produkJson, varianJson, cari, kategori, limit }) {
+export function buildAcademyProductMap(rows) {
+  const map = new Map();
+  for (const row of rows || []) {
+    const d = row?.data || {};
+    if (!d.name) continue;
+    const category = String(d.category || "").toLowerCase();
+    if (["size chart", "fabric collection", "product series"].includes(category)) continue;
+    const keys = [d.series, d.name, d.code]
+      .map((value) => String(value || "").trim().toLowerCase())
+      .filter(Boolean);
+    for (const key of keys) map.set(key, d);
+  }
+  return map;
+}
+
+function firstSentence(text) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  const cut = clean.match(/^.*?[.!?](?:\s|$)/);
+  return (cut ? cut[0] : clean).trim();
+}
+
+export function formatAcademyProductDetail(d) {
+  if (!d) return "";
+  const lines = [
+    `${d.name || "-"}${d.series ? ` (${d.series})` : ""} — ${d.category || "-"}`,
+    d.status ? `Status: ${d.status}` : "",
+    d.fabric ? `Bahan: ${d.fabric}` : "",
+    d.colors ? `Warna: ${d.colors}` : "",
+    d.sizes ? `Ukuran: ${d.sizes}` : "",
+    d.description ? `Deskripsi: ${d.description}` : "",
+    d.advantages ? `Keunggulan:\n${String(d.advantages).split(/\r?\n/).map((line) => `- ${line}`).join("\n")}` : "",
+    d.customerPitch ? `Cara jelaskan ke customer: ${d.customerPitch}` : "",
+    d.characteristics ? `Karakteristik: ${d.characteristics}` : "",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+export function buildAcademyPhotoMap(rows) {
+  const map = new Map();
+  for (const row of rows || []) {
+    const d = row?.data || {};
+    const image = String(d.image || "").trim();
+    if (!image) continue;
+    const category = String(d.category || "").toLowerCase();
+    if (!category || ["size chart", "fabric collection", "product series"].includes(category)) continue;
+    const series = String(d.series || "").trim().toLowerCase();
+    if (!series) continue;
+    const colors = String(d.colors || "")
+      .split(/[,/]/)
+      .map((color) => color.trim().toLowerCase())
+      .filter(Boolean);
+    for (const color of colors) {
+      if (!map.has(`${series}|${color}`)) map.set(`${series}|${color}`, image);
+    }
+    if (!map.has(`${series}|*`)) map.set(`${series}|*`, image);
+  }
+  return map;
+}
+
+export function buildProductText({ produkJson, varianJson, cari, kategori, limit, academyPhotos, academyProducts }) {
   const q = String(cari || "").trim().toLowerCase();
   const kat = String(kategori || "").trim().toLowerCase();
   const max = Number(limit) || 5;
@@ -32,8 +92,34 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
     byProduct.get(key).push(v);
   }
 
+  const allColors = [
+    ...new Set(
+      [...byProduct.values()]
+        .flat()
+        .map((v) => String(v.color || "").trim().toLowerCase())
+        .filter((color) => color && color !== "default"),
+    ),
+  ];
+  const requestedColor = allColors.find((color) => q.includes(color));
+
   const rows = products.slice(0, max).map((p) => {
     const variants = byProduct.get(String(p.id)) || [];
+    const rawColors = Array.isArray(p.colors) ? p.colors : String(p.colors || "").split(/[,/]/);
+    const productColors = [
+      ...new Set(
+        [...variants.map((v) => v.color), ...rawColors]
+          .map((color) => String(color || "").trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ];
+    const colorForProduct = requestedColor && productColors.includes(requestedColor) ? requestedColor : "";
+    const seriesKey = String(p.series || "").trim().toLowerCase();
+    const academyPhoto =
+      (colorForProduct && academyPhotos?.get(`${seriesKey}|${colorForProduct}`)) ||
+      (!requestedColor && seriesKey && academyPhotos?.get(`${seriesKey}|*`)) ||
+      "";
+    const academy = academyProducts?.get(seriesKey) || academyProducts?.get(String(p.name || "").toLowerCase());
+    const academyInfo = academy?.customerPitch || firstSentence(academy?.description) || "";
     const colors = variants.map((v) => {
       const stock = v.stock_efektif || {};
       const weights = v.weights || {};
@@ -45,9 +131,10 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
     return (
       `• ${p.name}${p.series ? ` (${p.series})` : ""} — ${p.category || "-"} — ${rupiah(p.price)}` +
       `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ""}` +
-      `${p.photo ? ` — foto: ${p.photo}` : ""}` +
+      `${academyPhoto || p.photo ? ` — foto: ${academyPhoto || p.photo}` : ""}` +
       `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ""}\n` +
-      (colors.length ? colors.join("\n") : "  (tidak ada ukuran yang dijual)")
+      (colors.length ? colors.join("\n") : "  (tidak ada ukuran yang dijual)") +
+      (academyInfo ? `\n  info: ${academyInfo}` : "")
     );
   });
 

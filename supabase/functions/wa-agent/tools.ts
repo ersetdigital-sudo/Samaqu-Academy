@@ -1,5 +1,12 @@
 import type { MimoToolDefinition } from '../_shared/mimo-tools.ts';
-import { buildOngkirText, buildProductText, fetchJntStatus } from '../_shared/wa/tools-core.mjs';
+import {
+  buildAcademyPhotoMap,
+  buildAcademyProductMap,
+  buildOngkirText,
+  buildProductText,
+  fetchJntStatus,
+  formatAcademyProductDetail,
+} from '../_shared/wa/tools-core.mjs';
 import {
   buildClosingAdminMessage,
   buildClosingAddress,
@@ -254,6 +261,22 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'detail_produk',
+      description:
+        'Ambil detail produk dari Product Knowledge Academy: deskripsi, keunggulan, bahan, ukuran, ' +
+        'dan cara menjelaskan ke customer. Untuk harga/stok/foto tetap pakai cari_produk.',
+      parameters: {
+        type: 'object',
+        properties: {
+          produk: { type: 'string', description: 'Nama atau series produk, mis. Karim / Thobe Karim' },
+        },
+        required: ['produk'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'cek_resi',
       description:
         'Cek status pelacakan J&T langsung dari nomor resi. Pakai kalau customer menyebut nomor resi ' +
@@ -421,6 +444,20 @@ export async function executeTool(
           opsFetch('/api/ops/products'),
           opsFetch('/api/ops/product-variants?for=sale'),
         ]);
+        let academyPhotos = new Map<string, string>();
+        let academyProducts = new Map<string, any>();
+        try {
+          if (ctx.service) {
+            const { data } = await ctx.service
+              .from('content_items')
+              .select('data')
+              .eq('type', 'product');
+            academyPhotos = buildAcademyPhotoMap(data || []);
+            academyProducts = buildAcademyProductMap(data || []);
+          }
+        } catch {
+          // fallback ke foto katalog
+        }
         return {
           text: buildProductText({
             produkJson,
@@ -428,6 +465,8 @@ export async function executeTool(
             cari: String(args.cari || ''),
             kategori: String(args.kategori || ''),
             limit: Number(args.limit) || 5,
+            academyPhotos,
+            academyProducts,
           }),
         };
       }
@@ -670,6 +709,29 @@ export async function executeTool(
           .update({ admin_notified_at: new Date().toISOString() })
           .eq('inbox_id', inboxId);
         return { text: `Closing tercatat & rekap dikirim ke admin: ${nomor} · ${rupiah(nominal)}.` };
+      }
+
+      case 'detail_produk': {
+        if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
+        const q = String(args.produk || '').trim().toLowerCase();
+        if (!q) return { isError: true, text: 'Nama produk wajib diisi.' };
+        const { data, error } = await ctx.service
+          .from('content_items')
+          .select('data')
+          .eq('type', 'product');
+        if (error) return { isError: true, text: `Gagal ambil Product Knowledge: ${error.message}` };
+        const map = buildAcademyProductMap(data || []);
+        let found = map.get(q);
+        if (!found) {
+          for (const [key, value] of map) {
+            if (key.includes(q) || q.includes(key)) {
+              found = value;
+              break;
+            }
+          }
+        }
+        if (!found) return { text: `Detail produk "${args.produk}" belum ada di Product Knowledge Academy.` };
+        return { text: formatAcademyProductDetail(found) };
       }
 
       case 'cek_resi': {
