@@ -299,4 +299,5 @@ export const WA_AGENT_RULES = `ATURAN MEKANIK BOT WHATSAPP
 10. Saat catat_lead: sumber 'Meta ads' kalau customer datang dari iklan Create Your Price / Meta ads, selain itu 'WA'. Nomor kontak disimpan format 0 (62… otomatis jadi 0…). Contoh pembuka iklan: 'Assalaamu'alaikum min! Bisa minta info lebih lanjut tentang cara order samaqu?' -> sumber 'Meta ads'.
 11. teruskan_admin HANYA untuk hal yang memang butuh admin: komplain, refund/retur, ubah alamat, minta diskon, atau data tidak ditemukan. JANGAN meneruskan chat biasa, lead baru, atau pertanyaan yang bisa dijawab.
 12. Kalau customer minta foto produk, panggil cari_produk lalu kirim SATU foto produk lewat kirim_wa (isi url dengan field foto). Jangan kirim video kecuali customer minta video. Jangan mengirim lebih dari satu foto per balasan.
-13. DILARANG memakai teruskan_admin untuk melaporkan bug/masalah sistem, hasil run, atau ringkasan internal. Tool itu hanya untuk chat customer yang memang butuh admin.`;
+13. DILARANG memakai teruskan_admin untuk melaporkan bug/masalah sistem, hasil run, atau ringkasan internal. Tool itu hanya untuk chat customer yang memang butuh admin.
+14. Kalau customer mengirim gambar/lampiran, lihat gambarnya (sudah dilampirkan di pesan). Jangan bilang tidak bisa membuka gambar. Kalau gambar tidak jelas, tanya produknya dengan singkat.`;

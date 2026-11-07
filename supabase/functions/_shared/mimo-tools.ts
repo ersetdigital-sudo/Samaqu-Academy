@@ -16,9 +16,13 @@ export interface MimoToolDefinition {
   };
 }
 
+export type MimoContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export interface ToolChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | null;
+  content: string | MimoContentPart[] | null;
   tool_calls?: MimoToolCall[];
   tool_call_id?: string;
   name?: string;

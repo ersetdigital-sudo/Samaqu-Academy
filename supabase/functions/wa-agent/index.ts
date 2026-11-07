@@ -171,10 +171,14 @@ function historyText(item: any): string {
 
 function inboxPrompt(items: any[]): string {
   const rows = items.map((item) => {
+    const attachment = item.media_url
+      ? `\n  Lampiran gambar: ${item.media_url}${item.filename ? ` (${item.filename})` : ''}`
+      : '';
     return (
       `• [${item.id}] ${item.sender_name ? `${item.sender_name} · ` : ''}${item.sender}\n` +
       historyText(item) +
-      `  Pesan sekarang: "${item.message || ''}"`
+      `  Pesan sekarang: "${item.message || ''}"` +
+      attachment
     );
   });
   return (
@@ -443,9 +447,22 @@ Deno.serve(async (req) => {
         ? 'MODE TES KIRIM NYATA: panggil kirim_wa TANPA inbox_id.\n\n'
         : '';
 
+    // Lampiran Fonnte (media_url) ikut dikirim sebagai image_url — bukan cuma teks.
+    const imageParts = items
+      .map((item) => String(item.media_url || '').trim())
+      .filter((url) => /^https?:\/\//i.test(url))
+      .slice(0, 3)
+      .map((url) => ({ type: 'image_url' as const, image_url: { url } }));
+
+    const userText = `${prefix}${inboxPrompt(items)}`;
     const messages: ToolChatMessage[] = [
       { role: 'system', content: system },
-      { role: 'user', content: `${prefix}${inboxPrompt(items)}` },
+      {
+        role: 'user',
+        content: imageParts.length
+          ? [{ type: 'text' as const, text: userText }, ...imageParts]
+          : userText,
+      },
     ];
 
     const usedTools: string[] = [];
