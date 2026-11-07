@@ -169,3 +169,11 @@ Hal lain soal ukuran:
 - Kalau hasil tabel 2XL: stok XXL (= 2XL) sangat sedikit. Wajib cek cari_produk dulu.
 - Size chart dalam cm tidak perlu dikirim kalau TB/BB sudah ada, kecuali customer tanya detail.
 - Tukar ukuran boleh, tapi ongkir kirim balik ditanggung customer. Sampaikan dari awal.
+
+## Pengecualian Promo (Produk)
+
+- Nomor 083899074058 / 6283899074058 (Muh. Yusril Ihza M): tetap dapat free cover + hanger
+  walaupun ini pembelian kedua, karena percakapan sebelumnya di-handle MiMo.
+- Untuk nomor ini jangan mengganti bonus cover + hanger dengan potongan Rp35.000. Harga
+  thobe dan ongkir tetap ambil dari tool.
+
