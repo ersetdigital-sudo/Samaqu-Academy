@@ -216,6 +216,26 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'catat_closing',
+      description:
+        'Catat closing AI setelah customer mengirim bukti transfer dan nominalnya terbaca. ' +
+        'Jangan dipakai untuk mencatat total/penawaran yang belum dibayar. Wajib isi inbox_id bukti.',
+      parameters: {
+        type: 'object',
+        properties: {
+          nomor: { type: 'string', description: 'Nomor HP customer yang mengirim bukti' },
+          nominal: { type: 'integer', minimum: 1000, description: 'Nominal transfer yang terbaca dari bukti' },
+          inbox_id: { type: 'string', description: 'id pesan bukti transfer dari pesan_wa_masuk' },
+          proof_url: { type: 'string', description: 'URL gambar bukti (media_url), kalau ada' },
+          nama: { type: 'string', description: 'Nama customer, kalau diketahui' },
+        },
+        required: ['nomor', 'nominal', 'inbox_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'daftar_lead',
       description: 'Lihat lead terbaru, bisa difilter tanggal dan kontak.',
       parameters: {
@@ -306,6 +326,8 @@ export interface ToolContext {
   outbox: Array<{ nomor: string; pesan: string; inbox_id?: string }>;
   /** true = pesan pembuka cocok pola iklan (Create Your Price / cara order). */
   adLead?: boolean;
+  /** Supabase Academy, untuk catat_closing (tabel wa_closings). */
+  service?: any;
 }
 
 export interface ToolResult {
@@ -530,6 +552,34 @@ export async function executeTool(
         const saved = json?.items?.[0];
         if (!saved) return { isError: true, text: 'Lead gagal disimpan.' };
         return { text: `Lead tersimpan: ${saved.kontak} · ${saved.sumber || '-'} · PIC ${saved.pic || '-'}` };
+      }
+
+      case 'catat_closing': {
+        if (ctx.dry) {
+          return { text: `DRY: closing ${args.nomor} · ${rupiah(args.nominal)} tidak disimpan.` };
+        }
+        const rawNomor = String(args.nomor || '').replace(/\D/g, '');
+        const nomor = rawNomor.startsWith('62')
+          ? `0${rawNomor.slice(2)}`
+          : rawNomor.startsWith('0')
+            ? rawNomor
+            : `0${rawNomor}`;
+        const nominal = Math.round(Number(args.nominal) || 0);
+        const inboxId = String(args.inbox_id || '').trim();
+        if (!nomor || nominal <= 0 || !inboxId) {
+          return { isError: true, text: 'nomor, nominal (>0), dan inbox_id wajib diisi.' };
+        }
+        if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
+        const { error } = await ctx.service.from('wa_closings').upsert({
+          inbox_id: inboxId,
+          sender: nomor,
+          sender_name: String(args.nama || '').trim() || null,
+          nominal,
+          proof_url: String(args.proof_url || '').trim() || null,
+          source: 'server',
+        }, { onConflict: 'inbox_id' });
+        if (error) return { isError: true, text: `Gagal catat closing: ${error.message}` };
+        return { text: `Closing tercatat: ${nomor} · ${rupiah(nominal)}.` };
       }
 
       case 'daftar_lead': {

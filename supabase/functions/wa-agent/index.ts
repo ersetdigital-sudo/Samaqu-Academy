@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
     }
 
     const dry = (isDry() || url.searchParams.get('dry') === '1') && !testMode;
-    const ctx: ToolContext = { dry, senders: new Map(), handled: new Set(), outbox: [] };
+    const ctx: ToolContext = { dry, senders: new Map(), handled: new Set(), outbox: [], service };
     const runIdLocal = await startRun(service, testMode ? 'test' : dry ? 'dry' : 'live');
     runId = runIdLocal;
     let items: any[] = [];
