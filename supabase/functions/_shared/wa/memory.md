@@ -176,4 +176,6 @@ Hal lain soal ukuran:
   walaupun ini pembelian kedua, karena percakapan sebelumnya di-handle MiMo.
 - Untuk nomor ini jangan mengganti bonus cover + hanger dengan potongan Rp35.000. Harga
   thobe dan ongkir tetap ambil dari tool.
+- Kalau nomor ini pernah dikirimi info "pembelian pertama", minta maaf dan koreksi: tetap
+  dapat free cover + hanger walau ini pembelian kedua.
 
