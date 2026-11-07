@@ -16,6 +16,7 @@ import {
   type WaRun,
   type WaStats,
 } from './wa-api';
+import { useWaRealtime } from './useWaRealtime';
 
 function waktu(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -90,11 +91,11 @@ export function WaInboxView() {
     setLoading(false);
   }, []);
 
-  const openThread = useCallback(async (sender: string) => {
+  const openThread = useCallback(async (sender: string, showLoading = true) => {
     if (!sender) return;
-    setLoadingThread(true);
+    if (showLoading) setLoadingThread(true);
     const res = await loadMessages(sender);
-    setLoadingThread(false);
+    if (showLoading) setLoadingThread(false);
     if (!res.ok) {
       setError(res.error || 'Gagal memuat pesan.');
       return;
@@ -103,9 +104,14 @@ export function WaInboxView() {
     setMessages(res.data?.items || []);
   }, []);
 
+  const refreshAll = useCallback(async () => {
+    await refreshList();
+    if (selected) await openThread(selected, false);
+  }, [refreshList, openThread, selected]);
+
   useEffect(() => {
     void refreshList();
-    const timer = setInterval(() => void refreshList(), 10_000);
+    const timer = setInterval(() => void refreshList(), 60_000);
     const onFocus = () => void refreshList();
     window.addEventListener('focus', onFocus);
     return () => {
@@ -115,15 +121,25 @@ export function WaInboxView() {
   }, [refreshList]);
 
   useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshAll();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refreshAll]);
+
+  useEffect(() => {
     if (selected) void openThread(selected);
     else setMessages([]);
   }, [selected, openThread]);
 
   useEffect(() => {
     if (!selected) return;
-    const timer = setInterval(() => void openThread(selected), 8_000);
+    const timer = setInterval(() => void openThread(selected), 60_000);
     return () => clearInterval(timer);
   }, [selected, openThread]);
+
+  useWaRealtime({ onSignal: () => void refreshAll() });
 
   useEffect(() => {
     if (tab !== 'log') return;
@@ -137,7 +153,7 @@ export function WaInboxView() {
       else setError(res.error || 'Gagal memuat log bot.');
     };
     void load();
-    const timer = setInterval(() => void load(), 3_000);
+    const timer = setInterval(() => void load(), 15_000);
     return () => {
       cancelled = true;
       clearInterval(timer);

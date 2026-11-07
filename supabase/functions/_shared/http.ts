@@ -37,6 +37,22 @@ export function serviceClient(): SupabaseClient {
   });
 }
 
+const USER_TTL_MS = 5 * 60 * 1000;
+const userCache = new Map<string, { user: User; exp: number }>();
+
+function pruneUserCache() {
+  if (userCache.size <= 100) return;
+  const now = Date.now();
+  for (const [key, value] of userCache) {
+    if (value.exp <= now) userCache.delete(key);
+  }
+  while (userCache.size > 100) {
+    const oldest = userCache.keys().next().value;
+    if (!oldest) break;
+    userCache.delete(oldest);
+  }
+}
+
 export async function requireUser(
   req: Request,
 ): Promise<{ user: User; supabase: SupabaseClient } | null> {
@@ -49,8 +65,18 @@ export async function requireUser(
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  const token = authorization.slice('Bearer '.length);
+  const hit = userCache.get(token);
+  if (hit && hit.exp > Date.now()) {
+    return { user: hit.user, supabase };
+  }
+
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
+
+  userCache.set(token, { user: data.user, exp: Date.now() + USER_TTL_MS });
+  pruneUserCache();
   return { user: data.user, supabase };
 }
 

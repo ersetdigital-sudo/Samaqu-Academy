@@ -103,9 +103,15 @@ async function conversations() {
     handoverSet(),
   ]);
   const map = new Map<string, any>();
+  const summary = { pending: 0, processing: 0, sent: 0, skipped: 0, total: 0 };
   for (const row of Array.isArray(rows) ? rows : []) {
     const sender = String(row.sender || '');
     if (!sender) continue;
+    summary.total += 1;
+    if (row.status === 'pending') summary.pending += 1;
+    else if (row.status === 'processing') summary.processing += 1;
+    else if (row.status === 'sent') summary.sent += 1;
+    else if (row.status === 'skipped') summary.skipped += 1;
     let entry = map.get(sender);
     if (!entry) {
       entry = {
@@ -126,7 +132,10 @@ async function conversations() {
     if (row.status === 'sent') entry.sent += 1;
     if (!entry.name && row.sender_name) entry.name = row.sender_name;
   }
-  return [...map.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+  return {
+    items: [...map.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt))),
+    stats: summary,
+  };
 }
 
 async function messages(sender: string, limit = 100) {
@@ -202,8 +211,7 @@ Deno.serve(async (req) => {
   const action = String(body.action ?? '');
   try {
     if (action === 'conversations') {
-      const [items, summary] = await Promise.all([conversations(), stats()]);
-      return json({ ok: true, items, stats: summary });
+      return json({ ok: true, ...(await conversations()) });
     }
     if (action === 'messages') {
       return json({ ok: true, items: await messages(String(body.sender ?? ''), Number(body.limit) || 100) });
