@@ -1,5 +1,5 @@
 import type { MimoToolDefinition } from '../_shared/mimo-tools.ts';
-import { buildOngkirText, buildProductText } from '../_shared/wa/tools-core.mjs';
+import { buildOngkirText, buildProductText, fetchJntStatus } from '../_shared/wa/tools-core.mjs';
 import {
   buildClosingAdminMessage,
   buildClosingAddress,
@@ -254,6 +254,22 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'cek_resi',
+      description:
+        'Cek status pelacakan J&T langsung dari nomor resi. Pakai kalau customer menyebut nomor resi ' +
+        'atau cek_pesanan tidak menemukan order-nya. Jangan menyuruh customer membuka J&T/jet.co.id.',
+      parameters: {
+        type: 'object',
+        properties: {
+          resi: { type: 'string', description: 'Nomor resi J&T, mis. JO0330311502' },
+        },
+        required: ['resi'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'daftar_lead',
       description: 'Lihat lead terbaru, bisa difilter tanggal dan kontak.',
       parameters: {
@@ -489,6 +505,17 @@ export async function executeTool(
           return { text: `Tidak ada pesanan atau retur yang cocok dengan "${args.cari}".` };
         }
 
+        const trackingByAwb = new Map<string, string>();
+        await Promise.all(
+          orders
+            .filter((o: any) => o.awb_no)
+            .slice(0, 5)
+            .map(async (o: any) => {
+              const status = await fetchJntStatus(BASE_URL, o.awb_no);
+              if (status) trackingByAwb.set(String(o.awb_no), status);
+            }),
+        );
+
         const blocks: string[] = [];
         if (orders.length) {
           const lines = orders.map((o: any) => {
@@ -496,7 +523,10 @@ export async function executeTool(
               `${i.product_name || '-'}${i.series ? ` ${i.series}` : ''}${i.kain ? ` ${i.kain}` : ''}` +
               `${i.color && i.color !== 'default' ? ` ${i.color}` : ''}${i.size ? ` ${i.size}` : ''}` +
               ` x${i.quantity || 0} @ ${rupiah(i.price)}`).join(' · ');
-            const kirim = [o.shipping_status, o.tracking_status_text].filter(Boolean).join(' · ') || '-';
+            const kirim = [
+              o.shipping_status,
+              trackingByAwb.get(String(o.awb_no)) || o.tracking_status_text,
+            ].filter(Boolean).join(' · ') || '-';
             return (
               `• ${o.order_number} · ${o.customer_name || '-'} · ${formatWaktu(o.created_at)}\n` +
               `  Status pesanan: ${PESANAN_STATUS_LABEL[String(o.status || '')] || o.status || '-'}\n` +
@@ -640,6 +670,19 @@ export async function executeTool(
           .update({ admin_notified_at: new Date().toISOString() })
           .eq('inbox_id', inboxId);
         return { text: `Closing tercatat & rekap dikirim ke admin: ${nomor} · ${rupiah(nominal)}.` };
+      }
+
+      case 'cek_resi': {
+        const awb = String(args.resi || '').trim().toUpperCase();
+        if (!/^[A-Z0-9]{8,30}$/.test(awb)) {
+          return { isError: true, text: 'Nomor resi tidak valid. Minta nomor resi J&T yang benar.' };
+        }
+        const status = await fetchJntStatus(BASE_URL, awb);
+        const link = `https://www.samaqu.id/id/cek-resi?awb=${encodeURIComponent(awb)}`;
+        if (!status) {
+          return { text: `Resi ${awb} belum ditemukan di pelacakan J&T.\nCek SAMAQU: ${link}` };
+        }
+        return { text: `Resi ${awb}: ${status}\nCek SAMAQU: ${link}` };
       }
 
       case 'daftar_lead': {

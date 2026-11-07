@@ -57,6 +57,23 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
   );
 }
 
+export async function fetchJntStatus(baseUrl, awb) {
+  const nomor = String(awb || "").trim().toUpperCase();
+  if (!nomor) return "";
+  try {
+    const res = await fetch(
+      `${String(baseUrl).replace(/\/+$/, "")}/api/jnt/track?awb=${encodeURIComponent(nomor)}&refresh=1`,
+    );
+    const json = await res.json().catch(() => null);
+    const history = Array.isArray(json?.data?.history) ? json.data.history : [];
+    if (!history.length) return "";
+    const last = history[history.length - 1];
+    return [last.status, last.city_name, last.date_time].filter(Boolean).join(" · ");
+  } catch {
+    return "";
+  }
+}
+
 export function buildOngkirText({ rows, kota, kecamatan, berat_gram, configured }) {
   if (configured === false) return "J&T API belum dikonfigurasi di server SAMAQU.";
   if (!Array.isArray(rows) || !rows.length) {
