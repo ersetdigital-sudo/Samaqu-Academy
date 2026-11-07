@@ -293,6 +293,50 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'buat_draft_transaksi',
+      description:
+        'Simpan draft transaksi untuk direview admin. TIDAK membuat order, TIDAK memotong stok, ' +
+        'TIDAK menandai Lunas. Pakai setelah bukti transfer, alamat lengkap, dan pesanan jelas.',
+      parameters: {
+        type: 'object',
+        properties: {
+          inbox_id: { type: 'string', description: 'id pesan bukti/closing dari pesan_wa_masuk' },
+          nama: { type: 'string' },
+          nomor: { type: 'string' },
+          alamat: { type: 'string' },
+          kelurahan: { type: 'string' },
+          kecamatan: { type: 'string' },
+          kota: { type: 'string' },
+          provinsi: { type: 'string' },
+          kode_pos: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                product_id: { type: 'string' },
+                product_name: { type: 'string' },
+                color: { type: 'string' },
+                size: { type: 'string' },
+                quantity: { type: 'integer' },
+                price: { type: 'integer' },
+              },
+              required: ['product_id', 'color', 'size', 'quantity'],
+            },
+          },
+          shipping_cost: { type: 'integer' },
+          shipping_method: { type: 'string' },
+          discount: { type: 'integer' },
+          notes: { type: 'string' },
+          proof_url: { type: 'string' },
+        },
+        required: ['inbox_id', 'nama', 'nomor', 'alamat', 'kecamatan', 'kota', 'provinsi', 'kode_pos', 'items'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'daftar_lead',
       description: 'Lihat lead terbaru, bisa difilter tanggal dan kontak.',
       parameters: {
@@ -364,6 +408,8 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           pesan: { type: 'string', description: 'Ringkasan singkat pertanyaan customer' },
           nomor_customer: { type: 'string' },
           nama_customer: { type: 'string' },
+          inbox_id: { type: 'string', description: 'id pesan dari daftar pesan masuk; wajib supaya masuk antrean admin' },
+          alasan: { type: 'string', description: 'Alasan singkat, mis. komplain/refund/data tidak ditemukan' },
         },
         required: ['pesan'],
       },
@@ -747,6 +793,58 @@ export async function executeTool(
         return { text: `Resi ${awb}: ${status}\nCek SAMAQU: ${link}` };
       }
 
+      case 'buat_draft_transaksi': {
+        if (ctx.dry) return { text: 'DRY: draft transaksi tidak disimpan.' };
+        const items = Array.isArray(args.items) ? args.items : [];
+        if (!items.length) return { isError: true, text: 'items wajib diisi.' };
+        const nomor = normalizePhone(args.nomor);
+        const payload = {
+          customer_name: String(args.nama || '').trim(),
+          customer_whatsapp: nomor,
+          source: 'whatsapp',
+          created_at: new Date().toISOString(),
+          shipping_cost: Math.max(0, Number(args.shipping_cost) || 0),
+          shipping_method: String(args.shipping_method || '').trim(),
+          discount: Math.max(0, Number(args.discount) || 0),
+          payment_status: 'paid',
+          notes: String(args.notes || '').trim(),
+          shipping: {
+            address: String(args.alamat || '').trim(),
+            province: String(args.provinsi || '').trim(),
+            city: String(args.kota || '').trim(),
+            kecamatan: String(args.kecamatan || '').trim(),
+            postal_code: String(args.kode_pos || '').trim(),
+          },
+          items: items.map((item: any) => ({
+            product_id: String(item?.product_id || ''),
+            product_name: String(item?.product_name || '').trim() || undefined,
+            color: String(item?.color || 'default'),
+            size: String(item?.size || '').toUpperCase(),
+            quantity: Math.max(1, Number(item?.quantity) || 1),
+            ...(Number(item?.price) > 0 ? { price: Number(item.price) } : {}),
+          })),
+        };
+        try {
+          const saved = await opsFetch('/api/ops/perlu-review', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'draft_create',
+              source_inbox_id: String(args.inbox_id || '').trim() || null,
+              payload,
+              proof_url: String(args.proof_url || '').trim() || null,
+              ai_note: 'Draft dari chat WA',
+            }),
+          });
+          return {
+            text: saved?.duplicate
+              ? 'Draft transaksi untuk inbox ini sudah ada; menunggu review admin.'
+              : 'Draft transaksi disimpan; menunggu review admin.',
+          };
+        } catch (error: any) {
+          return { isError: true, text: `Gagal menyimpan draft: ${error.message}` };
+        }
+      }
+
       case 'daftar_lead': {
         const qs = new URLSearchParams();
         qs.set('limit', String(Number(args.limit) || 20));
@@ -854,6 +952,26 @@ export async function executeTool(
         if (ctx.dry) {
           ctx.outbox.push({ nomor: ADMIN_WA, pesan: isi });
           return { text: `DRY: diteruskan ke admin ${ADMIN_WA} (tidak dikirim).` };
+        }
+        const inboxId = String(args.inbox_id || '').trim();
+        const sender = ctx.senders.get(inboxId) || nomorRaw;
+        if (inboxId && sender) {
+          try {
+            await opsFetch('/api/ops/perlu-review', {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'escalation_create',
+                inbox_id: inboxId,
+                sender,
+                sender_name: nama || null,
+                summary: pesan,
+                reason: String(args.alasan || '').trim() || null,
+                customer_message: pesan,
+              }),
+            });
+          } catch {
+            // Jangan gagalkan balasan admin kalau antrean panel bermasalah.
+          }
         }
         const json = await opsFetch('/api/ops/wa-inbox', {
           method: 'POST',

@@ -170,11 +170,17 @@ function inboxPrompt(items: any[]): string {
     const attachment = item.media_url
       ? `\n  Lampiran gambar: ${item.media_url}${item.filename ? ` (${item.filename})` : ''}`
       : '';
+    const instructions = Array.isArray(item.instruksi)
+      ? item.instruksi
+          .map((entry: any) => `  Instruksi admin${entry.scope === 'global' ? ' (semua)' : ''}: ${entry.instruction}`)
+          .join('\n')
+      : '';
     return (
       `• [${item.id}] ${item.sender_name ? `${item.sender_name} · ` : ''}${item.sender}\n` +
       historyText(item) +
       `  Pesan sekarang: "${item.message || ''}"` +
-      attachment
+      attachment +
+      (instructions ? `\n${instructions}` : '')
     );
   });
   return (
