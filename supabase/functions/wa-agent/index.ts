@@ -77,7 +77,7 @@ async function samaquGet(pathname: string): Promise<any> {
   }
 }
 
-/** Tunggu 20-25 detik kalau pesan terbaru masih baru, supaya pesan beruntun ikut digabung. */
+/** Jeda singkat 4 detik, sama seperti worker lokal; pesan beruntun tetap digabung. */
 async function debounceNewest(): Promise<void> {
   const rows = await samaquGet(
     'wa_inbox?select=created_at&status=eq.pending&order=created_at.desc&limit=1',
@@ -85,7 +85,7 @@ async function debounceNewest(): Promise<void> {
   const createdAt = Array.isArray(rows) ? rows[0]?.created_at : null;
   if (!createdAt) return;
   const age = Date.now() - new Date(createdAt).getTime();
-  const wait = Math.min(Math.max(0, 20_000 - age), 25_000);
+  const wait = Math.min(Math.max(0, 4_000 - age), 5_000);
   if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
 }
 
@@ -124,10 +124,18 @@ async function releaseLock(service: SupabaseClient, sender: string): Promise<voi
 
 function secretOk(req: Request): boolean {
   const expected = Deno.env.get('WA_AGENT_SECRET') || '';
-  if (!expected) return false;
   const url = new URL(req.url);
   const given = req.headers.get('x-wa-secret') || url.searchParams.get('key') || '';
-  return given === expected;
+  if (expected && given === expected) return true;
+
+  // Trigger langsung dari webhook SAMAQU (secret terpisah, cron lama tetap jalan).
+  const trigger = Deno.env.get('WA_TRIGGER_SECRET') || '';
+  if (trigger && given === trigger) return true;
+
+  // Fallback untuk pemanggilan server-side dengan service role.
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const bearer = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  return Boolean(serviceKey && bearer === serviceKey);
 }
 
 function isDry(): boolean {
@@ -342,7 +350,7 @@ Deno.serve(async (req) => {
         { status: 'pending', claimed_at: null, updated_at: new Date().toISOString() },
       );
 
-      // Beri jeda 20-25 detik supaya pesan beruntun masuk dulu sebelum dibalas.
+      // Jeda singkat; cron tetap menjadi fallback kalau trigger langsung gagal.
       await debounceNewest();
 
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
