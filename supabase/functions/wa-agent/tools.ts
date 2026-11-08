@@ -918,6 +918,14 @@ export async function executeTool(
         const items = Array.isArray(args.items) ? args.items : [];
         if (!items.length) return { isError: true, text: 'items wajib diisi.' };
         const nomor = normalizePhone(args.nomor);
+        // id produk wajib dari hasil cari_produk; id kosong bikin draft gagal di-approve.
+        const missingId = items.find((item: any) => !String(item?.product_id || '').trim());
+        if (missingId) {
+          return {
+            isError: true,
+            text: `product_id kosong untuk "${missingId?.product_name || missingId?.size || 'item'}". Ambil id produk dari hasil cari_produk (bagian "id:..."), jangan dikarang.`,
+          };
+        }
         const payload = {
           free_cover_hanger: args.free_cover_hanger === true,
           customer_name: String(args.nama || '').trim(),
@@ -937,10 +945,10 @@ export async function executeTool(
             postal_code: String(args.kode_pos || '').trim(),
           },
           items: items.map((item: any) => ({
-            product_id: String(item?.product_id || ''),
+            product_id: String(item?.product_id || '').trim(),
             product_name: String(item?.product_name || '').trim() || undefined,
             color: String(item?.color || 'default'),
-            size: String(item?.size || '').toUpperCase(),
+            size: String(item?.size || '').toUpperCase().replace(/^2XL$/, 'XXL'),
             quantity: Math.max(1, Number(item?.quantity) || 1),
             ...(Number(item?.price) > 0 ? { price: Number(item.price) } : {}),
           })),
