@@ -58,6 +58,8 @@ export function buildClosingAdminMessage(input) {
   ];
   const kurir = String(input?.kurir || "").trim();
   const ongkir = Number(input?.ongkir) || 0;
+  // Baris kosong setelah daftar pesanan supaya rekap lebih enak dibaca.
+  lines.push("");
   if (kurir || ongkir) {
     lines.push(`${kurir || "Kurir"}${ongkir ? ` — ${rupiahClosing(ongkir)}` : ""}`);
   }
