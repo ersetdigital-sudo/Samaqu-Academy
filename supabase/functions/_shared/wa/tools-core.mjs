@@ -47,48 +47,87 @@ export function formatAcademyProductDetail(d) {
   return lines.filter(Boolean).join("\n");
 }
 
-export function buildAcademyPhotoMap(rows) {
+/* ─────────────────── peta media Product Knowledge ───────────────────
+ * Aturan layer (jangan dibalik):
+ * - Baris `Product Series` menyimpan media tingkat SERIES (`series|*`) dan menjadi
+ *   default untuk semua warna di seri itu. Identitas seri ada di field `name`,
+ *   karena baris ini tidak punya field `series`.
+ * - Baris produk (Thobe/Kandora) menyimpan media tingkat WARNA (`series|warna`)
+ *   yang menimpa default seri. Kalau warna itu belum punya media sendiri,
+ *   pencarian jatuh ke `series|*`.
+ * - Produk tanpa series (Kandora) memakai kategori sebagai nama seri.
+ * Semua kunci memakai satu normalisasi: lowercase + trim.
+ */
+
+const MEDIA_EXCLUDED_CATEGORIES = ["size chart", "fabric collection"];
+
+/** Satu bentuk kunci untuk pembuatan maupun pencarian. */
+export function mediaKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+/** Daftar kunci media yang dipakai satu baris `content_items`. */
+function mediaKeys(row) {
+  const d = row?.data || {};
+  const category = mediaKey(d.category);
+  if (!category || MEDIA_EXCLUDED_CATEGORIES.includes(category)) return [];
+
+  // Baris seri: identitas di `name`, bukan `series`.
+  if (category === "product series") {
+    const series = mediaKey(d.name);
+    return series ? [`${series}|*`] : [];
+  }
+
+  const colors = String(d.colors || "")
+    .split(/[,/]/)
+    .map(mediaKey)
+    .filter(Boolean);
+  if (!colors.length) return [];
+
+  const series = mediaKey(d.series);
+  if (series) {
+    // Berseira: hanya menimpa warnanya; default seri dipegang baris Product Series.
+    return colors.map((color) => `${series}|${color}`);
+  }
+
+  // Tanpa series (mis. Kandora): kategori menjadi nama seri, termasuk defaultnya,
+  // supaya perilaku lama tetap jalan.
+  return [...colors.map((color) => `${category}|${color}`), `${category}|*`];
+}
+
+function buildMediaMap(rows, pick) {
   const map = new Map();
   for (const row of rows || []) {
-    const d = row?.data || {};
-    const image = String(d.image || "").trim();
-    if (!image) continue;
-    const category = String(d.category || "").toLowerCase();
-    if (!category || ["size chart", "fabric collection", "product series"].includes(category)) continue;
-    const series = String(d.series || "").trim().toLowerCase();
-    if (!series) continue;
-    const colors = String(d.colors || "")
-      .split(/[,/]/)
-      .map((color) => color.trim().toLowerCase())
-      .filter(Boolean);
-    for (const color of colors) {
-      if (!map.has(`${series}|${color}`)) map.set(`${series}|${color}`, image);
+    const value = String(pick(row?.data || {}) || "").trim();
+    if (!value) continue;
+    for (const key of mediaKeys(row)) {
+      if (!map.has(key)) map.set(key, value);
     }
-    if (!map.has(`${series}|*`)) map.set(`${series}|*`, image);
   }
   return map;
 }
 
+export function buildAcademyPhotoMap(rows) {
+  return buildMediaMap(rows, (d) => d.image);
+}
+
 export function buildAcademyVideoMap(rows) {
-  const map = new Map();
-  for (const row of rows || []) {
-    const d = row?.data || {};
-    const video = String(d.videoUrl || "").trim();
-    if (!video) continue;
-    const category = String(d.category || "").toLowerCase();
-    if (!category || ["size chart", "fabric collection", "product series"].includes(category)) continue;
-    const series = String(d.series || "").trim().toLowerCase();
-    if (!series) continue;
-    const colors = String(d.colors || "")
-      .split(/[,/]/)
-      .map((color) => color.trim().toLowerCase())
-      .filter(Boolean);
-    for (const color of colors) {
-      if (!map.has(`${series}|${color}`)) map.set(`${series}|${color}`, video);
-    }
-    if (!map.has(`${series}|*`)) map.set(`${series}|*`, video);
+  return buildMediaMap(rows, (d) => d.videoUrl);
+}
+
+/**
+ * Cari media satu produk: warna dulu, lalu default seri.
+ * Kosong kalau keduanya tidak ada (bot tidak mengirim media dan mengarahkan ke katalog).
+ */
+export function lookupMedia(map, series, color) {
+  const seriesKey = mediaKey(series);
+  if (!map || !seriesKey) return "";
+  const colorKey = mediaKey(color);
+  if (colorKey) {
+    const exact = map.get(`${seriesKey}|${colorKey}`);
+    if (exact) return exact;
   }
-  return map;
+  return map.get(`${seriesKey}|*`) || "";
 }
 export function buildProductText({ produkJson, varianJson, cari, kategori, limit, academyPhotos, academyVideos, academyProducts }) {
   const q = String(cari || "").trim().toLowerCase();
@@ -138,9 +177,7 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
     const colorForProduct = requestedColor && productColors.includes(requestedColor) ? requestedColor : "";
     // Produk tanpa series (mis. Kandora) memakai kategori sebagai kunci cadangan,
     // supaya foto dari Product Knowledge tetap ketemu.
-    const seriesKey =
-      String(p.series || "").trim().toLowerCase() ||
-      String(p.category || "").trim().toLowerCase();
+    const seriesKey = mediaKey(p.series) || mediaKey(p.category);
     // Banyak produk menyebut warnanya di nama (mis. "Thobe Karim Broken White")
     // padahal variannya "default". Cocokkan warna dari nama supaya foto tidak
     // jatuh ke foto default series (yang bisa warna lain).
@@ -153,14 +190,8 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
       }
     }
     const photoColor = colorForProduct || colorFromName;
-    const academyPhoto =
-      (photoColor && seriesKey && academyPhotos?.get(`${seriesKey}|${photoColor}`)) ||
-      (!requestedColor && seriesKey && academyPhotos?.get(`${seriesKey}|*`)) ||
-      "";
-    const academyVideo =
-      (photoColor && seriesKey && academyVideos?.get(`${seriesKey}|${photoColor}`)) ||
-      (!requestedColor && seriesKey && academyVideos?.get(`${seriesKey}|*`)) ||
-      "";
+    const academyPhoto = lookupMedia(academyPhotos, seriesKey, photoColor);
+    const academyVideo = lookupMedia(academyVideos, seriesKey, photoColor);
     const academy = academyProducts?.get(seriesKey) || academyProducts?.get(String(p.name || "").toLowerCase());
     const academyInfo = academy?.customerPitch || firstSentence(academy?.description) || "";
     const colors = variants.map((v) => {
