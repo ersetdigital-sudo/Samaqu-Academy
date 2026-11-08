@@ -406,9 +406,26 @@ export function WaInboxView() {
               ) : (
                 messages.map((row) => (
                   <div key={row.id} className="wa-row">
-                    {row.message ? (
+                    {row.message || row.media_url ? (
                       <div className="wa-bubble in">
-                        <div className="wa-text">{row.message}</div>
+                        {row.media_url ? (
+                          <a
+                            className="wa-media"
+                            href={row.media_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              src={row.media_url}
+                              alt={row.filename || 'Lampiran'}
+                              loading="lazy"
+                              onError={(event) => {
+                                event.currentTarget.parentElement?.classList.add('gone');
+                              }}
+                            />
+                          </a>
+                        ) : null}
+                        {row.message ? <div className="wa-text">{row.message}</div> : null}
                         <div className="wa-time">
                           {jam(row.created_at)}
                           {row.status === 'skipped'

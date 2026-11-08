@@ -1862,6 +1862,20 @@ th {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.wa-media {
+  display: block;
+  margin-bottom: 6px;
+}
+.wa-media img {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+.wa-media.gone {
+  display: none;
+}
 .wa-time {
   font-size: 10.5px;
   color: #667781;
@@ -1968,7 +1982,8 @@ th {
 @media (max-width: 720px) {
   .wa-shell {
     grid-template-columns: minmax(0, 1fr);
-    height: calc(100vh - 170px);
+    height: calc(100dvh - 150px);
+    border-radius: 12px;
   }
   .wa-side {
     display: flex;
@@ -1984,6 +1999,57 @@ th {
   }
   .wa-back {
     display: grid;
+  }
+
+  /* Header chat: rapat, badge diambil-alih tidak menumpuk tombol. */
+  .wa-chat-head {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .wa-chat-head .wa-av {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  .wa-chat-title b {
+    font-size: 14px;
+  }
+  .wa-chat-title small {
+    font-size: 11px;
+  }
+  .wa-flag-head {
+    display: none;
+  }
+  .wa-chat-head .btn.sm {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* Area percakapan & balon pesan. */
+  .wa-thread {
+    padding: 10px;
+    gap: 8px;
+  }
+  .wa-bubble {
+    max-width: 92%;
+  }
+  .wa-media img {
+    max-width: 100%;
+  }
+  .wa-composer {
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  /* Baris tab Chat / Log Bot. */
+  .wa-tabs {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    gap: 8px;
+  }
+  .wa-tabs .muted,
+  .wa-tabs .xs {
+    font-size: 11px;
   }
 }
 

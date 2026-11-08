@@ -22,6 +22,9 @@ export interface WaMessage {
   replied_at?: string | null;
   reply_text?: string | null;
   error?: string | null;
+  /** Lampiran (mis. bukti transfer) — URL sementara dari Fonnte. */
+  media_url?: string | null;
+  filename?: string | null;
   /** Bot yang mengklaim/membalas pesan ini: "local" atau "server". */
   handled_by?: string | null;
 }
