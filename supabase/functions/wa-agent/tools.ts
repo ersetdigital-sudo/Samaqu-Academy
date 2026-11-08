@@ -741,7 +741,8 @@ export async function executeTool(
         // Anti-dobel lintas pesan: customer bisa kirim foto bukti lalu menyusul "siap",
         // sehingga inbox_id berbeda tapi closingnya sama. Nomor + nominal sama dalam
         // 60 menit dianggap closing yang sama -> jangan lapor admin dua kali.
-        const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        // 48 jam: batas 60 menit tidak menangkap closing yang dicatat ulang belakangan.
+        const sinceIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
         const { data: recentClosings } = await ctx.service
           .from('wa_closings')
           .select('id,inbox_id,proof_url')
