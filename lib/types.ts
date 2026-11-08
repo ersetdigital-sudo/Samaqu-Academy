@@ -7,6 +7,7 @@ export type ProductCategory =
   | 'Thobe'
   | 'Gamis'
   | 'Koko'
+  | 'Kandora'
   | 'Fabric Collection'
   | 'Size Chart'
   | 'Product Series';

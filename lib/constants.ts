@@ -95,6 +95,7 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   'Thobe',
   'Gamis',
   'Koko',
+  'Kandora',
   'Fabric Collection',
   'Size Chart',
   'Product Series',
@@ -145,7 +146,7 @@ export const PRODUCT_PHOTO_LABELS: Record<string, string> = {
   'Product Series': 'Foto Seri',
 };
 
-export const GARMENT_CATEGORIES = ['Thobe', 'Gamis', 'Koko'] as const;
+export const GARMENT_CATEGORIES = ['Thobe', 'Gamis', 'Koko', 'Kandora'] as const;
 
 export const PRODUCT_STATUSES = [
   'Tersedia',
