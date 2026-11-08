@@ -9,6 +9,7 @@ export type UsageFeature = AiFeature | 'admin_test' | 'admin_models' | 'wa';
 export interface AiPricing {
   inputPer1M?: number;
   outputPer1M?: number;
+  cachePer1M?: number;
   currency?: string;
 }
 
@@ -45,6 +46,7 @@ export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  cachedTokens?: number;
 }
 
 export class AiError extends Error {
@@ -136,12 +138,34 @@ export function resolveThinking(
 export function estimateCost(usage: TokenUsage, pricing: AiPricing | null): number | null {
   const input = Number(pricing?.inputPer1M);
   const output = Number(pricing?.outputPer1M);
+  const cache = Number(pricing?.cachePer1M);
   if (!Number.isFinite(input) && !Number.isFinite(output)) return null;
+
+  // Token cache ditagih dengan harga cache, sisanya harga input biasa.
+  const cached = Math.max(0, Math.min(Number(usage.cachedTokens) || 0, usage.promptTokens));
+  const billedInput = Math.max(0, usage.promptTokens - cached);
+  const cacheRate = Number.isFinite(cache) ? cache : Number.isFinite(input) ? input : 0;
+
   const value =
-    (usage.promptTokens / 1_000_000) * (Number.isFinite(input) ? input : 0) +
+    (billedInput / 1_000_000) * (Number.isFinite(input) ? input : 0) +
+    (cached / 1_000_000) * cacheRate +
     (usage.completionTokens / 1_000_000) * (Number.isFinite(output) ? output : 0);
   if (!Number.isFinite(value) || value <= 0) return null;
   return Math.round(value * 1_000_000) / 1_000_000;
+}
+/** Harga list Xiaomi MiMo (USD per 1 juta token), Nov 2026. */
+export const MODEL_PRICING: Record<string, AiPricing> = {
+  'mimo-v2.6-pro': { inputPer1M: 0.435, outputPer1M: 0.87, cachePer1M: 0.0036, currency: 'USD' },
+  'mimo-v2.6-flash': { inputPer1M: 0.14, outputPer1M: 0.28, cachePer1M: 0.0028, currency: 'USD' },
+};
+
+/** Harga sesuai model yang benar-benar dipanggil; null = pakai harga di settings. */
+export function priceForModel(model: string | null | undefined): AiPricing | null {
+  const name = String(model || '').toLowerCase();
+  for (const [key, value] of Object.entries(MODEL_PRICING)) {
+    if (name.includes(key)) return value;
+  }
+  return null;
 }
 
 export async function enforceRateLimit(

@@ -114,10 +114,16 @@ function usageFrom(raw: unknown): TokenUsage {
   const prompt = Number(value.prompt_tokens ?? 0);
   const completion = Number(value.completion_tokens ?? 0);
   const total = Number(value.total_tokens ?? prompt + completion);
+  // MiMo membedakan cache hit / cache miss (prompt_tokens_details.cached_tokens).
+  const details = value.prompt_tokens_details && typeof value.prompt_tokens_details === 'object'
+    ? (value.prompt_tokens_details as Record<string, unknown>)
+    : {};
+  const cached = Number(details.cached_tokens ?? value.cache_read_input_tokens ?? value.cached_tokens ?? 0);
   return {
     promptTokens: Number.isFinite(prompt) ? prompt : 0,
     completionTokens: Number.isFinite(completion) ? completion : 0,
     totalTokens: Number.isFinite(total) ? total : 0,
+    cachedTokens: Number.isFinite(cached) ? cached : 0,
   };
 }
 

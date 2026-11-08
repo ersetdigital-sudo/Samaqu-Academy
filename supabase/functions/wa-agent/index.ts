@@ -1,5 +1,5 @@
 import { errorMessage, json, serviceClient } from '../_shared/http.ts';
-import { apiKeyFor, estimateCost, loadSettings, logUsage } from '../_shared/settings.ts';
+import { apiKeyFor, estimateCost, loadSettings, logUsage, priceForModel } from '../_shared/settings.ts';
 import { mergeBehavior } from '../_shared/prompts.ts';
 import { WA_AGENT_RULES } from '../_shared/prompts.ts';
 import {
@@ -514,7 +514,7 @@ Deno.serve(async (req) => {
         usage: result.usage,
         status: 'success',
         latencyMs: Date.now() - startedAt,
-        estimatedCost: estimateCost(result.usage, row.pricing),
+        estimatedCost: estimateCost(result.usage, priceForModel(row.default_model) || row.pricing),
       });
 
       if (!result.toolCalls.length) {
