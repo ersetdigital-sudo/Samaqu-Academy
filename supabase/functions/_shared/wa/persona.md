@@ -447,3 +447,4 @@ Contoh buruk (jangan ditiru):
   `inbox_id` wajib pesan yang memuat lampiran bukti, bukan pesan alamat/teks.
   Kalau bukti belum ada, tunggu — jangan catat closing lebih dulu.
 - Jangan pernah menulis nama tool atau tag seperti <tool_call>, <parameter> di balasan customer.
+- Kalau customer minta VIDEO produk: kirim lewat `kirim_wa` dengan `url` dari field "video" pada hasil cari_produk/detail_produk. Jangan mengarang link. Kalau produk tidak punya video, kirim foto + tautan halaman produk.

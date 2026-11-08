@@ -135,7 +135,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
       description:
         'Cari produk SAMAQU: harga final, stok efektif per ukuran, dan berat per ukuran. WAJIB dipakai ' +
         'sebelum menyebut harga/stok/ukuran/warna. Harga jangan dibulatkan dan jangan "mulai dari" kalau sama. ' +
-        'Hasil berisi field foto (URL gambar) yang bisa dikirim lewat kirim_wa url.',
+        'Hasil berisi field foto (URL gambar) dan video (URL mp4) yang bisa dikirim lewat kirim_wa url.',
       parameters: {
         type: 'object',
         properties: {
@@ -377,7 +377,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           inbox_id: { type: 'string', description: 'id pesan dari daftar pesan masuk' },
           url: {
             type: 'string',
-            description: 'URL foto produk (opsional) dari field foto cari_produk; dikirim sebagai attachment.',
+            description: 'URL foto atau video produk dari field foto/video cari_produk; dikirim sebagai attachment.',
           },
         },
         required: ['nomor', 'pesan'],

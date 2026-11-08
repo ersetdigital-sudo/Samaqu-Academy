@@ -42,6 +42,7 @@ export function formatAcademyProductDetail(d) {
     d.customerPitch ? `Cara jelaskan ke customer: ${d.customerPitch}` : "",
     d.characteristics ? `Karakteristik: ${d.characteristics}` : "",
     d.extra ? `Informasi tambahan:\n${String(d.extra).split(/\r?\n/).map((line) => `- ${line}`).join("\n")}` : "",
+    d.videoUrl ? `Video: ${d.videoUrl}` : "",
   ];
   return lines.filter(Boolean).join("\n");
 }
@@ -149,6 +150,7 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
       `• ${p.name}${p.series ? ` (${p.series})` : ""} — ${p.category || "-"} — kain ${p.jenis_kain?.name || p.kain || "-"} — ${rupiah(p.price)} — id:${p.id}` +
       `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ""}` +
       `${academyPhoto || p.photo ? ` — foto: ${academyPhoto || p.photo}` : ""}` +
+      `${p.video || academy?.videoUrl ? ` — video: ${p.video || academy?.videoUrl}` : ""}` +
       `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ""}\n` +
       (colors.length ? colors.join("\n") : "  (tidak ada ukuran yang dijual)") +
       (academyInfo ? `\n  info: ${academyInfo}` : "")
