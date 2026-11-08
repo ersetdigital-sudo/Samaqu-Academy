@@ -722,6 +722,20 @@ export async function executeTool(
           .eq('inbox_id', inboxId)
           .maybeSingle();
         if (readError) return { isError: true, text: `Gagal cek closing: ${readError.message}` };
+        // Anti-dobel lintas pesan: customer bisa kirim foto bukti lalu menyusul "siap",
+        // sehingga inbox_id berbeda tapi closingnya sama. Nomor + nominal sama dalam
+        // 60 menit dianggap closing yang sama -> jangan lapor admin dua kali.
+        const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { data: recentClosings } = await ctx.service
+          .from('wa_closings')
+          .select('id,inbox_id')
+          .eq('sender', nomor)
+          .eq('nominal', nominal)
+          .gte('created_at', sinceIso)
+          .limit(5);
+        if ((recentClosings || []).some((row: any) => String(row.inbox_id) !== inboxId)) {
+          return { text: `Closing ${nomor} - ${rupiah(nominal)} sudah tercatat dan rekap admin sudah dikirim.` };
+        }
         if (existing?.admin_notified_at) {
           return { text: `Closing ${nomor} sudah tercatat dan rekap admin sudah dikirim.` };
         }
