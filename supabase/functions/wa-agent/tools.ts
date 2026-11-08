@@ -330,7 +330,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           notes: { type: 'string' },
           free_cover_hanger: {
             type: 'boolean',
-            description: 'true kalau customer berhak Free Cover Hanger (pembelian pertama, sudah dicek lewat cek_pesanan)',
+            description: 'true kalau customer berhak Free Cover Hanger (pembelian pertama, sudah dicek lewat cek_pesanan). Server menambahkan baris Cover Thobe + Hanger harga normal; diskon Rp35.000 diisi admin',
           },
           proof_url: { type: 'string' },
         },
@@ -837,7 +837,7 @@ export async function executeTool(
           shipping_method: String(args.shipping_method || '').trim(),
           discount: Math.max(0, Number(args.discount) || 0),
           payment_status: 'paid',
-          notes: [String(args.notes || '').trim(), args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama)' : ''].filter(Boolean).join(' - '),
+          notes: [String(args.notes || '').trim(), args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama) - harga normal, diskon Rp35.000 diisi admin' : ''].filter(Boolean).join(' - '),
           shipping: {
             address: String(args.alamat || '').trim(),
             province: String(args.provinsi || '').trim(),
