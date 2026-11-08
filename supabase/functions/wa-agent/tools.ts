@@ -450,8 +450,12 @@ function cleanOutgoing(text: string): string {
   // Markup tool tidak boleh keluar ke customer (pernah bocor <tool_call>).
   if (/<tool_call|<function=|<\/?parameter|<parameter=/i.test(text)) return '';
   const lines = String(text || '').split(/\r?\n/);
-  const cut = lines.findIndex((line) =>
-    /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),
+  // Catatan internal model (CATATAN MODEL / TOOL / BELUM TERJAWAB / status antrean)
+  // juga tidak boleh sampai ke customer.
+  const internal =
+    /^\s*(catatan model|catatan internal|tool\s*:|belum terjawab\s*:|pesan sudah saya siapkan tapi belum terkirim)/i;
+  const cut = lines.findIndex(
+    (line) => /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line) || internal.test(line),
   );
   return (cut >= 0 ? lines.slice(0, cut) : lines).join('\n').trim();
 }

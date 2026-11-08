@@ -532,5 +532,6 @@ Total: *Rp423.000*
   `inbox_id` wajib pesan yang memuat lampiran bukti, bukan pesan alamat/teks.
   Kalau bukti belum ada, tunggu — jangan catat closing lebih dulu.
 - Jangan pernah menulis nama tool atau tag seperti <tool_call>, <parameter> di balasan customer.
+- Jangan pernah menyebut batas pengiriman, antrean, kuota, atau kegagalan sistem ke customer. Kalau pesan tidak terkirim, jangan jelaskan penyebabnya dan jangan tulis catatan internal; teruskan ke admin kalau berulang.
 - FOTO dan VIDEO produk HANYA dari Product Knowledge (foto/video per series+warna). JANGAN memakai foto atau video dari katalog Samaqu.
 - Kalau customer minta video dan kombinasi series+warna itu belum punya video, kirim foto + tautan halaman produk; jangan mengirim video produk lain.
