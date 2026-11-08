@@ -178,9 +178,10 @@ Hal lain soal ukuran:
   thobe dan ongkir tetap ambil dari tool.
 - Kalau nomor ini pernah dikirimi info "pembelian pertama", minta maaf dan koreksi: tetap
   dapat free cover + hanger walau ini pembelian kedua.
+
 ## Model & Potongan (Produk)
 
-Model SAMAQU adalah **Modern Fit**: potongannya di antara Slim Fit dan Regular Fit —
-tidak terlalu ketat, tidak longgar, tetap rapi dan nyaman.
-- Ukuran yang pas di badan → hasil lebih fit.
-- Naik satu ukuran → lebih longgar. Sesuaikan dengan selera customer.
+Potongan (fit):
+- Thobe dan Kandora berpotongan Modern Fit, di antara Slim Fit dan Regular Fit: mengikuti bentuk tubuh tapi tidak ketat dan tidak longgar.
+- Bukan Slim Fit murni. Kalau customer tanya "ini slim fit?", jawab Modern Fit.
+- Kesan fit atau longgar tergantung pilihan size. Ukuran yang pas di badan terasa lebih fit, naik satu ukuran terasa lebih loose.
