@@ -247,7 +247,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           kota: { type: 'string', description: 'Kota/kabupaten' },
           provinsi: { type: 'string', description: 'Provinsi' },
           kode_pos: { type: 'string', description: 'Kode pos' },
-          pesanan: { type: 'string', description: 'Rincian produk/series/warna/size/qty' },
+          pesanan: { type: 'string', description: 'Rincian pesanan; tiap baris WAJIB memuat nominal dari tool, mis. "Thobe Mint Karim size S x1 - Rp374.000". Baris Free Cover Hanger tanpa nominal.' },
           kurir: { type: 'string', description: 'Kurir, mis. J&T EZ' },
           ongkir: { type: 'integer', description: 'Ongkir' },
         },

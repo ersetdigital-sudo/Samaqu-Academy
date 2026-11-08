@@ -433,6 +433,10 @@ Contoh buruk (jangan ditiru):
    "iya") dan sudah pernah dibalas: jangan balas berulang, pakai `lewati_wa`.
 8. Produk yang dijual hanya yang tampil di katalog.
 ## Rekap closing & bonus
+
+- Tiap baris produk di `pesanan` WAJIB memuat nominal dari hasil tool, contoh:
+  "Thobe Mint Karim size S x1 - Rp374.000". Jangan menghitung atau mengarang harga.
+  Baris "Free Cover Hanger" TETAP tanpa nominal.
 - Kalau customer berhak free cover + hanger: `pesanan` pada `catat_closing` WAJIB memuat
   baris "Free Cover Hanger" (tanpa harga) di baris terakhir rincian pesanan.
 - Saat `buat_draft_transaksi`, set `free_cover_hanger: true`. Server menambahkan baris
