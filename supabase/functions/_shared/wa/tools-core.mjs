@@ -113,7 +113,11 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
       ),
     ];
     const colorForProduct = requestedColor && productColors.includes(requestedColor) ? requestedColor : "";
-    const seriesKey = String(p.series || "").trim().toLowerCase();
+    // Produk tanpa series (mis. Kandora) memakai kategori sebagai kunci cadangan,
+    // supaya foto dari Product Knowledge tetap ketemu.
+    const seriesKey =
+      String(p.series || "").trim().toLowerCase() ||
+      String(p.category || "").trim().toLowerCase();
     // Banyak produk menyebut warnanya di nama (mis. "Thobe Karim Broken White")
     // padahal variannya "default". Cocokkan warna dari nama supaya foto tidak
     // jatuh ke foto default series (yang bisa warna lain).
