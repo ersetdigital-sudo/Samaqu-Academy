@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
 import { AppLink } from '@/components/ui/AppLink';
 import { Icon } from '@/components/ui/Icon';
@@ -159,20 +159,18 @@ export function ProductDetail({
     </div>
   ) : null;
 
+  const photoStyle: CSSProperties = {
+    width: '100%',
+    maxHeight: 340,
+    objectFit: 'contain',
+    background: 'var(--gl2)',
+    borderRadius: 10,
+  };
   const imageBlock = imageUrl ? (
-    <img
-      src={imageUrl}
-      alt=""
-      style={{
-        width: '100%',
-        maxHeight: 340,
-        objectFit: 'contain',
-        background: 'var(--gl2)',
-        borderRadius: 10,
-        marginTop: 14,
-      }}
-    />
+    <img src={imageUrl} alt="" style={{ ...photoStyle, marginTop: 14 }} />
   ) : null;
+  // Foto tetap tampil walau produk punya video: video dan foto dua-duanya ditampilkan.
+  const photoPanel = imageUrl ? <img src={imageUrl} alt="" style={photoStyle} /> : null;
 
   const fieldsTable = (
     <table>
@@ -209,9 +207,12 @@ export function ProductDetail({
       {!isSeries && !hasMediaPanel && !hasVideo ? imageBlock : null}
 
       {isSeries ? (
-        mediaHeader ? (
+        mediaHeader || photoPanel ? (
           <div className="pd-series mt">
-            <div>{mediaHeader}</div>
+            <div>
+              {mediaHeader}
+              {photoPanel ? <div className="mt">{photoPanel}</div> : null}
+            </div>
             <div>{fieldsTable}</div>
           </div>
         ) : (
@@ -226,10 +227,13 @@ export function ProductDetail({
           <div>{fieldsTable}</div>
         </div>
       ) : hasVideo ? (
-        // Produk biasa (Thobe/Kandora/Koko) yang punya video: pemutar di samping spesifikasi,
-        // susunan sama dengan detail seri supaya tidak bertumpuk.
+        // Produk biasa (Thobe/Kandora/Koko) yang punya video: video + foto di kiri,
+        // spesifikasi di kanan. Foto TIDAK dihilangkan saat video ada.
         <div className="pd-series mt">
-          <div>{mediaHeader}</div>
+          <div>
+            {mediaHeader}
+            {photoPanel ? <div className="mt">{photoPanel}</div> : null}
+          </div>
           <div>{fieldsTable}</div>
         </div>
       ) : (
