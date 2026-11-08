@@ -328,6 +328,10 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           shipping_method: { type: 'string' },
           discount: { type: 'integer' },
           notes: { type: 'string' },
+          free_cover_hanger: {
+            type: 'boolean',
+            description: 'true kalau customer berhak Free Cover Hanger (pembelian pertama, sudah dicek lewat cek_pesanan)',
+          },
           proof_url: { type: 'string' },
         },
         required: ['inbox_id', 'nama', 'nomor', 'alamat', 'kecamatan', 'kota', 'provinsi', 'kode_pos', 'items'],
@@ -824,6 +828,7 @@ export async function executeTool(
         if (!items.length) return { isError: true, text: 'items wajib diisi.' };
         const nomor = normalizePhone(args.nomor);
         const payload = {
+          free_cover_hanger: args.free_cover_hanger === true,
           customer_name: String(args.nama || '').trim(),
           customer_whatsapp: nomor,
           source: 'whatsapp',
@@ -832,7 +837,7 @@ export async function executeTool(
           shipping_method: String(args.shipping_method || '').trim(),
           discount: Math.max(0, Number(args.discount) || 0),
           payment_status: 'paid',
-          notes: String(args.notes || '').trim(),
+          notes: [String(args.notes || '').trim(), args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama)' : ''].filter(Boolean).join(' - '),
           shipping: {
             address: String(args.alamat || '').trim(),
             province: String(args.provinsi || '').trim(),
