@@ -1017,6 +1017,10 @@ export async function executeTool(
         const inboxId = args.inbox_id ? String(args.inbox_id) : '';
         const mediaUrl = String(args.url || '').trim();
         if (!nomor || !pesan) return { isError: true, text: 'nomor dan pesan wajib diisi.' };
+        // Trace: id pesan asal tetap dipakai saat kirim (retry memakai id yang sama).
+        console.log(
+          `[WA-TRACE] server-send inbox=${inboxId || '-'} target=${nomor} media=${mediaUrl ? 'yes' : 'no'}`,
+        );
 
         // Kunci kode: hanya boleh membalas pengirim pesan pada inbox_id itu.
         if (inboxId) {

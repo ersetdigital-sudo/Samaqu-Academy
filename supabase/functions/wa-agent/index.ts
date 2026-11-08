@@ -374,6 +374,12 @@ Deno.serve(async (req) => {
 
       const inbox = await opsFetch(`/api/ops/wa-inbox?limit=${batchSize()}`);
       items = Array.isArray(inbox?.items) ? inbox.items : [];
+      if (items.length) {
+        // Trace: id pesan (`wa_inbox.id`) yang sama dipakai sampai balasan terkirim.
+        console.log(
+          `[WA-TRACE] server-claim ${items.map((item: any) => String(item.id)).join(',')}`,
+        );
+      }
       if (!items.length) {
         await finishRun(service, runId, {
           mode: 'live',
