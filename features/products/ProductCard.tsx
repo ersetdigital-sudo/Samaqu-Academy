@@ -45,7 +45,7 @@ export function ProductCard({ product, image, canManage, onOpen, onEdit, onDelet
   const subtitle = [product.category === 'Product Series' ? '' : product.code, meta]
     .filter(Boolean)
     .join(' · ');
-  const hasVideo = product.category === 'Product Series' && Boolean(String(product.videoUrl ?? '').trim());
+  const hasVideo = Boolean(String(product.videoUrl ?? '').trim());
   return (
     <div
       className="card ck"

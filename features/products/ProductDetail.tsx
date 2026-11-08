@@ -148,11 +148,12 @@ export function ProductDetail({
     ? products.filter((entry) => entry.category === 'Product Series' && entry.id !== product.id)
     : [];
 
-  // Seri: video milik sendiri (<video> native). Link YouTube lama tetap memakai embed lama.
-  // Tanpa video -> foto close-up.
-  const seriesHeader = !isSeries ? null : product.videoUrl ? (
+  // Video milik sendiri (<video> native) dipakai semua kategori, bukan hanya Product Series.
+  // Link YouTube lama tetap memakai embed lama. Seri tanpa video -> foto close-up.
+  const hasVideo = Boolean(String(product.videoUrl ?? '').trim());
+  const mediaHeader = hasVideo ? (
     <SeriesVideo videoUrl={product.videoUrl} title={product.name} />
-  ) : imageUrl ? (
+  ) : isSeries && imageUrl ? (
     <div className="series-hero mt">
       <img src={imageUrl} alt="" />
     </div>
@@ -205,12 +206,12 @@ export function ProductDetail({
         <span>Terakhir diperbarui: {formatDateTime(product.updatedAt ?? Date.now())}</span>
       </div>
 
-      {!isSeries && !hasMediaPanel ? imageBlock : null}
+      {!isSeries && !hasMediaPanel && !hasVideo ? imageBlock : null}
 
       {isSeries ? (
-        seriesHeader ? (
+        mediaHeader ? (
           <div className="pd-series mt">
-            <div>{seriesHeader}</div>
+            <div>{mediaHeader}</div>
             <div>{fieldsTable}</div>
           </div>
         ) : (
@@ -222,6 +223,13 @@ export function ProductDetail({
             src={imageUrl}
             label={product.category === 'Size Chart' ? 'Perbesar size chart' : 'Perbesar foto bahan'}
           />
+          <div>{fieldsTable}</div>
+        </div>
+      ) : hasVideo ? (
+        // Produk biasa (Thobe/Kandora/Koko) yang punya video: pemutar di samping spesifikasi,
+        // susunan sama dengan detail seri supaya tidak bertumpuk.
+        <div className="pd-series mt">
+          <div>{mediaHeader}</div>
           <div>{fieldsTable}</div>
         </div>
       ) : (
