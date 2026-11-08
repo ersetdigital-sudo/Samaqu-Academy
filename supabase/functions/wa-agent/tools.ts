@@ -995,15 +995,25 @@ export async function executeTool(
           ctx.outbox.push({ nomor: ADMIN_WA, pesan: isi });
           return { text: `DRY: diteruskan ke admin ${ADMIN_WA} (tidak dikirim).` };
         }
-        const inboxId = String(args.inbox_id || '').trim();
+        // Model kadang lupa mengirim inbox_id. Cari pesan run ini dari nomor yang sama
+        // supaya kasus tetap masuk antrean "Pertanyaan AI" di Perlu Review.
+        let inboxId = String(args.inbox_id || '').trim();
+        if (!inboxId) {
+          for (const [id, nomorInbox] of ctx.senders.entries()) {
+            if (String(nomorInbox).replace(/\D/g, '') === nomorRaw) {
+              inboxId = id;
+              break;
+            }
+          }
+        }
         const sender = ctx.senders.get(inboxId) || nomorRaw;
-        if (inboxId && sender) {
+        if (sender) {
           try {
             await opsFetch('/api/ops/perlu-review', {
               method: 'POST',
               body: JSON.stringify({
                 action: 'escalation_create',
-                inbox_id: inboxId,
+                inbox_id: inboxId || null,
                 sender,
                 sender_name: nama || null,
                 summary: pesan,
@@ -1011,8 +1021,9 @@ export async function executeTool(
                 customer_message: pesan,
               }),
             });
-          } catch {
-            // Jangan gagalkan balasan admin kalau antrean panel bermasalah.
+          } catch (escalationError) {
+            // Jangan gagalkan kirim admin, tapi jangan ditelan diam-diam.
+            console.error('[WA-AGENT] escalation_create gagal:', escalationError);
           }
         }
         const json = await opsFetch('/api/ops/wa-inbox', {
