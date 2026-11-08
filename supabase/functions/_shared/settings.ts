@@ -4,7 +4,7 @@ import type { ThinkingMode } from './mimo.ts';
 import { mergeBehavior, type AiBehavior } from './prompts.ts';
 
 export type AiFeature = 'assistant' | 'reviewer' | 'simulator';
-export type UsageFeature = AiFeature | 'admin_test' | 'admin_models';
+export type UsageFeature = AiFeature | 'admin_test' | 'admin_models' | 'wa';
 
 export interface AiPricing {
   inputPer1M?: number;
@@ -62,6 +62,7 @@ const FEATURE_LIMITS: Record<UsageFeature, number> = {
   simulator: 20,
   admin_test: 10,
   admin_models: 6,
+  wa: 999,
 };
 
 export async function loadSettings(service: SupabaseClient): Promise<AiSettingsRow> {

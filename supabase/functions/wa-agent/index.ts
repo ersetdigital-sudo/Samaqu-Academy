@@ -1,5 +1,5 @@
 import { errorMessage, json, serviceClient } from '../_shared/http.ts';
-import { apiKeyFor, loadSettings } from '../_shared/settings.ts';
+import { apiKeyFor, estimateCost, loadSettings, logUsage } from '../_shared/settings.ts';
 import { mergeBehavior } from '../_shared/prompts.ts';
 import { WA_AGENT_RULES } from '../_shared/prompts.ts';
 import {
@@ -491,6 +491,7 @@ Deno.serve(async (req) => {
     let rounds = 0;
 
     for (; rounds < MAX_ROUNDS; rounds++) {
+      const startedAt = Date.now();
       const result = await mimoChatWithTools({
         apiKey,
         baseUrl: row.base_url,
@@ -501,6 +502,19 @@ Deno.serve(async (req) => {
         maxTokens: Math.min(behavior.maxTokens || 500, 500),
         thinking: 'disabled',
         timeoutMs: 45_000,
+      });
+
+      // Catat token & perkiraan biaya supaya halaman AI Performance bisa menghitung
+      // biaya bulan ini dan biaya per closing.
+      await logUsage(service, {
+        userId: '00000000-0000-0000-0000-000000000000',
+        userEmail: null,
+        feature: 'wa',
+        model: row.default_model,
+        usage: result.usage,
+        status: 'success',
+        latencyMs: Date.now() - startedAt,
+        estimatedCost: estimateCost(result.usage, row.pricing),
       });
 
       if (!result.toolCalls.length) {
