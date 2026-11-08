@@ -114,8 +114,20 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
     ];
     const colorForProduct = requestedColor && productColors.includes(requestedColor) ? requestedColor : "";
     const seriesKey = String(p.series || "").trim().toLowerCase();
+    // Banyak produk menyebut warnanya di nama (mis. "Thobe Karim Broken White")
+    // padahal variannya "default". Cocokkan warna dari nama supaya foto tidak
+    // jatuh ke foto default series (yang bisa warna lain).
+    let colorFromName = "";
+    if (academyPhotos) {
+      const name = String(p.name || "").toLowerCase();
+      for (const key of academyPhotos.keys()) {
+        const color = String(key).split("|")[1] || "";
+        if (color && color !== "*" && name.includes(color)) { colorFromName = color; break; }
+      }
+    }
+    const photoColor = colorForProduct || colorFromName;
     const academyPhoto =
-      (colorForProduct && academyPhotos?.get(`${seriesKey}|${colorForProduct}`)) ||
+      (photoColor && seriesKey && academyPhotos?.get(`${seriesKey}|${photoColor}`)) ||
       (!requestedColor && seriesKey && academyPhotos?.get(`${seriesKey}|*`)) ||
       "";
     const academy = academyProducts?.get(seriesKey) || academyProducts?.get(String(p.name || "").toLowerCase());
