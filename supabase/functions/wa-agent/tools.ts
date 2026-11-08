@@ -762,22 +762,34 @@ export async function executeTool(
         }
 
         if (!ADMIN_WA) return { isError: true, text: 'Nomor admin belum diisi.' };
+        // Bukti dikirim sebagai LAMPIRAN FOTO, bukan link panjang di teks.
         const message = buildClosingAdminMessage({
           ...args,
           nomor,
           nominal,
-          proof_url: proofUrl || undefined,
+          proof_url: undefined,
         });
+        const attachment = proofUrl
+          ? { url: proofUrl, filename: `bukti-transfer-${nomor}.jpg` }
+          : {};
         try {
           await opsFetch('/api/ops/wa-inbox', {
             method: 'POST',
-            body: JSON.stringify({ target: ADMIN_WA, message }),
+            body: JSON.stringify({ target: ADMIN_WA, message, ...attachment }),
           });
         } catch (error: any) {
-          return {
-            isError: true,
-            text: `Closing tercatat, tapi rekap admin gagal dikirim: ${error.message}. Coba kirim ulang rekap nanti.`,
-          };
+          // Endpoint lama belum menerima URL R2 private -> kirim versi teks + link.
+          if (!proofUrl) throw error;
+          const fallback = buildClosingAdminMessage({
+            ...args,
+            nomor,
+            nominal,
+            proof_url: proofUrl,
+          });
+          await opsFetch('/api/ops/wa-inbox', {
+            method: 'POST',
+            body: JSON.stringify({ target: ADMIN_WA, message: fallback }),
+          });
         }
         await ctx.service
           .from('wa_closings')
