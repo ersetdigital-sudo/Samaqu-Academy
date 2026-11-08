@@ -296,6 +296,22 @@ Deno.serve(async (req) => {
 
     const service = serviceClient();
     const row = await loadSettings(service);
+
+    // Mode bot (diatur di Pengaturan admin): "local" = lokal yang balas; "auto" =
+    // server minggir selama heartbeat lokal masih segar (< 3 menit).
+    const { data: botControlRow } = await service
+      .from('wa_bot_control')
+      .select('mode,heartbeat')
+      .eq('id', 1)
+      .maybeSingle();
+    const botMode = String((botControlRow as { mode?: string } | null)?.mode || 'auto');
+    const heartbeatMs = (botControlRow as { heartbeat?: string } | null)?.heartbeat
+      ? Date.parse(String((botControlRow as { heartbeat?: string }).heartbeat))
+      : 0;
+    const localFresh = Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs < 3 * 60 * 1000;
+    if (botMode === 'local' || (botMode === 'auto' && localFresh)) {
+      return json({ ok: true, skipped: 'local aktif' });
+    }
     const behavior = mergeBehavior(row.behavior);
     const apiKey = await apiKeyFor(row);
     if (!apiKey) return json({ ok: false, error: 'API key MiMo belum diisi.' }, 503);
