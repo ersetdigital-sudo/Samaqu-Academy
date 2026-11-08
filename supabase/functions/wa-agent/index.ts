@@ -507,7 +507,7 @@ Deno.serve(async (req) => {
       // Catat token & perkiraan biaya supaya halaman AI Performance bisa menghitung
       // biaya bulan ini dan biaya per closing.
       await logUsage(service, {
-        userId: '00000000-0000-0000-0000-000000000000',
+        userId: null,
         userEmail: null,
         feature: 'wa',
         model: row.default_model,

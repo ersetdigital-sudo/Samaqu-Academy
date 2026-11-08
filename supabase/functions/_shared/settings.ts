@@ -166,7 +166,7 @@ export async function enforceRateLimit(
 }
 
 interface UsageEntry {
-  userId: string;
+  userId: string | null;
   userEmail: string | null;
   feature: UsageFeature;
   model: string | null;
