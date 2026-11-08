@@ -1045,6 +1045,21 @@ export async function executeTool(
           return { text: `DRY: balasan untuk ${nomor} tidak dikirim (${pesan.length} karakter).` };
         }
 
+        // Pengaman kill switch: cek mode tepat sebelum kirim. Run yang sudah
+        // berjalan saat mode diubah ke "off" tidak boleh tetap mengirim balasan.
+        try {
+          const { data: control } = await ctx.service
+            .from('wa_bot_control')
+            .select('mode')
+            .eq('id', 1)
+            .maybeSingle();
+          if (String(control?.mode || 'auto') === 'off') {
+            return { isError: true, text: 'Bot dimatikan (mode off). Pesan tidak dikirim.' };
+          }
+        } catch {
+          // cek mode gagal: lanjutkan seperti biasa
+        }
+
         const json = await opsFetch('/api/ops/wa-inbox', {
           method: 'POST',
           body: JSON.stringify({
