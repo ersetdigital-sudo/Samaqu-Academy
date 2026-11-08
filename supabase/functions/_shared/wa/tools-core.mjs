@@ -41,6 +41,7 @@ export function formatAcademyProductDetail(d) {
     d.advantages ? `Keunggulan:\n${String(d.advantages).split(/\r?\n/).map((line) => `- ${line}`).join("\n")}` : "",
     d.customerPitch ? `Cara jelaskan ke customer: ${d.customerPitch}` : "",
     d.characteristics ? `Karakteristik: ${d.characteristics}` : "",
+    d.extra ? `Informasi tambahan:\n${String(d.extra).split(/\r?\n/).map((line) => `- ${line}`).join("\n")}` : "",
   ];
   return lines.filter(Boolean).join("\n");
 }

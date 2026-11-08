@@ -843,15 +843,28 @@ export async function executeTool(
           .eq('type', 'product');
         if (error) return { isError: true, text: `Gagal ambil Product Knowledge: ${error.message}` };
         const map = buildAcademyProductMap(data || []);
-        let found = map.get(q);
+        // Kunci map = series/nama/kode. Skor per kata supaya kunci series saja
+        // ("kandora") tidak menang atas nama lengkap ("kandora coffe brown").
+        const normMap = new Map<string, any>();
+        for (const [key, value] of map) {
+          const name = normName(key);
+          if (name && !normMap.has(name)) normMap.set(name, value);
+        }
+        let found = normMap.get(q);
         if (!found) {
-          for (const [key, value] of map) {
-            const name = normName(key);
-            if (name.includes(q) || q.includes(name)) {
-              found = value;
-              break;
+          const words = q.split(/\s+/).filter(Boolean);
+          let bestScore = 0;
+          let bestName = '';
+          let bestValue: any = null;
+          for (const [name, value] of normMap) {
+            const score = name.split(/\s+/).filter((word) => words.includes(word)).length;
+            if (score > bestScore || (score === bestScore && score > 0 && name.length > bestName.length)) {
+              bestScore = score;
+              bestName = name;
+              bestValue = value;
             }
           }
+          if (bestValue && bestScore >= Math.min(2, words.length)) found = bestValue;
         }
         if (!found) {
           // Fallback katalog: Product Knowledge belum punya entri warna ini.
