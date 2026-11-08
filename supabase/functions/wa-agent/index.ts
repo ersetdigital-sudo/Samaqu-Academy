@@ -56,6 +56,9 @@ function looksLikeAdLead(text: string): boolean {
 
 /** Buang baris laporan internal dari teks yang akan dikirim ke customer. */
 function cleanForCustomer(text: string): string {
+  // JANGAN pernah kirim markup tool ke customer. Model kadang menulis
+  // <tool_call>/<parameter> sebagai teks biasa; itu internal, bukan balasan.
+  if (/<tool_call|<function=|<\/?parameter|<parameter=/i.test(text)) return '';
   const lines = String(text || '').split(/\r?\n/);
   const cut = lines.findIndex((line) =>
     /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),

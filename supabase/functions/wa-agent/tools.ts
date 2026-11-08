@@ -444,6 +444,8 @@ export interface ToolResult {
 
 /** Buang baris laporan internal kalau model tidak sengaja menyertakannya. */
 function cleanOutgoing(text: string): string {
+  // Markup tool tidak boleh keluar ke customer (pernah bocor <tool_call>).
+  if (/<tool_call|<function=|<\/?parameter|<parameter=/i.test(text)) return '';
   const lines = String(text || '').split(/\r?\n/);
   const cut = lines.findIndex((line) =>
     /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),
@@ -742,12 +744,38 @@ export async function executeTool(
         const sinceIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         const { data: recentClosings } = await ctx.service
           .from('wa_closings')
-          .select('id,inbox_id')
+          .select('id,inbox_id,proof_url')
           .eq('sender', nomor)
           .eq('nominal', nominal)
           .gte('created_at', sinceIso)
           .limit(5);
-        if ((recentClosings || []).some((row: any) => String(row.inbox_id) !== inboxId)) {
+        const duplicate = (recentClosings || []).find(
+          (row: any) => String(row.inbox_id) !== inboxId,
+        );
+        if (duplicate) {
+          // Closing sudah tercatat tanpa bukti (bot menunjuk pesan teks). Kalau bukti
+          // sekarang tersedia, tempelkan ke baris itu dan kirim FOTO saja ke admin —
+          // rekap penuh tidak diulang.
+          if (proofUrl && !duplicate.proof_url) {
+            await ctx.service
+              .from('wa_closings')
+              .update({ proof_url: proofUrl })
+              .eq('id', duplicate.id);
+            try {
+              await opsFetch('/api/ops/wa-inbox', {
+                method: 'POST',
+                body: JSON.stringify({
+                  target: ADMIN_WA,
+                  message: `Bukti transfer ${String(args.nama || '').trim() || nomor} - ${rupiah(nominal)}`,
+                  url: proofUrl,
+                  filename: `bukti-transfer-${nomor}.jpg`,
+                }),
+              });
+            } catch {
+              // foto gagal dikirim; bukti tetap tersimpan di database
+            }
+            return { text: `Closing ${nomor} sudah tercatat; bukti transfer ditambahkan ke admin.` };
+          }
           return { text: `Closing ${nomor} - ${rupiah(nominal)} sudah tercatat dan rekap admin sudah dikirim.` };
         }
         if (existing?.admin_notified_at) {
