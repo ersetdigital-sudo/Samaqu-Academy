@@ -254,19 +254,23 @@ export function WaInboxView() {
           ) : runs.length === 0 ? (
             <div className="empty">Belum ada log run.</div>
           ) : (
-            runs.map((run) => (
+            runs.map((run) => {
+              const isSwitch = run.mode === 'switch';
+              return (
               <div key={run.id} className="wa-log">
                 <div className="wa-log-top">
                   <b>{waktu(run.created_at)}</b>
                   <span className={`tag ${run.error ? 'rd' : run.mode === 'running' ? 'yl' : run.mode === 'live' ? 'gr' : 'yl'}`}>
-                    {run.mode === 'running' ? 'berjalan' : run.mode}
+                    {isSwitch ? 'ganti mode' : run.mode === 'running' ? 'berjalan' : run.mode}
                   </span>
-                  <span className="xs muted">{run.duration_ms ?? 0} ms</span>
+                  {isSwitch ? null : <span className="xs muted">{run.duration_ms ?? 0} ms</span>}
                 </div>
+                {isSwitch ? null : (
                 <div className="wa-log-line">
                   masuk {run.handled} · dibalas {run.replied} · sisa {run.leftover} · putaran {run.rounds}
                   {run.held ? ` · ditahan ${run.held}` : ''}
                 </div>
+                )}
                 {run.tools?.length ? (
                   <div className="xs muted">tool: {run.tools.join(', ')}</div>
                 ) : null}
@@ -274,7 +278,8 @@ export function WaInboxView() {
                 {run.note ? <div className="wa-log-note">{run.note}</div> : null}
                 {run.detail ? <pre className="wa-log-detail">{run.detail}</pre> : null}
               </div>
-            ))
+              );
+            })
           )}
         </div>
       ) : (
