@@ -706,12 +706,22 @@ export async function executeTool(
         }
         if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
 
+        // Link bukti dibuat server (bertanda tangan). Jangan pakai proof_url kiriman AI:
+        // URL R2 private panjang dan sering terpotong di bagian ?X-Amz-... sehingga mati.
+        let proofUrl = String(args.proof_url || '').trim() || null;
+        try {
+          const signed = await opsFetch(`/api/ops/wa-media?inbox_id=${encodeURIComponent(inboxId)}`);
+          if (signed?.url) proofUrl = String(signed.url);
+        } catch {
+          // endpoint gagal -> pakai URL apa adanya
+        }
+
         const payload = {
           inbox_id: inboxId,
           sender: nomor,
           sender_name: String(args.nama || '').trim() || null,
           nominal,
-          proof_url: String(args.proof_url || '').trim() || null,
+          proof_url: proofUrl,
           address: buildClosingAddress(args),
           order_detail: String(args.pesanan || '').trim() || null,
           source: 'server',
@@ -752,6 +762,7 @@ export async function executeTool(
           ...args,
           nomor,
           nominal,
+          proof_url: proofUrl || undefined,
         });
         try {
           await opsFetch('/api/ops/wa-inbox', {
