@@ -178,9 +178,29 @@ async function conversations() {
 async function messages(sender: string, limit = 100) {
   if (!sender) throw new Error('Nomor pengirim kosong.');
   const rows = await serviceFetch(
-    `wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,error&sender=eq.${encodeURIComponent(sender)}&order=created_at.desc&limit=${limit}`,
+    `wa_inbox?select=*&sender=eq.${encodeURIComponent(sender)}&order=created_at.desc&limit=${limit}`,
   );
-  return (Array.isArray(rows) ? rows : []).reverse();
+  const list = (Array.isArray(rows) ? rows : []).reverse() as Record<string, unknown>[];
+  const ids = list.map((row) => String(row.id || '')).filter(Boolean);
+  if (!ids.length) return list;
+
+  // Siapa yang mengklaim/membalas pesan ini (local/server), dicatat saat klaim.
+  let handled = new Map<string, string>();
+  try {
+    const marks = await serviceFetch(
+      `wa_handled?select=inbox_id,source&inbox_id=in.(${ids.map((id) => encodeURIComponent(id)).join(',')})`,
+    );
+    handled = new Map(
+      (Array.isArray(marks) ? marks : []).map((row) => [String(row.inbox_id), String(row.source)]),
+    );
+  } catch {
+    handled = new Map();
+  }
+
+  return list.map((row) => ({
+    ...row,
+    handled_by: handled.get(String(row.id || '')) || null,
+  }));
 }
 
 async function stats() {

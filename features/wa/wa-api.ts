@@ -22,6 +22,8 @@ export interface WaMessage {
   replied_at?: string | null;
   reply_text?: string | null;
   error?: string | null;
+  /** Bot yang mengklaim/membalas pesan ini: "local" atau "server". */
+  handled_by?: string | null;
 }
 
 export interface WaRun {

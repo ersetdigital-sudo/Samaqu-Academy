@@ -75,6 +75,8 @@ export async function opsFetch(pathname: string, init: RequestInit = {}, retry =
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
+      // Penanda siapa yang mengklaim/membalas pesan (dipakai UI + audit).
+      'x-bot-source': 'server',
       ...(init.headers || {}),
     },
   });

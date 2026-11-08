@@ -419,7 +419,11 @@ export function WaInboxView() {
                         <div className="wa-time">
                           <span className="wa-tick" title="Terkirim">✓✓</span>
                           {jam(row.replied_at)}
-                          {row.error === 'dibalas manual' ? ' · manual' : ' · bot'}
+                          {row.error === 'dibalas manual'
+                            ? ' · manual'
+                            : row.handled_by
+                              ? ` · ${row.handled_by === 'local' ? 'Local' : 'Server'}`
+                              : ' · bot'}
                         </div>
                       </div>
                     ) : null}
