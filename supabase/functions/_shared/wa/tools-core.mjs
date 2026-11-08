@@ -67,13 +67,15 @@ export function mediaKey(value) {
 }
 
 /** Daftar kunci media yang dipakai satu baris `content_items`. */
-function mediaKeys(row) {
+function mediaKeys(row, seriesDefault) {
   const d = row?.data || {};
   const category = mediaKey(d.category);
   if (!category || MEDIA_EXCLUDED_CATEGORIES.includes(category)) return [];
 
-  // Baris seri: identitas di `name`, bukan `series`.
+  // Baris seri: identitas di `name`, bukan `series`. Media seri hanya dipakai sebagai
+  // default FOTO. VIDEO seri khusus materi admin (Academy) dan tidak dikirim ke customer.
   if (category === "product series") {
+    if (!seriesDefault) return [];
     const series = mediaKey(d.name);
     return series ? [`${series}|*`] : [];
   }
@@ -95,12 +97,12 @@ function mediaKeys(row) {
   return [...colors.map((color) => `${category}|${color}`), `${category}|*`];
 }
 
-function buildMediaMap(rows, pick) {
+function buildMediaMap(rows, pick, seriesDefault) {
   const map = new Map();
   for (const row of rows || []) {
     const value = String(pick(row?.data || {}) || "").trim();
     if (!value) continue;
-    for (const key of mediaKeys(row)) {
+    for (const key of mediaKeys(row, seriesDefault)) {
       if (!map.has(key)) map.set(key, value);
     }
   }
@@ -108,11 +110,12 @@ function buildMediaMap(rows, pick) {
 }
 
 export function buildAcademyPhotoMap(rows) {
-  return buildMediaMap(rows, (d) => d.image);
+  return buildMediaMap(rows, (d) => d.image, true);
 }
 
 export function buildAcademyVideoMap(rows) {
-  return buildMediaMap(rows, (d) => d.videoUrl);
+  // Video tingkat seri tidak dipakai customer; hanya video per warna (baris produk).
+  return buildMediaMap(rows, (d) => d.videoUrl, false);
 }
 
 /**
