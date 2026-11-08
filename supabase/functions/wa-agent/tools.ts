@@ -800,7 +800,14 @@ export async function executeTool(
 
       case 'detail_produk': {
         if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
-        const q = String(args.produk || '').trim().toLowerCase();
+        // Ejaan katalog kadang beda (produk "Coffe", warna "Coffee").
+        const normName = (value: unknown) =>
+          String(value || '')
+            .toLowerCase()
+            .replace(/\bcoffe\b/g, 'coffee')
+            .replace(/\s+/g, ' ')
+            .trim();
+        const q = normName(args.produk);
         if (!q) return { isError: true, text: 'Nama produk wajib diisi.' };
         const { data, error } = await ctx.service
           .from('content_items')
@@ -811,13 +818,44 @@ export async function executeTool(
         let found = map.get(q);
         if (!found) {
           for (const [key, value] of map) {
-            if (key.includes(q) || q.includes(key)) {
+            const name = normName(key);
+            if (name.includes(q) || q.includes(name)) {
               found = value;
               break;
             }
           }
         }
-        if (!found) return { text: `Detail produk "${args.produk}" belum ada di Product Knowledge Academy.` };
+        if (!found) {
+          // Fallback katalog: Product Knowledge belum punya entri warna ini.
+          try {
+            const json = await opsFetch('/api/ops/products');
+            const match = (json?.items || []).find((p: any) => {
+              const name = normName(p.name);
+              return name.includes(q) || q.includes(name);
+            });
+            if (match) {
+              const colors = (Array.isArray(match.colors)
+                ? match.colors
+                : String(match.colors || '').split(/[,/]/)
+              )
+                .map((c: unknown) => String(c || '').trim())
+                .filter(Boolean)
+                .join(', ');
+              return {
+                text: [
+                  `${match.name} â€” ${match.category || '-'}`,
+                  `Kain: ${match.jenis_kain?.name || match.kain || '-'}`,
+                  colors ? `Warna: ${colors}` : '',
+                  `Harga: ${rupiah(match.price)}`,
+                  'Keunggulan/seri belum ada di Product Knowledge â€” sampaikan hanya fakta ini.',
+                ].filter(Boolean).join('\n'),
+              };
+            }
+          } catch {
+            // katalog opsional; lanjut ke pesan belum ada
+          }
+          return { text: `Detail produk "${args.produk}" belum ada di Product Knowledge Academy.` };
+        }
         return { text: formatAcademyProductDetail(found) };
       }
 

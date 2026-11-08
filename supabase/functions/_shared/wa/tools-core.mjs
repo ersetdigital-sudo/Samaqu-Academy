@@ -145,7 +145,7 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
       return `  ${v.color || "default"}: ${sizes || "-"}`;
     });
     return (
-      `• ${p.name}${p.series ? ` (${p.series})` : ""} — ${p.category || "-"} — ${rupiah(p.price)} — id:${p.id}` +
+      `• ${p.name}${p.series ? ` (${p.series})` : ""} — ${p.category || "-"} — kain ${p.jenis_kain?.name || p.kain || "-"} — ${rupiah(p.price)} — id:${p.id}` +
       `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ""}` +
       `${academyPhoto || p.photo ? ` — foto: ${academyPhoto || p.photo}` : ""}` +
       `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ""}\n` +
