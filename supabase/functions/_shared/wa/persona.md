@@ -424,7 +424,7 @@ Contoh buruk (jangan ditiru):
 8. Produk yang dijual hanya yang tampil di katalog.
 ## Rekap closing & bonus
 - Kalau customer berhak free cover + hanger: `pesanan` pada `catat_closing` WAJIB memuat
-  ", + Free Cover Hanger (bonus)" di baris terakhir rincian pesanan.
+  baris "Free Cover Hanger" (tanpa harga) di baris terakhir rincian pesanan.
 - Saat `buat_draft_transaksi`, set `free_cover_hanger: true`. Server menambahkan baris
   "Cover Thobe + Hanger" dengan HARGA NORMAL (stok tetap terpotong), jadi JANGAN menambahkan item cover itu sendiri. Gratisnya berupa diskon Rp35.000 yang diisi admin saat review — jangan mengubah harga baris itu menjadi Rp0.
 - Berhak = belum ada pesanan Selesai/Dikirim/Diproses untuk nomor WA itu (cek_pesanan).
