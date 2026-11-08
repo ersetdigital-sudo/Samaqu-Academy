@@ -309,6 +309,11 @@ Deno.serve(async (req) => {
       ? Date.parse(String((botControlRow as { heartbeat?: string }).heartbeat))
       : 0;
     const localFresh = Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs < 3 * 60 * 1000;
+    // Mode "off": kill switch. Dipakai saat shift admin / bot sengaja dimatikan.
+    // Pesan tetap masuk ke inbox, tapi tidak ada yang membalas otomatis.
+    if (botMode === 'off') {
+      return json({ ok: true, skipped: 'bot dimatikan (mode off)' });
+    }
     if (botMode === 'local' || (botMode === 'auto' && localFresh)) {
       return json({ ok: true, skipped: 'local aktif' });
     }
