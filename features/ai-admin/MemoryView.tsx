@@ -11,6 +11,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Note } from '@/components/ui/Note';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { MemoryCard } from './MemoryCard';
+import { MemoryDetail } from './MemoryDetail';
 import { MemoryForm } from './MemoryForm';
 import { MEMORY_FILTERS, MEMORY_STATUS_LABELS } from './memory-labels';
 import {
@@ -30,6 +31,8 @@ export function MemoryView() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<MemoryStatus | 'all'>('all');
+  /** Memory yang sedang dibuka di panel detail (drawer). */
+  const [detail, setDetail] = useState<MemoryItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,7 +204,13 @@ export function MemoryView() {
             </span>
           </div>
           {filtered.map((item) => (
-            <MemoryCard key={item.id} item={item} onEdit={openForm} onDelete={remove} />
+            <MemoryCard
+              key={item.id}
+              item={item}
+              onView={setDetail}
+              onEdit={openForm}
+              onDelete={remove}
+            />
           ))}
         </div>
       ) : (
@@ -216,6 +225,17 @@ export function MemoryView() {
           </div>
         </div>
       )}
+
+      {detail ? (
+        <MemoryDetail
+          item={detail}
+          onClose={() => setDetail(null)}
+          onEdit={(item) => {
+            setDetail(null);
+            openForm(item);
+          }}
+        />
+      ) : null}
     </>
   );
 }

@@ -11,10 +11,12 @@ function preview(content: string): string {
 
 export function MemoryCard({
   item,
+  onView,
   onEdit,
   onDelete,
 }: {
   item: MemoryItem;
+  onView: (item: MemoryItem) => void;
   onEdit: (item: MemoryItem) => void;
   onDelete: (item: MemoryItem) => void;
 }) {
@@ -42,6 +44,10 @@ export function MemoryCard({
           </div>
         </div>
         <div className="row">
+          <button className="btn sm" onClick={() => onView(item)}>
+            <Icon name="eye" />
+            Lihat
+          </button>
           <button className="btn sm" onClick={() => onEdit(item)}>
             <Icon name="pencil" />
             Edit
@@ -52,7 +58,20 @@ export function MemoryCard({
           </button>
         </div>
       </div>
-      <p className="content">{preview(item.content)}</p>
+      <p
+        className="content memory-preview"
+        role="button"
+        tabIndex={0}
+        onClick={() => onView(item)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onView(item);
+          }
+        }}
+      >
+        {preview(item.content)}
+      </p>
     </div>
   );
 }
