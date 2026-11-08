@@ -1,6 +1,7 @@
 import type { MimoToolDefinition } from '../_shared/mimo-tools.ts';
 import {
   buildAcademyPhotoMap,
+  buildAcademyVideoMap,
   buildAcademyProductMap,
   buildOngkirText,
   buildProductText,
@@ -497,6 +498,7 @@ export async function executeTool(
           opsFetch('/api/ops/product-variants?for=sale'),
         ]);
         let academyPhotos = new Map<string, string>();
+        let academyVideos = new Map<string, string>();
         let academyProducts = new Map<string, any>();
         try {
           if (ctx.service) {
@@ -505,6 +507,7 @@ export async function executeTool(
               .select('data')
               .eq('type', 'product');
             academyPhotos = buildAcademyPhotoMap(data || []);
+            academyVideos = buildAcademyVideoMap(data || []);
             academyProducts = buildAcademyProductMap(data || []);
           }
         } catch {
@@ -518,6 +521,7 @@ export async function executeTool(
             kategori: String(args.kategori || ''),
             limit: Number(args.limit) || 5,
             academyPhotos,
+            academyVideos,
             academyProducts,
           }),
         };

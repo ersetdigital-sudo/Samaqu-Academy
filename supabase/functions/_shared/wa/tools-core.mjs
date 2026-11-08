@@ -69,7 +69,28 @@ export function buildAcademyPhotoMap(rows) {
   return map;
 }
 
-export function buildProductText({ produkJson, varianJson, cari, kategori, limit, academyPhotos, academyProducts }) {
+export function buildAcademyVideoMap(rows) {
+  const map = new Map();
+  for (const row of rows || []) {
+    const d = row?.data || {};
+    const video = String(d.videoUrl || "").trim();
+    if (!video) continue;
+    const category = String(d.category || "").toLowerCase();
+    if (!category || ["size chart", "fabric collection", "product series"].includes(category)) continue;
+    const series = String(d.series || "").trim().toLowerCase();
+    if (!series) continue;
+    const colors = String(d.colors || "")
+      .split(/[,/]/)
+      .map((color) => color.trim().toLowerCase())
+      .filter(Boolean);
+    for (const color of colors) {
+      if (!map.has(`${series}|${color}`)) map.set(`${series}|${color}`, video);
+    }
+    if (!map.has(`${series}|*`)) map.set(`${series}|*`, video);
+  }
+  return map;
+}
+export function buildProductText({ produkJson, varianJson, cari, kategori, limit, academyPhotos, academyVideos, academyProducts }) {
   const q = String(cari || "").trim().toLowerCase();
   const kat = String(kategori || "").trim().toLowerCase();
   const max = Number(limit) || 5;
@@ -136,6 +157,10 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
       (photoColor && seriesKey && academyPhotos?.get(`${seriesKey}|${photoColor}`)) ||
       (!requestedColor && seriesKey && academyPhotos?.get(`${seriesKey}|*`)) ||
       "";
+    const academyVideo =
+      (photoColor && seriesKey && academyVideos?.get(`${seriesKey}|${photoColor}`)) ||
+      (!requestedColor && seriesKey && academyVideos?.get(`${seriesKey}|*`)) ||
+      "";
     const academy = academyProducts?.get(seriesKey) || academyProducts?.get(String(p.name || "").toLowerCase());
     const academyInfo = academy?.customerPitch || firstSentence(academy?.description) || "";
     const colors = variants.map((v) => {
@@ -149,8 +174,8 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
     return (
       `• ${p.name}${p.series ? ` (${p.series})` : ""} — ${p.category || "-"} — kain ${p.jenis_kain?.name || p.kain || "-"} — ${rupiah(p.price)} — id:${p.id}` +
       `${Number(p.weight) > 0 ? ` — berat produk ${Number(p.weight)}g` : ""}` +
-      `${academyPhoto || p.photo ? ` — foto: ${academyPhoto || p.photo}` : ""}` +
-      `${p.video || academy?.videoUrl ? ` — video: ${p.video || academy?.videoUrl}` : ""}` +
+      `${academyPhoto ? ` — foto: ${academyPhoto}` : ""}` +
+      `${academyVideo ? ` — video: ${academyVideo}` : ""}` +
       `${p.stock_efektif != null ? ` — total ${p.stock_efektif}` : ""}\n` +
       (colors.length ? colors.join("\n") : "  (tidak ada ukuran yang dijual)") +
       (academyInfo ? `\n  info: ${academyInfo}` : "")

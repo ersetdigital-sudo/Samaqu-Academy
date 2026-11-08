@@ -35,6 +35,7 @@ const GARMENT: ProductField[] = [
   { key: 'sizes', label: 'Pilihan Ukuran', section: 'Informasi Produk', placeholder: 'Contoh: S, M, L, XL' },
   { key: 'price', label: 'Harga Jual (Rp)', type: 'number', section: 'Informasi Produk', placeholder: 'Contoh: 350000' },
   { key: 'advantages', label: 'Keunggulan Produk', type: 'textarea', section: 'Informasi Produk', hint: 'Satu keunggulan per baris', full: true },
+  { key: 'videoUrl', label: 'Video Produk', type: 'video', section: 'Informasi Produk', full: true, hint: 'Upload file MP4 (maks 50 MB). Dipakai bot WA saat customer minta video series+warna ini.' },
   { key: 'extra', label: 'Informasi Tambahan', type: 'textarea', section: 'Informasi Produk', full: true },
 ];
 
