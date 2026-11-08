@@ -185,13 +185,18 @@ async function messages(sender: string, limit = 100) {
   if (!ids.length) return list;
 
   // Siapa yang mengklaim/membalas pesan ini (local/server), dicatat saat klaim.
+  // Tabel `wa_handled` ada di database ACADEMY, bukan di database Samaqu.
   let handled = new Map<string, string>();
   try {
-    const marks = await serviceFetch(
-      `wa_handled?select=inbox_id,source&inbox_id=in.(${ids.map((id) => encodeURIComponent(id)).join(',')})`,
-    );
+    const { data: marks } = await serviceClient()
+      .from('wa_handled')
+      .select('inbox_id,source')
+      .in('inbox_id', ids);
     handled = new Map(
-      (Array.isArray(marks) ? marks : []).map((row) => [String(row.inbox_id), String(row.source)]),
+      (marks || []).map((row: { inbox_id: string; source: string }) => [
+        String(row.inbox_id),
+        String(row.source),
+      ]),
     );
   } catch {
     handled = new Map();
