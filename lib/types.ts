@@ -8,6 +8,8 @@ export type ProductCategory =
   | 'Gamis'
   | 'Koko'
   | 'Kandora'
+  | 'Kabak'
+  | 'Cover & Hanger'
   | 'Fabric Collection'
   | 'Size Chart'
   | 'Product Series';

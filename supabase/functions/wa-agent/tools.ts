@@ -253,6 +253,11 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           pesanan: { type: 'string', description: 'Rincian pesanan; tiap baris WAJIB memuat nominal dari tool, mis. "Thobe Mint Karim size S x1 - Rp374.000". Baris Free Cover Hanger tanpa nominal.' },
           kurir: { type: 'string', description: 'Kurir, mis. J&T EZ' },
           ongkir: { type: 'integer', description: 'Ongkir' },
+          potong_panjang: {
+            type: 'string',
+            description:
+              'Isi hanya kalau customer minta potong panjang Thobe, mis. "dipotong 5 cm" atau "panjang akhir 138 cm". Biayanya Rp35.000, dikerjakan tim produksi SAMAQU.',
+          },
         },
         required: [
           'nomor', 'nominal', 'inbox_id', 'nama', 'alamat', 'kecamatan', 'kota',
@@ -329,6 +334,11 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           },
           shipping_cost: { type: 'integer' },
           shipping_method: { type: 'string' },
+          potong_panjang: {
+            type: 'string',
+            description:
+              'Isi kalau customer minta potong panjang Thobe, mis. "dipotong 5 cm". Server menambahkan baris Jasa Potong Panjang Rp35.000.',
+          },
           discount: { type: 'integer' },
           notes: { type: 'string' },
           free_cover_hanger: {
@@ -947,7 +957,8 @@ export async function executeTool(
           shipping_method: String(args.shipping_method || '').trim(),
           discount: Math.max(0, Number(args.discount) || 0),
           payment_status: 'paid',
-          notes: [String(args.notes || '').trim(), args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama) - harga normal, diskon Rp35.000 diisi admin' : ''].filter(Boolean).join(' - '),
+          notes: [String(args.notes || '').trim(), args.potong_panjang ? `Potong panjang Thobe: ${String(args.potong_panjang).trim()}` : '', args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama) - harga normal, diskon Rp35.000 diisi admin' : ''].filter(Boolean).join(' - '),
+          potong_panjang: String(args.potong_panjang || '').trim(),
           shipping: {
             address: String(args.alamat || '').trim(),
             province: String(args.provinsi || '').trim(),

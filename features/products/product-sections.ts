@@ -4,7 +4,7 @@ export type ProductSection = 'series' | 'fabric' | 'size' | 'product';
 
 export const PRODUCT_SECTIONS: ProductSection[] = ['series', 'fabric', 'size', 'product'];
 
-export const GARMENT_CATEGORIES: ProductCategory[] = ['Thobe', 'Gamis', 'Koko', 'Kandora'];
+export const GARMENT_CATEGORIES: ProductCategory[] = ['Thobe', 'Gamis', 'Koko', 'Kandora', 'Kabak', 'Cover & Hanger'];
 
 export interface ProductSectionMeta {
   label: string;
@@ -55,7 +55,7 @@ export function isProductSection(value: string | null | undefined): value is Pro
 }
 
 export function isGarmentCategory(value: string | null | undefined): value is ProductCategory {
-  return value === 'Thobe' || value === 'Gamis' || value === 'Koko' || value === 'Kandora';
+  return value === 'Thobe' || value === 'Gamis' || value === 'Koko' || value === 'Kandora' || value === 'Kabak' || value === 'Cover & Hanger';
 }
 
 /** Legacy `?category=` (and a product's own category) → the section that owns it. */

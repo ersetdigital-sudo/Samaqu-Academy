@@ -56,6 +56,10 @@ export function buildClosingAdminMessage(input) {
     "PESANAN:",
     String(input?.pesanan || "").trim() || "-",
   ];
+  const potongPanjang = String(input?.potong_panjang || "").trim();
+  if (potongPanjang) {
+    lines.push("", `Potong panjang Thobe: ${potongPanjang} - ${rupiahClosing(35000)} (tim produksi SAMAQU)`);
+  }
   const kurir = String(input?.kurir || "").trim();
   const ongkir = Number(input?.ongkir) || 0;
   // Baris kosong setelah daftar pesanan supaya rekap lebih enak dibaca.
