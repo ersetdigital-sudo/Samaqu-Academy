@@ -9,7 +9,7 @@ import {
 } from '../_shared/mimo-tools.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
-import { isWaOnline } from '../_shared/wa/schedule.mjs';
+import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 
 /**
  * Bot CS WhatsApp versi server.
@@ -485,6 +485,7 @@ Deno.serve(async (req) => {
     const memory = await memoryContext(service);
 
     const system = [
+      waktuSekarangWib(),
       behavior.systemInstructions,
       memory ? `MEMORI ORGANISASI (sudah disetujui):\n${memory}` : '',
       WA_AGENT_RULES,

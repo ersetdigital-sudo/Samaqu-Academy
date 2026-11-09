@@ -1,3 +1,5 @@
+export const POTONG_PANJANG_LABEL = "Jasa potong panjang";
+
 export function normalizePhone(raw) {
   const digits = String(raw || "").replace(/\D/g, "");
   if (!digits) return "";
@@ -58,7 +60,7 @@ export function buildClosingAdminMessage(input) {
   ];
   const potongPanjang = String(input?.potong_panjang || "").trim();
   if (potongPanjang) {
-    lines.push("", `Potong panjang Thobe: ${potongPanjang} - ${rupiahClosing(35000)} (tim produksi SAMAQU)`);
+    lines.push("", `${POTONG_PANJANG_LABEL}: ${potongPanjang} - ${rupiahClosing(35000)} (tim produksi SAMAQU)`);
   }
   const kurir = String(input?.kurir || "").trim();
   const ongkir = Number(input?.ongkir) || 0;
