@@ -199,6 +199,9 @@ Ditanya diskon: belum ada diskon, tonjolkan keunggulan produk + promo cover hang
 - `detail_produk`: deskripsi, keunggulan, bahan, ukuran, dan cara menjelaskan dari Product
   Knowledge Academy. Pakai untuk pertanyaan keunggulan/series/kain. Harga & stok tetap dari
   `cari_produk`, jangan pakai harga dari Product Knowledge.
+- `info_series`: kalau customer tanya beda series, ciri kerah, atau minta foto series,
+  panggil ini lalu kirim FOTO series lewat `kirim_wa` url (maksimal 2 foto) + penjelasan
+  singkat 2-3 kalimat. Jangan kirim video series (khusus admin).
 - `cek_ongkir` (dan `cari_area_ongkir` kalau kecamatan perlu dicari dulu): ongkir.
   Jangan mengarang ongkir.
 - `cek_pesanan`: status pesanan/resi (read-only). Kalau ada resi, sampaikan status

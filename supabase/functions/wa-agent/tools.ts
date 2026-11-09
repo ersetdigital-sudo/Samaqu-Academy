@@ -285,6 +285,25 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'info_series',
+      description:
+        'Ambil penjelasan + FOTO resmi tiap series Thobe (Imron, Jiharkah, Nahawand, Bayati, Imalah). ' +
+        'Pakai saat customer bertanya beda series, ciri kerah/placket, atau minta foto series. ' +
+        'Hasil berisi field Foto (URL) yang dikirim lewat kirim_wa url. Jangan kirim video series (khusus admin).',
+      parameters: {
+        type: 'object',
+        properties: {
+          series: {
+            type: 'string',
+            description: 'Nama series (opsional), mis. Imron / Bayati. Kosongkan untuk semua series.',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'cek_resi',
       description:
         'Cek status pelacakan J&T langsung dari nomor resi. Pakai kalau customer menyebut nomor resi ' +
@@ -845,6 +864,62 @@ export async function executeTool(
           .update({ admin_notified_at: new Date().toISOString() })
           .eq('inbox_id', inboxId);
         return { text: `Closing tercatat & rekap dikirim ke admin: ${nomor} · ${rupiah(nominal)}.` };
+      }
+
+      case 'info_series': {
+        if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
+        const { data, error } = await ctx.service
+          .from('content_items')
+          .select('data')
+          .eq('type', 'product');
+        if (error) return { isError: true, text: `Gagal ambil data series: ${error.message}` };
+
+        const all = (data || [])
+          .map((row: any) => row?.data)
+          .filter(
+            (d: any) =>
+              d &&
+              String(d.category || '').toLowerCase() === 'product series' &&
+              String(d.name || '').trim(),
+          );
+        if (!all.length) return { text: 'Data series belum ada di Product Knowledge.' };
+
+        const wanted = String(args.series || '').trim().toLowerCase();
+        const picked = wanted
+          ? all.filter((d: any) => {
+              const name = String(d.name || '').toLowerCase();
+              return name.includes(wanted) || wanted.includes(name);
+            })
+          : all;
+        if (!picked.length) {
+          return {
+            text: `Series "${args.series}" tidak ditemukan. Series yang ada: ${all
+              .map((d: any) => String(d.name || ''))
+              .join(', ')}.`,
+          };
+        }
+
+        const text = picked
+          .map((d: any) =>
+            [
+              `**${String(d.name || '')}**`,
+              d.collar ? `Kerah: ${String(d.collar)}` : '',
+              d.placket ? `Placket: ${String(d.placket)}` : '',
+              d.description ? `Deskripsi: ${String(d.description)}` : '',
+              d.characteristics ? `Ciri: ${String(d.characteristics).replace(/\n/g, '; ')}` : '',
+              d.image ? `Foto: ${String(d.image)}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          )
+          .join('\n\n');
+
+        return {
+          text:
+            `${text}\n\n` +
+            'Kirim foto series yang relevan lewat kirim_wa url (maksimal 2 foto), lalu jelaskan bedanya ' +
+            'dalam 2-3 kalimat pendek. Jangan mengirim video series (khusus admin).',
+        };
       }
 
       case 'detail_produk': {
