@@ -304,6 +304,25 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'info_bahan',
+      description:
+        'Ambil penjelasan + FOTO resmi tiap bahan/kain SAMAQU (mis. B-01, B-02, A-02). ' +
+        'Pakai saat customer bertanya jenis bahan, karakter kain, atau minta foto bahan. ' +
+        'Hasil berisi field Foto (URL) yang dikirim lewat kirim_wa url.',
+      parameters: {
+        type: 'object',
+        properties: {
+          bahan: {
+            type: 'string',
+            description: 'Nama atau kode bahan (opsional), mis. B-01. Kosongkan untuk semua bahan.',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'cek_resi',
       description:
         'Cek status pelacakan J&T langsung dari nomor resi. Pakai kalau customer menyebut nomor resi ' +
@@ -919,6 +938,64 @@ export async function executeTool(
             `${text}\n\n` +
             'Kirim foto series yang relevan lewat kirim_wa url (maksimal 2 foto), lalu jelaskan bedanya ' +
             'dalam 2-3 kalimat pendek. Jangan mengirim video series (khusus admin).',
+        };
+      }
+
+      case 'info_bahan': {
+        if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
+        const { data, error } = await ctx.service
+          .from('content_items')
+          .select('data')
+          .eq('type', 'product');
+        if (error) return { isError: true, text: `Gagal ambil data bahan: ${error.message}` };
+
+        const all = (data || [])
+          .map((row: any) => row?.data)
+          .filter(
+            (d: any) =>
+              d &&
+              String(d.category || '').toLowerCase() === 'fabric collection' &&
+              String(d.name || '').trim(),
+          );
+        if (!all.length) return { text: 'Data bahan belum ada di Product Knowledge.' };
+
+        const wanted = String(args.bahan || '').trim().toLowerCase();
+        const picked = wanted
+          ? all.filter((d: any) => {
+              const name = String(d.name || '').toLowerCase();
+              const code = String(d.code || '').toLowerCase();
+              return name.includes(wanted) || code.includes(wanted) || wanted.includes(code);
+            })
+          : all;
+        if (!picked.length) {
+          return {
+            text: `Bahan "${args.bahan}" tidak ditemukan. Bahan yang ada: ${all
+              .map((d: any) => String(d.name || ''))
+              .join(', ')}.`,
+          };
+        }
+
+        const text = picked
+          .map((d: any) =>
+            [
+              `**${String(d.name || '')}**${d.code ? ` (${String(d.code)})` : ''}`,
+              d.composition ? `Komposisi: ${String(d.composition)}` : '',
+              d.gsm ? `GSM: ${String(d.gsm)}` : '',
+              d.characteristics ? `Karakteristik: ${String(d.characteristics).replace(/\n/g, '; ')}` : '',
+              d.advantages ? `Keunggulan: ${String(d.advantages).replace(/\n/g, '; ')}` : '',
+              d.extra ? `Info tambahan: ${String(d.extra).replace(/\n/g, '; ')}` : '',
+              d.image ? `Foto: ${String(d.image)}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          )
+          .join('\n\n');
+
+        return {
+          text:
+            `${text}\n\n` +
+            'Kirim foto bahan yang relevan lewat kirim_wa url (maksimal 2 foto), lalu jelaskan ' +
+            'singkat 2-3 kalimat.',
         };
       }
 
