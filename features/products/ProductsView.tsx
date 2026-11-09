@@ -101,10 +101,13 @@ export function ProductsView() {
   };
 
   const selectGarment = (next: string) => {
-    router.replace(
-      next === 'Semua' ? '/products?section=product' : `/products?section=product&category=${next}`,
-      { scroll: false },
-    );
+    if (next === 'Semua') {
+      router.replace('/products?section=product', { scroll: false });
+      return;
+    }
+    // encode: kategori "Cover & Hanger" punya "&" yang bisa memotong query kalau ditempel mentah.
+    const params = new URLSearchParams({ section: 'product', category: next });
+    router.replace(`/products?${params.toString()}`, { scroll: false });
   };
 
   // Detail dibuka sebagai halaman (bukan popup), sama seperti detail materi di Learning Center.
