@@ -92,6 +92,8 @@ import {
   TriangleAlert,
   Truck,
   User,
+  UserPlus,
+  Users,
   Wallet,
   X,
   type LucideIcon,
@@ -191,6 +193,8 @@ const ICONS: Record<string, LucideIcon> = {
   'trending-up': TrendingUp,
   truck: Truck,
   user: User,
+  'user-plus': UserPlus,
+  users: Users,
   wallet: Wallet,
   x: X,
 };

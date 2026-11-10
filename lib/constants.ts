@@ -61,6 +61,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Pengaturan AI', href: '/settings/ai', icon: 'settings' },
       { label: 'Memory Organisasi', href: '/settings/memory', icon: 'brain' },
+      { label: 'Kelola Pengguna', href: '/settings/users', icon: 'users' },
     ],
   },
 ];
