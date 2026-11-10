@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppLink as Link } from '@/components/ui/AppLink';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { useModal } from '@/components/providers/ModalProvider';
 import { useRole } from '@/components/providers/RoleProvider';
 import { useToast } from '@/components/providers/ToastProvider';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Icon } from '@/components/ui/Icon';
 import { Note } from '@/components/ui/Note';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -29,6 +31,7 @@ const ROLE_LABEL: Record<AcademyRole, string> = {
 
 export function UsersView() {
   const { canManage, hydrated } = useRole();
+  const { user: currentUser } = useAuth();
   const { showToast } = useToast();
   const { openModal, closeModal } = useModal();
   const [items, setItems] = useState<AcademyUser[]>([]);
@@ -119,6 +122,28 @@ export function UsersView() {
     } catch {
       showToast('Gagal menyalin; salin manual dari kotak di atas', 'err');
     }
+  };
+
+  const removeUser = (user: AcademyUser) => {
+    openModal(
+      <ConfirmDialog
+        title="Hapus pengguna permanen?"
+        message={
+          <>
+            <b>{user.fullName || user.email}</b> ({user.email}) akan dihapus dari Supabase Auth,
+            profil, dan daftar allowlist. Tindakan ini tidak bisa dibatalkan.
+          </>
+        }
+        onCancel={closeModal}
+        onConfirm={async () => {
+          const result = await callAdminUsers('delete', { id: user.id });
+          if (!result.ok) throw new Error(result.error ?? 'Gagal menghapus pengguna');
+          closeModal();
+          setItems((previous) => previous.filter((item) => item.id !== user.id));
+          showToast('Pengguna dihapus permanen');
+        }}
+      />,
+    );
   };
 
   if (hydrated && !canManage) {
@@ -265,15 +290,29 @@ export function UsersView() {
                   </td>
                   <td className="xs muted">{formatDate(user.lastSignInAt)}</td>
                   <td>
-                    <button
-                      className="btn sm"
-                      onClick={() => void toggleActive(user)}
-                      disabled={busyId === user.id}
-                      type="button"
-                    >
-                      <Icon name={user.active ? 'ban' : 'check'} />
-                      {user.active ? 'Nonaktifkan' : 'Aktifkan'}
-                    </button>
+                    <div className="row" style={{ gap: 6 }}>
+                      <button
+                        className="btn sm"
+                        onClick={() => void toggleActive(user)}
+                        disabled={busyId === user.id}
+                        type="button"
+                      >
+                        <Icon name={user.active ? 'ban' : 'check'} />
+                        {user.active ? 'Nonaktifkan' : 'Aktifkan'}
+                      </button>
+                      {!user.active && user.id !== currentUser?.id ? (
+                        <button
+                          className="btn sm"
+                          onClick={() => removeUser(user)}
+                          disabled={busyId === user.id}
+                          type="button"
+                          style={{ color: 'var(--red)', borderColor: 'var(--red)' }}
+                        >
+                          <Icon name="trash-2" />
+                          Hapus
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

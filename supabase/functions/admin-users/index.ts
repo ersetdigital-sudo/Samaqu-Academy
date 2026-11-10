@@ -184,6 +184,40 @@ async function handleSetActive(body: Record<string, unknown>) {
   return { id, active };
 }
 
+async function handleDelete(body: Record<string, unknown>, requesterId: string) {
+  const admin = serviceClient();
+  const id = String(body.id ?? '').trim();
+  if (!id) throw new Error('User wajib diisi.');
+  if (id === requesterId) throw new Error('Tidak bisa menghapus akun sendiri.');
+
+  const { data, error } = await admin.auth.admin.getUserById(id);
+  if (error) throw new Error(error.message);
+  const target = data.user;
+  if (!target) throw new Error('User tidak ditemukan.');
+
+  const bannedUntil = target.banned_until ? Date.parse(target.banned_until) : 0;
+  if (!(Number.isFinite(bannedUntil) && bannedUntil > Date.now())) {
+    throw new Error('Nonaktifkan akun dulu sebelum menghapus permanen.');
+  }
+
+  if (target.app_metadata?.role === 'owner') {
+    const { data: owners } = await admin.from('profiles').select('id').eq('role', 'owner');
+    if ((owners ?? []).length <= 1) {
+      throw new Error('Tidak bisa menghapus owner terakhir.');
+    }
+  }
+
+  const email = String(target.email ?? '').toLowerCase();
+  const { error: deleteError } = await admin.auth.admin.deleteUser(id);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (email) {
+    await admin.from('allowed_emails').delete().eq('email', email);
+  }
+
+  return { id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
 
@@ -208,6 +242,7 @@ Deno.serve(async (req) => {
     if (action === 'create') return json({ ok: true, ...(await handleCreate(body)) });
     if (action === 'set_role') return json({ ok: true, ...(await handleSetRole(body)) });
     if (action === 'set_active') return json({ ok: true, ...(await handleSetActive(body)) });
+    if (action === 'delete') return json({ ok: true, ...(await handleDelete(body, auth.user.id)) });
     return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
   } catch (error) {
     const message = errorMessage(error);
