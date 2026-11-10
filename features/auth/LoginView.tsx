@@ -35,6 +35,7 @@ export function LoginView() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -142,6 +143,7 @@ export function LoginView() {
               id="login-email"
               className="inp"
               type="email"
+              name="email"
               autoComplete="email"
               autoFocus
               placeholder="nama@samaqu.academy"
@@ -153,15 +155,27 @@ export function LoginView() {
             <label className="auth-label" htmlFor="login-password">
               Password
             </label>
-            <input
-              id="login-password"
-              className="inp"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Masukkan password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            <div className="auth-pass">
+              <input
+                id="login-password"
+                className="inp"
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                autoComplete="current-password"
+                placeholder="Masukkan password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                type="button"
+                className="auth-pass-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                <Icon name={showPassword ? 'eye-off' : 'eye'} size={17} />
+              </button>
+            </div>
           </div>
 
           {formError || error ? (

@@ -413,6 +413,32 @@
   margin-bottom: 5px;
 }
 
+.auth-pass {
+  position: relative;
+}
+
+.auth-pass .inp {
+  padding-right: 42px;
+}
+
+.auth-pass-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--t2, #6b6a64);
+}
+
+.auth-pass-toggle:hover {
+  background: var(--gl);
+}
+
 .auth-google {
   width: 100%;
   display: flex;
