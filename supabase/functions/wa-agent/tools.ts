@@ -154,15 +154,30 @@ export const WA_TOOLS: MimoToolDefinition[] = [
     type: 'function',
     function: {
       name: 'cek_ongkir',
-      description: 'Hitung tarif J&T dari Depok ke kota + kecamatan tujuan. Berat dalam gram.',
+      description:
+        'Hitung tarif J&T dari Depok ke kota + kecamatan tujuan. UTAMAKAN `items`: server menghitung ' +
+        'berat sendiri dari berat varian/produk (fallback 1200 g per baju). Jangan menghitung berat manual.',
       parameters: {
         type: 'object',
         properties: {
           kota: { type: 'string', description: 'Kota/kabupaten tujuan' },
           kecamatan: { type: 'string', description: 'Kecamatan tujuan' },
-          berat_gram: { type: 'integer', description: 'Berat paket dalam gram' },
+          items: {
+            type: 'array',
+            description: 'Semua barang yang dikirim. Berat dihitung server dari product_id + size.',
+            items: {
+              type: 'object',
+              properties: {
+                product_id: { type: 'string', description: 'id dari hasil cari_produk' },
+                size: { type: 'string', description: 'Ukuran, mis. M / XL' },
+                quantity: { type: 'integer', description: 'Jumlah' },
+              },
+              required: ['product_id', 'quantity'],
+            },
+          },
+          berat_gram: { type: 'integer', description: 'Hanya dipakai kalau items tidak dikirim' },
         },
-        required: ['kota', 'kecamatan', 'berat_gram'],
+        required: ['kota', 'kecamatan'],
       },
     },
   },
@@ -583,10 +598,52 @@ export async function executeTool(
       }
 
       case 'cek_ongkir': {
+        // Berat dihitung SERVER dari item, bukan dari hitungan model. Dulu model mengirim
+        // berat satu baju (1200 g) untuk pesanan 2 baju sehingga tarif keluar 9.000
+        // padahal 2.400 g seharusnya 27.000.
+        const items = Array.isArray(args.items) ? args.items : [];
+        let weight = Number(args.berat_gram) || 0;
+
+        if (items.length > 0) {
+          const [productsJson, variantsJson] = await Promise.all([
+            opsFetch('/api/ops/products'),
+            opsFetch('/api/ops/product-variants'),
+          ]);
+          const products = new Map<string, any>(
+            (productsJson?.items || []).map((p: any) => [String(p.id), p]),
+          );
+          const variants = new Map<string, any>(
+            (variantsJson?.items || []).map((v: any) => [String(v.product_id), v]),
+          );
+
+          let total = 0;
+          for (const item of items) {
+            const productId = String(item?.product_id || '').trim();
+            if (!productId) continue;
+            const size = String(item?.size || '').toUpperCase();
+            const quantity = Math.max(1, Number(item?.quantity) || 1);
+            const variant = variants.get(productId);
+            const unit =
+              Number(variant?.weights?.[size]) ||
+              Number(variant?.product_weight) ||
+              Number(products.get(productId)?.weight) ||
+              1200;
+            total += unit * quantity;
+          }
+          if (total > 0) weight = total;
+        }
+
+        if (!weight || weight <= 0) {
+          return {
+            isError: true,
+            text: 'Berat paket belum bisa dihitung. Kirim `items` (product_id, size, quantity) dari hasil cari_produk.',
+          };
+        }
+
         const body = JSON.stringify({
           city: String(args.kota || ''),
           district: String(args.kecamatan || ''),
-          weight: Number(args.berat_gram) || 0,
+          weight,
         });
         const res = await fetch(`${BASE_URL}/api/shipping/jnt-cost`, {
           method: 'POST',

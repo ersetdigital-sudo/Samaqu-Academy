@@ -673,6 +673,7 @@ Deno.serve(async (req) => {
       // URL bertanda tangan yang panjang membuat markup kepotong.
       'ATURAN TEKNIS: saat memanggil catat_closing, JANGAN sertakan proof_url. Cukup nomor, nominal, inbox_id pesan bukti, nama, alamat lengkap, kecamatan, kota, provinsi, kode_pos, dan pesanan.',
       'ATURAN PRIVASI PESANAN: cek_pesanan hanya boleh dipanggil dengan nomor HP customer ini, nomor pesanan, atau nomor resi. Jangan pernah menyebut pesanan/resi yang bukan hasil pencarian nomor customer ini. Kalau belum ada nomor HP/nomor pesanan, tanya dulu — jangan menebak.',
+      'ATURAN ONGKIR: saat memanggil cek_ongkir, kirim `items` (product_id dari cari_produk, size, quantity) untuk SEMUA barang. Berat dihitung server (varian → produk → 1200 g per baju). Jangan mengirim berat_gram hasil hitungan sendiri.',
       WA_AGENT_RULES,
     ]
       .filter(Boolean)
