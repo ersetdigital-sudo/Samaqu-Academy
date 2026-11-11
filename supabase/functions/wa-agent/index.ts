@@ -121,6 +121,111 @@ async function samaquGet(pathname: string): Promise<any> {
   }
 }
 
+/**
+ * Ambil JSON dari database SAMAQU (service role, read-only) dengan timeout + retry.
+ * Dipakai untuk data yang harus selalu ada di prompt (stok bonus), jadi tidak boleh
+ * menggantung lama atau menyerah pada kegagalan sesaat.
+ */
+async function samaquJson(pathname: string, init: RequestInit = {}, attempts = 3): Promise<any> {
+  if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) throw new Error('Database SAMAQU belum dikonfigurasi');
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4_000);
+    try {
+      const res = await fetch(`${SAMAQU_SUPA_URL}${pathname}`, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          apikey: SAMAQU_SERVICE_KEY,
+          Authorization: `Bearer ${SAMAQU_SERVICE_KEY}`,
+          ...(init.headers || {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('gagal membaca data SAMAQU');
+}
+
+/**
+ * Status stok Cover & Hanger untuk bonus promo — dibaca LANGSUNG dari stok produk
+ * (`product_variant_stock`, stok efektif), bukan dari kuota/pengaturan promo.
+ *
+ * Sumber 1: view `product_variant_stock`. Kalau kosong/gagal → sumber 2: RPC
+ * `samaqu_effective_stock_map` (fungsi yang sama yang dipakai halaman ops).
+ * Kalau dua-duanya benar-benar tidak terbaca, blok tetap dikirim dengan larangan
+ * menawarkan bonus — bukan diam seolah stok tersedia.
+ */
+async function bonusStockContext(): Promise<string> {
+  const THOBE = 'Cover Thobe + Hanger';
+  const KOKO = 'Cover Koko + Hanger';
+
+  const fromView = async (): Promise<Map<string, number>> => {
+    const rows = await samaquJson(
+      '/rest/v1/product_variant_stock?select=color,effective_stock&product_id=eq.cover-hanger',
+    );
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error('view kosong');
+    return new Map(rows.map((row: any) => [String(row.color), Number(row.effective_stock) || 0]));
+  };
+
+  const fromRpc = async (): Promise<Map<string, number>> => {
+    const rows = await samaquJson('/rest/v1/rpc/samaqu_effective_stock_map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const map = new Map<string, number>();
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (row?.product_id === 'cover-hanger') map.set(String(row.color), Number(row.effective_stock) || 0);
+    }
+    if (map.size === 0) throw new Error('rpc kosong');
+    return map;
+  };
+
+  let stock: Map<string, number> | null = null;
+  try {
+    stock = await fromView();
+  } catch {
+    try {
+      stock = await fromRpc();
+    } catch {
+      stock = null;
+    }
+  }
+
+  if (!stock) {
+    return [
+      'STATUS BONUS (stok langsung dari produk):',
+      '- Stok Cover & Hanger TIDAK TERBACA saat ini.',
+      '- Jangan menawarkan atau menulis bonus free cover + hanger di balasan ini.',
+    ].join('\n');
+  }
+
+  const thobe = stock.get(THOBE) ?? 0;
+  const koko = stock.get(KOKO) ?? 0;
+  const hasThobe = stock.has(THOBE);
+  const hasKoko = stock.has(KOKO);
+
+  return [
+    'STATUS BONUS (stok langsung dari produk, BUKAN kuota promo):',
+    `- ${THOBE}: ${hasThobe ? thobe : 'tidak ada varian'}`,
+    `- ${KOKO}: ${hasKoko ? koko : 'tidak ada varian'}`,
+    thobe > 0
+      ? '- Pembelian Thobe/Kandora: bonus Cover Thobe masih tersedia, boleh ditawarkan.'
+      : '- Pembelian Thobe/Kandora: Cover Thobe + Hanger HABIS. JANGAN menawarkan atau menulis free cover + hanger. Kalau ditanya, jawab jujur sedang kosong.',
+    koko > 0
+      ? '- Pembelian Koko: bonus Cover Koko masih tersedia, boleh ditawarkan.'
+      : '- Pembelian Koko: Cover Koko + Hanger HABIS. JANGAN menawarkan bonus cover untuk Koko.',
+  ].join('\n');
+}
+
 /** Jeda singkat 4 detik, sama seperti worker lokal; pesan beruntun tetap digabung. */
 async function debounceNewest(): Promise<void> {
   const rows = await samaquGet(
@@ -524,11 +629,15 @@ Deno.serve(async (req) => {
     const question = items.map((item) => String(item.message || '')).join('\n').slice(0, 2000);
     ctx.adLead = looksLikeAdLead(question);
     const memory = await memoryContext(service);
+    // Stok bonus dibaca ulang tiap run dari produk (bukan kuota promo), supaya bot
+    // tidak pernah menawarkan cover yang sudah habis walau memory/persona tidak dibaca.
+    const bonusStock = await bonusStockContext();
 
     const system = [
       waktuSekarangWib(),
       behavior.systemInstructions,
       memory ? `MEMORI ORGANISASI (sudah disetujui):\n${memory}` : '',
+      bonusStock,
       WA_AGENT_RULES,
     ]
       .filter(Boolean)
