@@ -72,18 +72,24 @@ function parseTextToolCalls(content: string): MimoToolCall[] {
   if (!/<tool_call/i.test(text)) return [];
 
   const calls: MimoToolCall[] = [];
-  const callRe = /<tool_call>([\s\S]*?)<\/tool_call>/gi;
-  let block: RegExpExecArray | null;
-  while ((block = callRe.exec(text)) !== null) {
-    const inner = block[1];
+  // Markup ini sering TERPOTONG karena model kehabisan token (proof_url + alamat panjang),
+  // jadi blok diambil sampai `</tool_call>` ATAU akhir teks.
+  const callRe = /<tool_call>([\s\S]*?)(?:<\/tool_call>|$)/gi;
+  for (const block of text.matchAll(callRe)) {
+    const inner = block[1] || '';
     const name = (inner.match(/<function[=\s]+([a-z0-9_]+)\s*>/i)?.[1] || '').toLowerCase();
     if (!name || !WA_TOOL_NAMES.has(name)) continue;
 
     const args: Record<string, string> = {};
-    const paramRe = /<parameter[=\s]+([a-z0-9_]+)\s*>([\s\S]*?)<\/parameter>/gi;
-    let param: RegExpExecArray | null;
-    while ((param = paramRe.exec(inner)) !== null) {
-      args[param[1].toLowerCase()] = param[2].trim();
+    // Parameter juga bisa terpotong: nilainya berhenti di `</parameter>` atau parameter berikut.
+    for (const chunk of inner.split(/<parameter[=\s]+/i).slice(1)) {
+      const parsed = chunk.match(/^([a-z0-9_]+)\s*>([\s\S]*)$/i);
+      if (!parsed) continue;
+      // Buang juga sisa tag yang ikut terpotong (mis. nilai berakhir "</param").
+      args[parsed[1].toLowerCase()] = parsed[2]
+        .split(/<\/parameter>/i)[0]
+        .replace(/<\/?[a-z_]*$/i, '')
+        .trim();
     }
 
     calls.push({
@@ -638,6 +644,10 @@ Deno.serve(async (req) => {
       behavior.systemInstructions,
       memory ? `MEMORI ORGANISASI (sudah disetujui):\n${memory}` : '',
       bonusStock,
+      // proof_url tidak perlu dikirim model: server mengisinya dari pesan bukti, dan
+      // URL bertanda tangan yang panjang membuat markup kepotong.
+      'ATURAN TEKNIS: saat memanggil catat_closing, JANGAN sertakan proof_url. Cukup nomor, nominal, inbox_id pesan bukti, nama, alamat lengkap, kecamatan, kota, provinsi, kode_pos, dan pesanan.',
+      'ATURAN PRIVASI PESANAN: cek_pesanan hanya boleh dipanggil dengan nomor HP customer ini, nomor pesanan, atau nomor resi. Jangan pernah menyebut pesanan/resi yang bukan hasil pencarian nomor customer ini. Kalau belum ada nomor HP/nomor pesanan, tanya dulu — jangan menebak.',
       WA_AGENT_RULES,
     ]
       .filter(Boolean)
@@ -682,7 +692,9 @@ Deno.serve(async (req) => {
         messages,
         tools: WA_TOOLS,
         temperature: behavior.temperature,
-        maxTokens: Math.min(behavior.maxTokens || 500, 500),
+        // Jangan potong di 500: markup tool-call (alamat + nominal) bisa lebih panjang
+        // dan dulu terpotong tepat sebelum `</tool_call>` sehingga tidak pernah dieksekusi.
+        maxTokens: Math.min(behavior.maxTokens || 900, 1500),
         thinking: 'disabled',
         timeoutMs: 45_000,
       });

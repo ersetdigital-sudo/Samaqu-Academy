@@ -620,7 +620,27 @@ export async function executeTool(
       }
 
       case 'cek_pesanan': {
-        const term = searchTerm(String(args.cari || ''));
+        // WAJIB ada identitas yang unik. Tanpa ini, `includes("")` mencocokkan SEMUA
+        // pesanan (pernah kejadian: resi customer lain dikirim ke nomor baru).
+        const raw = String(args.cari || '').trim();
+        const digits = raw.replace(/\D/g, '');
+        const isPhone = digits.length >= 8 && raw.replace(/[\s+.\-()]/g, '') === digits;
+        const isOrderNo = /^(SMQ|CYO|OPS)-/i.test(raw);
+        const isAwb = /^JO[0-9A-Z]{6,}$/i.test(raw);
+        if (!raw) {
+          return {
+            isError: true,
+            text: 'Sebutkan nomor HP customer (atau nomor pesanan / nomor resi) dulu. Jangan membuka daftar pesanan tanpa filter.',
+          };
+        }
+        if (!isPhone && !isOrderNo && !isAwb) {
+          return {
+            isError: true,
+            text: 'Pencarian pesanan harus memakai nomor HP customer, nomor pesanan (SMQ-/CYO-/OPS-), atau nomor resi — jangan pakai nama. Tanya nomor HP customer dulu.',
+          };
+        }
+
+        const term = searchTerm(raw);
         const qs = new URLSearchParams();
         qs.set('search', term);
         qs.set('limit', String(Number(args.limit) || 5));
@@ -630,9 +650,6 @@ export async function executeTool(
           opsFetch('/api/ops/returns?limit=1000'),
         ]);
 
-        const raw = String(args.cari || '').trim();
-        const digits = raw.replace(/\D/g, '');
-        const isPhone = digits.length >= 8 && raw.replace(/[\s+.\-()]/g, '') === digits;
         const phone = isPhone ? normPhone(raw) : '';
         const needle = term.toLowerCase();
         const awbNeedle = raw.toUpperCase().replace(/\s+/g, '');
