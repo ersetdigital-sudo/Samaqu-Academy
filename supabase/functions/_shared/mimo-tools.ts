@@ -38,6 +38,12 @@ export interface MimoToolChatOptions {
   maxTokens?: number;
   thinking?: ThinkingMode;
   timeoutMs?: number;
+  /**
+   * Kalau provider menolak request (400) dan pesan berisi gambar, coba sekali lagi
+   * TANPA bagian gambar. Dipakai bot WA: URL lampiran Fonnte bisa kedaluwarsa dan
+   * provider membalas 400 "Param Incorrect" untuk gambar yang tidak bisa diambil.
+   */
+  retryWithoutImages?: boolean;
 }
 
 export interface MimoToolChatResult {
@@ -90,34 +96,64 @@ function contentText(content: unknown): string {
  * Dipakai bot WhatsApp server: model boleh memanggil tool SAMAQU (harga, stok,
  * ongkir, pesanan, lead) sebelum menyusun balasan.
  */
+function hasImageParts(messages: ToolChatMessage[]): boolean {
+  return messages.some((message) =>
+    Array.isArray(message.content) && message.content.some((part) => part.type === 'image_url'),
+  );
+}
+
+/** Buang semua `image_url`; sisakan teksnya (atau beri catatan kalau tidak ada teks). */
+function stripImageParts(messages: ToolChatMessage[]): ToolChatMessage[] {
+  return messages.map((message) => {
+    if (!Array.isArray(message.content)) return message;
+    const texts = message.content
+      .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n')
+      .trim();
+    return {
+      ...message,
+      content: texts || '(lampiran gambar tidak bisa dibaca)',
+    };
+  });
+}
+
 export async function mimoChatWithTools(options: MimoToolChatOptions): Promise<MimoToolChatResult> {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? CHAT_TIMEOUT_MS);
 
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${options.apiKey}`,
-        'api-key': options.apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: options.model,
-        messages: options.messages,
-        tools: options.tools,
-        tool_choice: 'auto',
-        temperature: options.temperature ?? 0.4,
-        max_completion_tokens: options.maxTokens ?? 700,
-        thinking: { type: options.thinking ?? 'disabled' },
-        stream: false,
-      }),
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timer);
+  const send = async (messages: ToolChatMessage[]): Promise<Response> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? CHAT_TIMEOUT_MS);
+    try {
+      return await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+          'api-key': options.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: options.model,
+          messages,
+          tools: options.tools,
+          tool_choice: 'auto',
+          temperature: options.temperature ?? 0.4,
+          max_completion_tokens: options.maxTokens ?? 700,
+          thinking: { type: options.thinking ?? 'disabled' },
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  let response = await send(options.messages);
+  // Gambar yang tidak bisa diambil provider (mis. URL Fonnte kedaluwarsa) membuat
+  // seluruh request ditolak 400. Ulangi sekali tanpa gambar supaya run tidak mati.
+  if (!response.ok && response.status === 400 && options.retryWithoutImages && hasImageParts(options.messages)) {
+    response = await send(stripImageParts(options.messages));
   }
 
   if (!response.ok) {

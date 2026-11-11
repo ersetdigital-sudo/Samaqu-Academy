@@ -161,6 +161,31 @@ async function samaquJson(pathname: string, init: RequestInit = {}, attempts = 3
 }
 
 /**
+ * Cek apakah URL lampiran benar-benar gambar yang bisa diambil.
+ *
+ * URL media Fonnte kedaluwarsa (404 `text/plain`); kalau URL seperti itu dikirim ke
+ * provider sebagai `image_url`, seluruh request ditolak 400 dan run mati.
+ */
+async function isFetchableImage(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  try {
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
+    const type = String(res.headers.get('content-type') || '').toLowerCase();
+    try {
+      await res.body?.cancel();
+    } catch {
+      // isi tidak dipakai
+    }
+    return res.ok && type.startsWith('image/');
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Status stok Cover & Hanger untuk bonus promo — dibaca LANGSUNG dari stok produk
  * (`product_variant_stock`, stok efektif), bukan dari kuota/pengaturan promo.
  *
@@ -660,13 +685,27 @@ Deno.serve(async (req) => {
         : '';
 
     // Lampiran Fonnte (media_url) ikut dikirim sebagai image_url — bukan cuma teks.
-    const imageParts = items
-      .map((item) => String(item.media_url || '').trim())
-      .filter((url) => /^https?:\/\//i.test(url))
-      .slice(0, 3)
-      .map((url) => ({ type: 'image_url' as const, image_url: { url } }));
+    // URL Fonnte KEDALUWARSA (404 text/plain); mengirimnya membuat provider menolak
+    // seluruh request dengan 400. Jadi periksa dulu, hanya kirim yang benar-benar gambar.
+    const candidateImages = [
+      ...new Set(
+        items
+          .map((item) => String(item.media_url || '').trim())
+          .filter((url) => /^https?:\/\//i.test(url)),
+      ),
+    ].slice(0, 3);
+    const checkedImages = await Promise.all(
+      candidateImages.map(async (url) => ({ url, ok: await isFetchableImage(url) })),
+    );
+    const imageParts = checkedImages
+      .filter((entry) => entry.ok)
+      .map((entry) => ({ type: 'image_url' as const, image_url: { url: entry.url } }));
+    const droppedImages = checkedImages.length - imageParts.length;
+    const imageNote = droppedImages > 0
+      ? 'CATATAN SISTEM: ada lampiran gambar yang gagal diunduh (mungkin kedaluwarsa). Jangan mengaku sudah melihatnya; minta customer kirim ulang kalau gambarnya perlu dibaca.\n'
+      : '';
 
-    const userText = `${prefix}${inboxPrompt(items)}`;
+    const userText = `${prefix}${imageNote}${inboxPrompt(items)}`;
     const messages: ToolChatMessage[] = [
       { role: 'system', content: system },
       {
@@ -697,6 +736,8 @@ Deno.serve(async (req) => {
         maxTokens: Math.min(behavior.maxTokens || 900, 1500),
         thinking: 'disabled',
         timeoutMs: 45_000,
+        // Kalau provider tetap menolak karena gambar, ulangi sekali tanpa gambar.
+        retryWithoutImages: true,
       });
 
       // Catat token & perkiraan biaya supaya halaman AI Performance bisa menghitung
