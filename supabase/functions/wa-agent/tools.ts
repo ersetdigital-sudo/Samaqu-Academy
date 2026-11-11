@@ -184,6 +184,38 @@ export const WA_TOOLS: MimoToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'rekap_pesanan',
+      description:
+        'WAJIB dipakai SEBELUM mengirim nomor rekening. Menghitung harga tiap barang, total berat ' +
+        '(dari berat varian/produk), ongkir J&T untuk tiap layanan, dan total akhir — semuanya dari ' +
+        'database, bukan hitungan model. Kirim hasilnya ke customer apa adanya, minta konfirmasi, ' +
+        'baru kirim rekening.',
+      parameters: {
+        type: 'object',
+        properties: {
+          kota: { type: 'string', description: 'Kota/kabupaten tujuan' },
+          kecamatan: { type: 'string', description: 'Kecamatan tujuan' },
+          items: {
+            type: 'array',
+            description: 'Semua barang yang dipesan.',
+            items: {
+              type: 'object',
+              properties: {
+                product_id: { type: 'string', description: 'id dari hasil cari_produk' },
+                size: { type: 'string', description: 'Ukuran, mis. M / XL' },
+                quantity: { type: 'integer', description: 'Jumlah' },
+              },
+              required: ['product_id', 'quantity'],
+            },
+          },
+        },
+        required: ['kota', 'kecamatan', 'items'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'cari_area_ongkir',
       description: 'Cari kecamatan yang dikenali J&T untuk sebuah nama KOTA. Pakai sebelum cek_ongkir kalau ejaan ragu.',
       parameters: {
@@ -662,6 +694,92 @@ export async function executeTool(
             berat_gram: Number(args.berat_gram) || 0,
             configured: json?.configured,
           }),
+        };
+      }
+
+      case 'rekap_pesanan': {
+        const items = Array.isArray(args.items) ? args.items : [];
+        if (!items.length) return { isError: true, text: 'items wajib diisi.' };
+
+        const [productsJson, variantsJson] = await Promise.all([
+          opsFetch('/api/ops/products'),
+          opsFetch('/api/ops/product-variants'),
+        ]);
+        const products = new Map<string, any>(
+          (productsJson?.items || []).map((p: any) => [String(p.id), p]),
+        );
+        const variants = new Map<string, any>(
+          (variantsJson?.items || []).map((v: any) => [String(v.product_id), v]),
+        );
+
+        const lines: string[] = [];
+        let subtotal = 0;
+        let weight = 0;
+
+        for (const item of items) {
+          const productId = String(item?.product_id || '').trim();
+          const size = String(item?.size || '').toUpperCase();
+          const quantity = Math.max(1, Number(item?.quantity) || 1);
+          const product = products.get(productId);
+          if (!product) {
+            return {
+              isError: true,
+              text: `Produk "${productId}" tidak ditemukan. Ambil product_id dari hasil cari_produk.`,
+            };
+          }
+          const variant = variants.get(productId);
+          const price =
+            Number(variant?.prices?.[size]) ||
+            Number(product.price) ||
+            0;
+          const unitWeight =
+            Number(variant?.weights?.[size]) ||
+            Number(variant?.product_weight) ||
+            Number(product.weight) ||
+            1200;
+          subtotal += price * quantity;
+          weight += unitWeight * quantity;
+          const name = [product.name, product.series].filter(Boolean).join(' ');
+          lines.push(
+            `• ${name} — ${size || '-'} ×${quantity} — ${rupiah(price * quantity)}`,
+          );
+        }
+
+        const ongkirRes = await fetch(`${BASE_URL}/api/shipping/jnt-cost`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city: String(args.kota || ''),
+            district: String(args.kecamatan || ''),
+            weight,
+          }),
+        });
+        const ongkirJson = await ongkirRes.json().catch(() => null);
+        const services = Array.isArray(ongkirJson?.data) ? ongkirJson.data : [];
+
+        const parts = [
+          'REKAP PESANAN (harga, berat, dan ongkir dari database — jangan diubah):',
+          ...lines,
+          `Subtotal: ${rupiah(subtotal)}`,
+          `Berat paket: ${weight.toLocaleString('id-ID')} g`,
+        ];
+        if (services.length) {
+          parts.push('Ongkir J&T:');
+          for (const service of services) {
+            const cost = Number(service.cost) || 0;
+            parts.push(
+              `• ${service.service || 'J&T'} — ${rupiah(cost)}${service.etd ? ` (${service.etd})` : ''} → Total ${rupiah(subtotal + cost)}`,
+            );
+          }
+        } else {
+          parts.push('Ongkir J&T: tidak ada layanan untuk alamat ini (teruskan ke admin).');
+        }
+
+        return {
+          text:
+            parts.join('\n') +
+            '\n\nKirim rekap ini ke customer APA ADANYA, lalu minta konfirmasi. ' +
+            'Nomor rekening baru boleh dikirim setelah customer menyetujui rekap ini.',
         };
       }
 

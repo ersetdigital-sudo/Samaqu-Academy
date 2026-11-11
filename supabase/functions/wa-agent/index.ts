@@ -674,6 +674,7 @@ Deno.serve(async (req) => {
       'ATURAN TEKNIS: saat memanggil catat_closing, JANGAN sertakan proof_url. Cukup nomor, nominal, inbox_id pesan bukti, nama, alamat lengkap, kecamatan, kota, provinsi, kode_pos, dan pesanan.',
       'ATURAN PRIVASI PESANAN: cek_pesanan hanya boleh dipanggil dengan nomor HP customer ini, nomor pesanan, atau nomor resi. Jangan pernah menyebut pesanan/resi yang bukan hasil pencarian nomor customer ini. Kalau belum ada nomor HP/nomor pesanan, tanya dulu — jangan menebak.',
       'ATURAN ONGKIR: saat memanggil cek_ongkir, kirim `items` (product_id dari cari_produk, size, quantity) untuk SEMUA barang. Berat dihitung server (varian → produk → 1200 g per baju). Jangan mengirim berat_gram hasil hitungan sendiri.',
+      'ALUR REKENING: sebelum mengirim nomor rekening, WAJIB panggil rekap_pesanan (items + kota + kecamatan). Kirim hasil rekap apa adanya — jangan menambah, mengurangi, atau membulatkan angka. Minta konfirmasi. Nomor rekening baru dikirim setelah customer menyetujui rekap itu. Kalau rekap berbeda dari hitungan customer, jelaskan dan tunggu persetujuan.',
       WA_AGENT_RULES,
     ]
       .filter(Boolean)
