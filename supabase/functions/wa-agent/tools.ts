@@ -156,7 +156,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
       name: 'cek_ongkir',
       description:
         'Hitung tarif J&T dari Depok ke kota + kecamatan tujuan. UTAMAKAN `items`: server menghitung ' +
-        'berat sendiri dari berat varian/produk (fallback 1200 g per baju). Jangan menghitung berat manual.',
+        'berat sendiri dari berat varian per ukuran, lalu berat produk (fallback 1000 g). Jangan menghitung berat manual.',
       parameters: {
         type: 'object',
         properties: {
@@ -631,8 +631,8 @@ export async function executeTool(
 
       case 'cek_ongkir': {
         // Berat dihitung SERVER dari item, bukan dari hitungan model. Dulu model mengirim
-        // berat satu baju (1200 g) untuk pesanan 2 baju sehingga tarif keluar 9.000
-        // padahal 2.400 g seharusnya 27.000.
+        // berat satu baju untuk pesanan 2 baju sehingga tarif keluar 9.000 padahal
+        // berat total seharusnya lebih tinggi. Berat tiap baju diambil dari produk.
         const items = Array.isArray(args.items) ? args.items : [];
         let weight = Number(args.berat_gram) || 0;
 
@@ -659,7 +659,7 @@ export async function executeTool(
               Number(variant?.weights?.[size]) ||
               Number(variant?.product_weight) ||
               Number(products.get(productId)?.weight) ||
-              1200;
+              1000;
             total += unit * quantity;
           }
           if (total > 0) weight = total;
@@ -736,7 +736,7 @@ export async function executeTool(
             Number(variant?.weights?.[size]) ||
             Number(variant?.product_weight) ||
             Number(product.weight) ||
-            1200;
+            1000;
           subtotal += price * quantity;
           weight += unitWeight * quantity;
           const name = [product.name, product.series].filter(Boolean).join(' ');
