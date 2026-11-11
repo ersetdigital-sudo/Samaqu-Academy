@@ -687,15 +687,32 @@ Deno.serve(async (req) => {
     // Lampiran Fonnte (media_url) ikut dikirim sebagai image_url — bukan cuma teks.
     // URL Fonnte KEDALUWARSA (404 text/plain); mengirimnya membuat provider menolak
     // seluruh request dengan 400. Jadi periksa dulu, hanya kirim yang benar-benar gambar.
-    const candidateImages = [
-      ...new Set(
-        items
-          .map((item) => String(item.media_url || '').trim())
-          .filter((url) => /^https?:\/\//i.test(url)),
-      ),
-    ].slice(0, 3);
+    // Sumber gambar: ARSIP R2 (`media_key` → endpoint wa-media, berlaku 7 hari) lebih dulu,
+    // baru link Fonnte. Link Fonnte hanya sementara — setelah kedaluwarsa jadi 404 dan
+    // provider menolak request (400). Arsip sudah dibuat webhook saat pesan masuk.
+    const candidateImages: string[] = [];
+    for (const item of items) {
+      const hasMedia = Boolean(item.media_key) || Boolean(item.media_url);
+      if (!hasMedia) continue;
+      const inboxId = String(item.id || '').trim();
+      if (inboxId) {
+        try {
+          const signed = await opsFetch(`/api/ops/wa-media?inbox_id=${encodeURIComponent(inboxId)}`);
+          const signedUrl = String(signed?.url || '').trim();
+          if (signedUrl) {
+            candidateImages.push(signedUrl);
+            continue;
+          }
+        } catch {
+          // arsip belum ada → jatuh ke link Fonnte
+        }
+      }
+      const direct = String(item.media_url || '').trim();
+      if (direct) candidateImages.push(direct);
+    }
+    const uniqueImages = [...new Set(candidateImages.filter((url) => /^https?:\/\//i.test(url)))].slice(0, 3);
     const checkedImages = await Promise.all(
-      candidateImages.map(async (url) => ({ url, ok: await isFetchableImage(url) })),
+      uniqueImages.map(async (url) => ({ url, ok: await isFetchableImage(url) })),
     );
     const imageParts = checkedImages
       .filter((entry) => entry.ok)
