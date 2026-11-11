@@ -54,6 +54,47 @@ function looksLikeAdLead(text: string): boolean {
   return t.includes('info lebih lanjut') && t.includes('cara order');
 }
 
+/** Nama tool yang boleh dijalankan dari markup teks (batasi ke daftar resmi). */
+const WA_TOOL_NAMES = new Set(WA_TOOLS.map((tool) => tool.function.name));
+
+/**
+ * Model kadang menulis panggilan tool sebagai TEKS, bukan `tool_calls` terstruktur:
+ *
+ *   <tool_call><function=catat_closing><parameter=nomor>628…</parameter></tool_call>
+ *
+ * Tanpa ini markup tersebut cuma jadi teks yang dibuang sebelum dikirim ke customer
+ * (`cleanForCustomer`), sehingga aksinya — mis. mencatat closing — tidak pernah jalan.
+ * Dipakai HANYA kalau provider tidak mengirim `tool_calls`; nama tool wajib ada di
+ * daftar `WA_TOOLS`, dan hasilnya selalu argumen JSON yang divalidasi `executeTool`.
+ */
+function parseTextToolCalls(content: string): MimoToolCall[] {
+  const text = String(content || '');
+  if (!/<tool_call/i.test(text)) return [];
+
+  const calls: MimoToolCall[] = [];
+  const callRe = /<tool_call>([\s\S]*?)<\/tool_call>/gi;
+  let block: RegExpExecArray | null;
+  while ((block = callRe.exec(text)) !== null) {
+    const inner = block[1];
+    const name = (inner.match(/<function[=\s]+([a-z0-9_]+)\s*>/i)?.[1] || '').toLowerCase();
+    if (!name || !WA_TOOL_NAMES.has(name)) continue;
+
+    const args: Record<string, string> = {};
+    const paramRe = /<parameter[=\s]+([a-z0-9_]+)\s*>([\s\S]*?)<\/parameter>/gi;
+    let param: RegExpExecArray | null;
+    while ((param = paramRe.exec(inner)) !== null) {
+      args[param[1].toLowerCase()] = param[2].trim();
+    }
+
+    calls.push({
+      id: `text_${name}_${calls.length}_${Date.now()}`,
+      type: 'function',
+      function: { name, arguments: JSON.stringify(args) },
+    });
+  }
+  return calls;
+}
+
 /** Buang baris laporan internal dari teks yang akan dikirim ke customer. */
 function cleanForCustomer(text: string): string {
   // JANGAN pernah kirim markup tool ke customer. Model kadang menulis
@@ -520,6 +561,8 @@ Deno.serve(async (req) => {
     const usedTools: string[] = [];
     let answer = '';
     let rounds = 0;
+    /** Berapa kali panggilan tool dibaca dari markup teks (dibatasi supaya tidak loop). */
+    let textFallbackRounds = 0;
 
     for (; rounds < MAX_ROUNDS; rounds++) {
       const startedAt = Date.now();
@@ -548,18 +591,35 @@ Deno.serve(async (req) => {
         estimatedCost: estimateCost(result.usage, priceForModel(row.default_model) || row.pricing),
       });
 
-      if (!result.toolCalls.length) {
+      // Provider kadang mengirim panggilan tool sebagai TEKS di `content`. Jalankan
+      // lewat jalur yang sama seperti tool_calls terstruktur, supaya aksinya tidak hilang.
+      const viaText = result.toolCalls.length === 0;
+      const calls = viaText ? parseTextToolCalls(result.content) : result.toolCalls;
+
+      if (!calls.length) {
+        // Tidak ada tool sama sekali -> ini balasan final. Teks yang berisi markup
+        // tetap dibuang oleh cleanForCustomer sebelum dikirim ke customer.
         answer = result.content;
         break;
       }
 
+      if (viaText) {
+        if (textFallbackRounds >= 2) {
+          // Model terus menulis markup walau sudah dieksekusi: berhenti, jangan loop.
+          answer = '';
+          break;
+        }
+        textFallbackRounds += 1;
+      }
+
       messages.push({
         role: 'assistant',
-        content: result.content || null,
-        tool_calls: result.toolCalls as MimoToolCall[],
+        // Markup teks tidak diumpan balik ke model supaya tidak meniru formatnya.
+        content: viaText ? null : result.content || null,
+        tool_calls: calls,
       });
 
-      for (const call of result.toolCalls) {
+      for (const call of calls) {
         usedTools.push(call.function.name);
         const executed = await executeTool(call.function.name, call.function.arguments, ctx);
         messages.push({
