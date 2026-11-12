@@ -49,6 +49,46 @@ function rapikanNomor(sender: string): string {
   return digits.startsWith('62') ? `0${digits.slice(2)}` : digits;
 }
 
+/**
+ * Digit nomor tanpa awalan 62/0, supaya "0821…", "62821…", dan "821…" dianggap sama.
+ * Dipakai untuk pencarian: nomor tersimpan sebagai 62xxx sementara admin sering mengetik 08xxx.
+ */
+function digitNomor(value: string): string {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('62')) return digits.slice(2);
+  if (digits.startsWith('0')) return digits.replace(/^0+/, '');
+  return digits;
+}
+
+/**
+ * Cocokkan satu percakapan dengan kata kunci pencarian.
+ *
+ * Nama dan isi pesan terakhir dicocokkan sebagai teks biasa. Untuk nomor, kedua sisi
+ * dinormalkan lebih dulu — tanpa ini mengetik "0821…" tidak pernah menemukan "62821…".
+ * Pencocokan nomor hanya berlaku kalau kata kuncinya minimal 4 digit, supaya mengetik
+ * satu angka tidak memunculkan semua percakapan.
+ */
+function cocokCari(item: WaConversation, kataKunci: string): boolean {
+  const query = String(kataKunci || '').trim().toLowerCase();
+  if (!query) return true;
+
+  const teks = [item.name, item.lastMessage]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  if (teks.some((value) => value.includes(query))) return true;
+
+  const digitKueri = digitNomor(query);
+  if (digitKueri.length >= 4) {
+    const digitSender = digitNomor(item.sender);
+    if (digitSender.includes(digitKueri)) return true;
+    const digitNama = digitNomor(item.name || '');
+    return digitNama.length >= 4 && digitNama.includes(digitKueri);
+  }
+
+  // Kata kunci pendek: tetap cocokkan nomor apa adanya (perilaku lama), supaya "+62…" utuh tetap ketemu.
+  return String(item.sender || '').toLowerCase().includes(query);
+}
+
 function inisial(name: string, sender: string): string {
   const text = (name || rapikanNomor(sender) || '?').trim();
   const parts = text.split(/\s+/).filter(Boolean);
@@ -179,13 +219,10 @@ export function WaInboxView() {
   }, [messages]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trim();
     return items.filter((item) => {
       if (onlyPending && item.pending === 0) return false;
-      if (!q) return true;
-      return [item.name, item.sender, item.lastMessage]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q));
+      return cocokCari(item, q);
     });
   }, [items, search, onlyPending]);
 
