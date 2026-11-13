@@ -15,6 +15,8 @@ import {
   normalizePhone,
   POTONG_PANJANG_LABEL,
 } from '../_shared/wa/closing-core.mjs';
+import { coverForCategory, readCoverStock } from './cover-stock.ts';
+import { buildRekap, type RekapLine, type RekapService } from './rekap-format.ts';
 
 /**
  * Tool bot WhatsApp server SAMAQU.
@@ -186,13 +188,19 @@ export const WA_TOOLS: MimoToolDefinition[] = [
     function: {
       name: 'rekap_pesanan',
       description:
-        'WAJIB dipakai SEBELUM mengirim nomor rekening. Menghitung harga tiap barang, total berat ' +
-        '(dari berat varian/produk), ongkir J&T untuk tiap layanan, dan total akhir — semuanya dari ' +
-        'database, bukan hitungan model. Kirim hasilnya ke customer apa adanya, minta konfirmasi, ' +
-        'baru kirim rekening.',
+        'WAJIB dipakai SEBELUM mengirim nomor rekening. Menghitung harga, berat, ongkir J&T, total, ' +
+        'DAN memutuskan bonus cover + hanger (cek stok cover + customer baru) dari database. ' +
+        'Hasilnya teks rekap siap kirim: salin persis lewat kirim_wa, jangan diubah atau ditambah. ' +
+        'Rekening baru dikirim setelah customer menyetujui rekap.',
       parameters: {
         type: 'object',
         properties: {
+          inbox_id: { type: 'string', description: 'inbox_id pesan customer (nomor WA diambil dari sini untuk cek customer baru)' },
+          nomor: { type: 'string', description: 'Nomor WA customer, hanya kalau data dikirim dari nomor admin (baris "Nomor:")' },
+          layanan: { type: 'string', description: 'Layanan J&T yang sudah dipilih customer, mis. EZ / ECO. Kosongkan kalau belum dipilih.' },
+          nama: { type: 'string', description: 'Nama penerima dari customer (bukan dari bukti transfer)' },
+          alamat: { type: 'string', description: 'Alamat lengkap penerima apa adanya (jalan, RT/RW, kelurahan, kecamatan, kota, kode pos)' },
+          potong_panjang: { type: 'string', description: 'Isi kalau customer minta potong panjang, mis. "5 cm"' },
           kota: { type: 'string', description: 'Kota/kabupaten tujuan' },
           kecamatan: { type: 'string', description: 'Kecamatan tujuan' },
           items: {
@@ -575,6 +583,40 @@ async function findLeadsByKontak(kontak: string): Promise<any[]> {
   });
 }
 
+/** Status pesanan yang membuat customer dianggap LAMA. Belum Bayar & Dibatalkan tidak dihitung. */
+const COUNTED_ORDER_STATUS = new Set(['diproses', 'dikirim', 'selesai']);
+
+/** true = belum pernah punya pesanan terhitung; null = riwayat tidak terbaca. */
+async function isFirstPurchase(nomor: string): Promise<boolean | null> {
+  const phone = normPhone(nomor);
+  if (!phone) return null;
+  try {
+    const json = await opsFetch(`/api/ops/orders?search=${encodeURIComponent(phone)}&limit=50`);
+    if (!Array.isArray(json?.orders)) return null;
+    return !json.orders.some(
+      (o: any) => normPhone(o.customer_whatsapp) === phone && COUNTED_ORDER_STATUS.has(String(o.status || '')),
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Bonus cover + hanger: hanya kalau produknya dapat cover, stok cover itu > 0, DAN customer
+ * baru. Ragu (data tidak terbaca) = tidak ada bonus; lebih aman daripada menjanjikan.
+ */
+async function decideBonus(covers: Set<string>, nomor: string): Promise<{ cover: string | null; reason: string }> {
+  if (!covers.size) return { cover: null, reason: 'produk tidak termasuk promo cover' };
+  if (!nomor) return { cover: null, reason: 'nomor customer tidak diketahui' };
+  const [stock, first] = await Promise.all([readCoverStock(), isFirstPurchase(nomor)]);
+  if (first === null) return { cover: null, reason: 'riwayat pesanan tidak terbaca' };
+  if (!first) return { cover: null, reason: 'customer lama (sudah ada pesanan Lunas/Dikirim/Selesai)' };
+  if (!stock) return { cover: null, reason: 'stok cover tidak terbaca' };
+  const cover = [...covers].find((name) => (stock.get(name) ?? 0) > 0);
+  if (!cover) return { cover: null, reason: 'stok cover habis' };
+  return { cover, reason: 'customer baru dan stok cover ada' };
+}
+
 function wibToday(): string {
   const w = new Date(Date.now() + 7 * 60 * 60 * 1000);
   return w.toISOString().slice(0, 10);
@@ -712,8 +754,8 @@ export async function executeTool(
           (variantsJson?.items || []).map((v: any) => [String(v.product_id), v]),
         );
 
-        const lines: string[] = [];
-        let subtotal = 0;
+        const lines: RekapLine[] = [];
+        const covers = new Set<string>();
         let weight = 0;
 
         for (const item of items) {
@@ -737,12 +779,13 @@ export async function executeTool(
             Number(variant?.product_weight) ||
             Number(product.weight) ||
             1000;
-          subtotal += price * quantity;
           weight += unitWeight * quantity;
-          const name = [product.name, product.series].filter(Boolean).join(' ');
-          lines.push(
-            `• ${name} — ${size || '-'} ×${quantity} — ${rupiah(price * quantity)}`,
-          );
+          const kain = product.jenis_kain?.name || product.kain;
+          const label = [product.name, product.series].filter(Boolean).join(' ') +
+            (kain ? ` (kain ${kain})` : '') + (size ? ` ${size}` : '');
+          lines.push({ label, quantity, amount: price * quantity });
+          const cover = coverForCategory(product.category);
+          if (cover) covers.add(cover);
         }
 
         const ongkirRes = await fetch(`${BASE_URL}/api/shipping/jnt-cost`, {
@@ -755,31 +798,47 @@ export async function executeTool(
           }),
         });
         const ongkirJson = await ongkirRes.json().catch(() => null);
-        const services = Array.isArray(ongkirJson?.data) ? ongkirJson.data : [];
-
-        const parts = [
-          'REKAP PESANAN (harga, berat, dan ongkir dari database — jangan diubah):',
-          ...lines,
-          `Subtotal: ${rupiah(subtotal)}`,
-          `Berat paket: ${weight.toLocaleString('id-ID')} g`,
-        ];
-        if (services.length) {
-          parts.push('Ongkir J&T:');
-          for (const service of services) {
-            const cost = Number(service.cost) || 0;
-            parts.push(
-              `• ${service.service || 'J&T'} — ${rupiah(cost)}${service.etd ? ` (${service.etd})` : ''} → Total ${rupiah(subtotal + cost)}`,
-            );
-          }
-        } else {
-          parts.push('Ongkir J&T: tidak ada layanan untuk alamat ini (teruskan ke admin).');
+        const services: RekapService[] = (Array.isArray(ongkirJson?.data) ? ongkirJson.data : []).map(
+          (s: any) => ({
+            name: String(s.service || 'Reguler').replace(/^j&t\s*/i, '').trim(),
+            cost: Number(s.cost) || 0,
+            etd: s.etd ? String(s.etd) : undefined,
+          }),
+        );
+        if (!services.length) {
+          return { text: 'Ongkir J&T: tidak ada layanan untuk alamat ini. Oper ke admin, jangan kirim rekap.' };
         }
 
+        // Bonus diputuskan di sini, bukan oleh model: perlu stok cover > 0 DAN customer baru.
+        const nomor = ctx.senders.get(String(args.inbox_id || '')) || normalizePhone(args.nomor);
+        const bonus = await decideBonus(covers, nomor);
+
+        const shipTo = [String(args.nama || '').trim(), String(args.alamat || '').trim()]
+          .filter(Boolean)
+          .join(', ');
+        const rekap = buildRekap({
+          lines,
+          services,
+          chosenService: String(args.layanan || ''),
+          bonus: bonus.cover,
+          potongPanjang: args.potong_panjang
+            ? { label: String(args.potong_panjang).trim(), amount: 35_000 }
+            : null,
+          shipTo,
+        });
+
         return {
-          text:
-            parts.join('\n') +
-            '\n\nKirim rekap ini ke customer APA ADANYA, lalu minta konfirmasi. ' +
-            'Nomor rekening baru boleh dikirim setelah customer menyetujui rekap ini.',
+          text: [
+            'TEKS UNTUK CUSTOMER (kirim lewat kirim_wa PERSIS seperti di antara garis, tanpa ditambah/diubah):',
+            '-----',
+            rekap.customerText,
+            '-----',
+            `CATATAN INTERNAL (jangan dikirim): bonus ${bonus.cover ? 'YA' : 'TIDAK'} — ${bonus.reason}.`,
+            rekap.final
+              ? 'Rekening baru dikirim setelah customer menyetujui rekap ini.'
+              : 'Layanan belum dipilih: tunggu pilihan customer, lalu panggil rekap_pesanan lagi dengan `layanan`.',
+            shipTo ? '' : 'Nama/alamat belum diisi: tanyakan dulu sebelum rekap final.',
+          ].filter(Boolean).join('\n'),
         };
       }
 

@@ -700,6 +700,23 @@ Docs contradicted the original assumptions. Authoritative findings:
   migration 0012 memang belum dijalankan — jadi tidak ada UPDATE data yang diperlukan.
 - Istilah lain yang tidak berkaitan dengan input transaksi tidak diubah.
 
+### 2026-11-14 — Rekap pesanan WA: bonus diputuskan tool, satu rekap tanpa "invoice" kedua
+
+- Temuan biaya MiMo: fitur `wa` ±35 rb token prompt per panggilan, ±5 panggilan per pesan
+  (putaran tool), ±28 jt token/hari. Isi prompt: `behavior.systemInstructions` 38,5 rb karakter
+  + seluruh 26 memory published 44 rb karakter. Draf behavior ringkas belum dipasang.
+- `rekap_pesanan` kini memutuskan baris Bonus sendiri (`decideBonus`): produk dapat cover
+  (Thobe/Kandora → Cover Thobe, Koko → Cover Koko), stok cover > 0, DAN customer baru
+  (tidak ada pesanan diproses/dikirim/selesai untuk nomor itu). Data tidak terbaca = tanpa bonus.
+  Nomor diambil dari `inbox_id` (ctx.senders), fallback `nomor` untuk data dari admin.
+- Output tool = teks siap kirim (`rekap-format.ts`, fungsi murni): item, potong panjang, bonus,
+  ongkir, total, "Dikirim ke <nama, alamat>", "Sudah benar semua Ka?". Dua layanan belum dipilih
+  → daftar pilihan + total masing-masing. Rekening dikirim terpisah setelah customer setuju.
+- Stok cover dipindah ke `wa-agent/cover-stock.ts` (dipakai prompt STATUS BONUS dan tool).
+- Verifikasi: `npm run typecheck` lulus (folder functions di-exclude); tsc terarah untuk file
+  wa-agent dengan shim Deno bersih; `buildRekap` diuji 3 skenario dengan Node (total benar).
+  **Belum di-deploy** dan belum diuji end-to-end ke WA (Deno tidak terpasang di mesin ini).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
