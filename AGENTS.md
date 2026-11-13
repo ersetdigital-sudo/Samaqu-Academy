@@ -717,6 +717,25 @@ Docs contradicted the original assumptions. Authoritative findings:
   wa-agent dengan shim Deno bersih; `buildRekap` diuji 3 skenario dengan Node (total benar).
   **Belum di-deploy** dan belum diuji end-to-end ke WA (Deno tidak terpasang di mesin ini).
 
+### 2026-11-14 — Closing WA jadi satu langkah: draft Perlu Review dulu, baru kabari admin
+
+- Masalah: `catat_closing` mengirim "Nanti tolong diinput ya" ke admin SEBELUM
+  `buat_draft_transaksi` jalan, dan di `wa_agent_runs` ada run yang hanya memanggil
+  `catat_closing` (tanpa draft). Admin tidak tahu harus input manual atau approve → risiko dobel.
+- `catat_closing` kini memanggil `runClosing` (`wa-agent/closing.ts`): catat `wa_closings`
+  (anti-dobel 48 jam tetap) → simpan draft `/api/ops/perlu-review` (bonus cover diputuskan
+  server lewat `decideBonus`, bukti = URL bertanda tangan server) → kirim pesan admin sesuai hasil.
+  Tool `buat_draft_transaksi` dihapus dari `WA_TOOLS`; hemat satu putaran MiMo per closing.
+- `buildClosingAdminMessage` menerima `draft`: "saved" → "draft sudah masuk Perlu Review. Tolong
+  dicek & approve ya." tanpa blok TEMPEL ALAMAT; "failed" → "draft GAGAL dibuat. Tolong input
+  manual ya." dengan blok TEMPEL ALAMAT/PESANAN seperti dulu.
+- Prompt (`index.ts` ATURAN TEKNIS, `WA_AGENT_RULES` 15/19) menyebut satu panggilan. Behavior di
+  `ai_settings` (production) masih menyebut `buat_draft_transaksi` sampai draf ringkas dipasang;
+  panggilan itu akan dijawab "Tool tidak dikenal" (tidak berbahaya, buang satu putaran).
+- Verifikasi: tsc terarah (index/tools/closing, shim Deno) bersih; `npm run typecheck` lulus;
+  dua versi pesan admin dirender dengan Node. **Belum di-deploy**, belum diuji ke endpoint
+  perlu-review sungguhan.
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty

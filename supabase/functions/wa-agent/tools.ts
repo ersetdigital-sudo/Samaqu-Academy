@@ -8,13 +8,8 @@ import {
   fetchJntStatus,
   formatAcademyProductDetail,
 } from '../_shared/wa/tools-core.mjs';
-import {
-  buildClosingAdminMessage,
-  buildClosingAddress,
-  missingClosingFields,
-  normalizePhone,
-  POTONG_PANJANG_LABEL,
-} from '../_shared/wa/closing-core.mjs';
+import { normalizePhone, POTONG_PANJANG_LABEL } from '../_shared/wa/closing-core.mjs';
+import { runClosing } from './closing.ts';
 import { coverForCategory, readCoverStock } from './cover-stock.ts';
 import { buildRekap, type RekapLine, type RekapService } from './rekap-format.ts';
 
@@ -290,15 +285,31 @@ export const WA_TOOLS: MimoToolDefinition[] = [
     function: {
       name: 'catat_closing',
       description:
-        'Catat closing AI setelah customer mengirim bukti transfer dan nominalnya terbaca. ' +
-        'Jangan dipakai untuk mencatat total/penawaran yang belum dibayar. Wajib isi inbox_id bukti.',
+        'Satu langkah closing setelah bukti transfer terbaca dan nominalnya cocok: catat closing, ' +
+        'simpan draft di Perlu Review (bonus cover diputuskan server), lalu kabari admin. ' +
+        'Panggil SEKALI. Jangan dipakai untuk total/penawaran yang belum dibayar.',
       parameters: {
         type: 'object',
         properties: {
           nomor: { type: 'string', description: 'Nomor HP customer yang mengirim bukti' },
           nominal: { type: 'integer', minimum: 1000, description: 'Nominal transfer yang terbaca dari bukti' },
-          inbox_id: { type: 'string', description: 'id pesan bukti transfer dari pesan_wa_masuk' },
-          proof_url: { type: 'string', description: 'URL gambar bukti (media_url), kalau ada' },
+          inbox_id: { type: 'string', description: 'id pesan yang memuat foto bukti transfer' },
+          items: {
+            type: 'array',
+            description: 'Barang yang dibayar (untuk draft Perlu Review).',
+            items: {
+              type: 'object',
+              properties: {
+                product_id: { type: 'string', description: 'id dari hasil cari_produk' },
+                product_name: { type: 'string' },
+                color: { type: 'string' },
+                size: { type: 'string' },
+                quantity: { type: 'integer' },
+                price: { type: 'integer' },
+              },
+              required: ['product_id', 'color', 'size', 'quantity'],
+            },
+          },
           nama: { type: 'string', description: 'Nama penerima' },
           alamat: { type: 'string', description: 'Alamat jalan/RT-RW/patokan' },
           kelurahan: { type: 'string', description: 'Kelurahan/desa (kalau ada)' },
@@ -306,7 +317,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           kota: { type: 'string', description: 'Kota/kabupaten' },
           provinsi: { type: 'string', description: 'Provinsi' },
           kode_pos: { type: 'string', description: 'Kode pos' },
-          pesanan: { type: 'string', description: 'Rincian pesanan; tiap baris WAJIB memuat nominal dari tool, mis. "Thobe Mint Karim size S x1 - Rp374.000". Baris Free Cover Hanger tanpa nominal.' },
+          pesanan: { type: 'string', description: 'Rincian pesanan; tiap baris WAJIB memuat nominal dari tool, mis. "Thobe Mint Karim size S x1 - Rp374.000". Salin baris Bonus dari rekap kalau ada.' },
           kurir: { type: 'string', description: 'Kurir, mis. J&T EZ' },
           ongkir: { type: 'integer', description: 'Ongkir' },
           potong_panjang: {
@@ -316,7 +327,7 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           },
         },
         required: [
-          'nomor', 'nominal', 'inbox_id', 'nama', 'alamat', 'kecamatan', 'kota',
+          'nomor', 'nominal', 'inbox_id', 'items', 'nama', 'alamat', 'kecamatan', 'kota',
           'provinsi', 'kode_pos', 'pesanan',
         ],
       },
@@ -389,59 +400,6 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           resi: { type: 'string', description: 'Nomor resi J&T, mis. JO0330311502' },
         },
         required: ['resi'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'buat_draft_transaksi',
-      description:
-        'Simpan draft transaksi untuk direview admin. TIDAK membuat order, TIDAK memotong stok, ' +
-        'TIDAK menandai Lunas. Pakai setelah bukti transfer, alamat lengkap, dan pesanan jelas.',
-      parameters: {
-        type: 'object',
-        properties: {
-          inbox_id: { type: 'string', description: 'id pesan bukti/closing dari pesan_wa_masuk' },
-          nama: { type: 'string' },
-          nomor: { type: 'string' },
-          alamat: { type: 'string' },
-          kelurahan: { type: 'string' },
-          kecamatan: { type: 'string' },
-          kota: { type: 'string' },
-          provinsi: { type: 'string' },
-          kode_pos: { type: 'string' },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                product_id: { type: 'string' },
-                product_name: { type: 'string' },
-                color: { type: 'string' },
-                size: { type: 'string' },
-                quantity: { type: 'integer' },
-                price: { type: 'integer' },
-              },
-              required: ['product_id', 'color', 'size', 'quantity'],
-            },
-          },
-          shipping_cost: { type: 'integer' },
-          shipping_method: { type: 'string' },
-          potong_panjang: {
-            type: 'string',
-            description:
-              `Isi kalau customer minta ${POTONG_PANJANG_LABEL} untuk Thobe atau Kandora, mis. "dipotong 5 cm". Server menambahkan baris ${POTONG_PANJANG_LABEL} Rp35.000.`,
-          },
-          discount: { type: 'integer' },
-          notes: { type: 'string' },
-          free_cover_hanger: {
-            type: 'boolean',
-            description: 'true kalau customer berhak Free Cover Hanger (pembelian pertama, sudah dicek lewat cek_pesanan). Server menambahkan baris Cover Thobe + Hanger harga normal; diskon Rp35.000 diisi admin',
-          },
-          proof_url: { type: 'string' },
-        },
-        required: ['inbox_id', 'nama', 'nomor', 'alamat', 'kecamatan', 'kota', 'provinsi', 'kode_pos', 'items'],
       },
     },
   },
@@ -1003,139 +961,8 @@ export async function executeTool(
         return { text: `Lead tersimpan: ${saved.kontak} · ${saved.sumber || '-'} · PIC ${saved.pic || '-'}` };
       }
 
-      case 'catat_closing': {
-        if (ctx.dry) {
-          return { text: `DRY: closing ${args.nomor} · ${rupiah(args.nominal)} tidak disimpan/dikirim.` };
-        }
-        const missing = missingClosingFields(args);
-        if (missing.length) {
-          return {
-            isError: true,
-            text: `Data closing belum lengkap: ${missing.join(', ')}. Tanya customer dulu, jangan kirim rekap admin.`,
-          };
-        }
-        const nomor = normalizePhone(args.nomor);
-        const nominal = Math.round(Number(args.nominal) || 0);
-        const inboxId = String(args.inbox_id || '').trim();
-        if (!nomor || nominal <= 0 || !inboxId) {
-          return { isError: true, text: 'nomor, nominal (>0), dan inbox_id wajib diisi.' };
-        }
-        if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
-
-        // Link bukti dibuat server (bertanda tangan). Jangan pakai proof_url kiriman AI:
-        // URL R2 private panjang dan sering terpotong di bagian ?X-Amz-... sehingga mati.
-        let proofUrl = String(args.proof_url || '').trim() || null;
-        try {
-          const signed = await opsFetch(`/api/ops/wa-media?inbox_id=${encodeURIComponent(inboxId)}`);
-          if (signed?.url) proofUrl = String(signed.url);
-        } catch {
-          // endpoint gagal -> pakai URL apa adanya
-        }
-
-        const payload = {
-          inbox_id: inboxId,
-          sender: nomor,
-          sender_name: String(args.nama || '').trim() || null,
-          nominal,
-          proof_url: proofUrl,
-          address: buildClosingAddress(args),
-          order_detail: String(args.pesanan || '').trim() || null,
-          source: 'server',
-        };
-        const { data: existing, error: readError } = await ctx.service
-          .from('wa_closings')
-          .select('id,admin_notified_at')
-          .eq('inbox_id', inboxId)
-          .maybeSingle();
-        if (readError) return { isError: true, text: `Gagal cek closing: ${readError.message}` };
-        // Anti-dobel lintas pesan: customer bisa kirim foto bukti lalu menyusul "siap",
-        // sehingga inbox_id berbeda tapi closingnya sama. Nomor + nominal sama dalam
-        // 60 menit dianggap closing yang sama -> jangan lapor admin dua kali.
-        // 48 jam: batas 60 menit tidak menangkap closing yang dicatat ulang belakangan.
-        const sinceIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-        const { data: recentClosings } = await ctx.service
-          .from('wa_closings')
-          .select('id,inbox_id,proof_url')
-          .eq('sender', nomor)
-          .eq('nominal', nominal)
-          .gte('created_at', sinceIso)
-          .limit(5);
-        const duplicate = (recentClosings || []).find(
-          (row: any) => String(row.inbox_id) !== inboxId,
-        );
-        if (duplicate) {
-          // Closing sudah tercatat tanpa bukti (bot menunjuk pesan teks). Kalau bukti
-          // sekarang tersedia, tempelkan ke baris itu dan kirim FOTO saja ke admin —
-          // rekap penuh tidak diulang.
-          if (proofUrl && !duplicate.proof_url) {
-            await ctx.service
-              .from('wa_closings')
-              .update({ proof_url: proofUrl })
-              .eq('id', duplicate.id);
-            try {
-              await opsFetch('/api/ops/wa-inbox', {
-                method: 'POST',
-                body: JSON.stringify({
-                  target: ADMIN_WA,
-                  message: `Bukti transfer ${String(args.nama || '').trim() || nomor} - ${rupiah(nominal)}`,
-                  url: proofUrl,
-                  filename: `bukti-transfer-${nomor}.jpg`,
-                }),
-              });
-            } catch {
-              // foto gagal dikirim; bukti tetap tersimpan di database
-            }
-            return { text: `Closing ${nomor} sudah tercatat; bukti transfer ditambahkan ke admin.` };
-          }
-          return { text: `Closing ${nomor} - ${rupiah(nominal)} sudah tercatat dan rekap admin sudah dikirim.` };
-        }
-        if (existing?.admin_notified_at) {
-          return { text: `Closing ${nomor} sudah tercatat dan rekap admin sudah dikirim.` };
-        }
-        if (existing) {
-          const { error } = await ctx.service.from('wa_closings').update(payload).eq('id', existing.id);
-          if (error) return { isError: true, text: `Gagal update closing: ${error.message}` };
-        } else {
-          const { error } = await ctx.service.from('wa_closings').insert(payload);
-          if (error) return { isError: true, text: `Gagal catat closing: ${error.message}` };
-        }
-
-        if (!ADMIN_WA) return { isError: true, text: 'Nomor admin belum diisi.' };
-        // Bukti dikirim sebagai LAMPIRAN FOTO, bukan link panjang di teks.
-        const message = buildClosingAdminMessage({
-          ...args,
-          nomor,
-          nominal,
-          proof_url: undefined,
-        });
-        const attachment = proofUrl
-          ? { url: proofUrl, filename: `bukti-transfer-${nomor}.jpg` }
-          : {};
-        try {
-          await opsFetch('/api/ops/wa-inbox', {
-            method: 'POST',
-            body: JSON.stringify({ target: ADMIN_WA, message, ...attachment }),
-          });
-        } catch (error: any) {
-          // Endpoint lama belum menerima URL R2 private -> kirim versi teks + link.
-          if (!proofUrl) throw error;
-          const fallback = buildClosingAdminMessage({
-            ...args,
-            nomor,
-            nominal,
-            proof_url: proofUrl,
-          });
-          await opsFetch('/api/ops/wa-inbox', {
-            method: 'POST',
-            body: JSON.stringify({ target: ADMIN_WA, message: fallback }),
-          });
-        }
-        await ctx.service
-          .from('wa_closings')
-          .update({ admin_notified_at: new Date().toISOString() })
-          .eq('inbox_id', inboxId);
-        return { text: `Closing tercatat & rekap dikirim ke admin: ${nomor} · ${rupiah(nominal)}.` };
-      }
+      case 'catat_closing':
+        return await runClosing(args, ctx, { opsFetch, adminWa: ADMIN_WA, decideBonus, rupiah });
 
       case 'info_series': {
         if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };
@@ -1336,68 +1163,6 @@ export async function executeTool(
           return { text: `Resi ${awb} belum ditemukan di pelacakan J&T.\nCek SAMAQU: ${link}` };
         }
         return { text: `Resi ${awb}: ${status}\nCek SAMAQU: ${link}` };
-      }
-
-      case 'buat_draft_transaksi': {
-        if (ctx.dry) return { text: 'DRY: draft transaksi tidak disimpan.' };
-        const items = Array.isArray(args.items) ? args.items : [];
-        if (!items.length) return { isError: true, text: 'items wajib diisi.' };
-        const nomor = normalizePhone(args.nomor);
-        // id produk wajib dari hasil cari_produk; id kosong bikin draft gagal di-approve.
-        const missingId = items.find((item: any) => !String(item?.product_id || '').trim());
-        if (missingId) {
-          return {
-            isError: true,
-            text: `product_id kosong untuk "${missingId?.product_name || missingId?.size || 'item'}". Ambil id produk dari hasil cari_produk (bagian "id:..."), jangan dikarang.`,
-          };
-        }
-        const payload = {
-          free_cover_hanger: args.free_cover_hanger === true,
-          customer_name: String(args.nama || '').trim(),
-          customer_whatsapp: nomor,
-          source: 'whatsapp',
-          created_at: new Date().toISOString(),
-          shipping_cost: Math.max(0, Number(args.shipping_cost) || 0),
-          shipping_method: String(args.shipping_method || '').trim(),
-          discount: Math.max(0, Number(args.discount) || 0),
-          payment_status: 'paid',
-          notes: [String(args.notes || '').trim(), args.potong_panjang ? `${POTONG_PANJANG_LABEL}: ${String(args.potong_panjang).trim()}` : '', args.free_cover_hanger === true ? 'Bonus Free Cover Hanger (pembelian pertama) - harga normal, diskon Rp35.000 diisi admin' : ''].filter(Boolean).join(' - '),
-          potong_panjang: String(args.potong_panjang || '').trim(),
-          shipping: {
-            address: String(args.alamat || '').trim(),
-            province: String(args.provinsi || '').trim(),
-            city: String(args.kota || '').trim(),
-            kecamatan: String(args.kecamatan || '').trim(),
-            postal_code: String(args.kode_pos || '').trim(),
-          },
-          items: items.map((item: any) => ({
-            product_id: String(item?.product_id || '').trim(),
-            product_name: String(item?.product_name || '').trim() || undefined,
-            color: String(item?.color || 'default'),
-            size: String(item?.size || '').toUpperCase().replace(/^2XL$/, 'XXL'),
-            quantity: Math.max(1, Number(item?.quantity) || 1),
-            ...(Number(item?.price) > 0 ? { price: Number(item.price) } : {}),
-          })),
-        };
-        try {
-          const saved = await opsFetch('/api/ops/perlu-review', {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'draft_create',
-              source_inbox_id: String(args.inbox_id || '').trim() || null,
-              payload,
-              proof_url: String(args.proof_url || '').trim() || null,
-              ai_note: 'Draft dari chat WA',
-            }),
-          });
-          return {
-            text: saved?.duplicate
-              ? 'Draft transaksi untuk inbox ini sudah ada; menunggu review admin.'
-              : 'Draft transaksi disimpan; menunggu review admin.',
-          };
-        } catch (error: any) {
-          return { isError: true, text: `Gagal menyimpan draft: ${error.message}` };
-        }
       }
 
       case 'daftar_lead': {

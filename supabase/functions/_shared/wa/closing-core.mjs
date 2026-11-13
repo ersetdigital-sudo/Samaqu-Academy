@@ -47,17 +47,30 @@ export function buildClosingAddress(input) {
   return parts.filter(Boolean).join(", ");
 }
 
+/**
+ * Pesan rekap closing untuk admin.
+ * `input.draft`: "saved" = draft sudah di Perlu Review (cukup cek & approve);
+ * "failed" = draft gagal, admin input manual (blok TEMPEL ALAMAT tetap ada).
+ */
 export function buildClosingAdminMessage(input) {
   const address = buildClosingAddress(input);
-  const lines = [
-    "Halo admin, ada closing baru nih. Nanti tolong diinput ya.",
-    "",
-    "TEMPEL ALAMAT:",
-    address,
-    "",
-    "PESANAN:",
-    String(input?.pesanan || "").trim() || "-",
-  ];
+  const manual = input?.draft === "failed";
+  const lines = manual
+    ? [
+        "Closing baru dari AI, tapi draft GAGAL dibuat. Tolong input manual ya.",
+        "",
+        "TEMPEL ALAMAT:",
+        address,
+        "",
+        "PESANAN:",
+      ]
+    : [
+        "Closing baru dari AI, draft sudah masuk Perlu Review. Tolong dicek & approve ya.",
+        "",
+        address,
+        "",
+      ];
+  lines.push(String(input?.pesanan || "").trim() || "-");
   const potongPanjang = String(input?.potong_panjang || "").trim();
   if (potongPanjang) {
     lines.push("", `${POTONG_PANJANG_LABEL}: ${potongPanjang} - ${rupiahClosing(35000)} (tim produksi SAMAQU)`);
