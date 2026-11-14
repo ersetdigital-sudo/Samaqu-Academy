@@ -231,3 +231,10 @@ Butuh env `SUPABASE_ACCESS_TOKEN`.
 Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 
 **Diuji:** SQL di PGlite (28 cek, termasuk idempotent & rollback), handler (51 cek), UI di jsdom dengan klik/ketik sungguhan (35 cek), `tsc` bersih. BELUM diuji: panggilan nyata ke Command Code/Xiaomi lewat UI produksi.
+
+**Status penerapan (14 Nov 2026):**
+- Migrasi `20261114_ai_provider_profiles.sql` SUDAH dijalankan di produksi (project `rbjxjdgqtcwwbvuwtlpg`). Terverifikasi: 3 profil, Command Code aktif dan mewarisi kunci lama (4 digit akhir `dfoL`), `ai_settings.provider` = `command-code`, `default_model` = `xiaomi/mimo-v2.6-flash` (sebelumnya `mimo-v2.6-flash` tanpa awalan, ditolak Command Code). RLS aktif; `anon`/`authenticated` tidak punya akses ke tabel maupun fungsi aktivasi.
+- Keadaan `ai_settings` SEBELUM migrasi (untuk rollback manual): provider `xiaomi-mimo`, base_url `https://api.commandcode.ai/provider/v1`, default_model `mimo-v2.6-flash`, feature_models `{}`, pricing USD 0.435 / 0.87 per 1M. Kunci tidak berubah.
+- Edge Function `ai-admin` di-deploy ke versi 15 (`verify_jwt=false`) lewat `supabase functions deploy ai-admin --remote=<ref> --no-verify-jwt --use-api --yes`. Deploy ini ikut membawa versi terbaru file `_shared` (hitung biaya MiMo per model, token cache) ke `ai-admin`.
+- Rollback fungsi: deploy ulang dari commit `f13c925`. Rollback SQL: `supabase/rollback/20261114_ai_provider_profiles_rollback.sql`.
+- Belum teruji di produksi: klik UI sebagai owner dan panggilan nyata ke Xiaomi langsung (kunci Xiaomi belum diisi).
