@@ -736,6 +736,19 @@ Docs contradicted the original assumptions. Authoritative findings:
   dua versi pesan admin dirender dengan Node. **Belum di-deploy**, belum diuji ke endpoint
   perlu-review sungguhan.
 
+### 2026-11-14 — Deploy wa-agent v91 + behavior ringkas aktif
+
+- Owner menyetujui deploy + pemasangan behavior. `ai_settings.behavior.systemInstructions`
+  diganti versi ringkas (37,5 rb → 14,3 rb karakter, md5 `6c48955f…`), dengan guard md5 versi
+  lama. Versi lama disimpan di key `systemInstructionsBackup20261114` (diabaikan
+  `mergeBehavior`, tidak ikut prompt). Rollback = salin key itu ke `systemInstructions`.
+- `npx supabase functions deploy wa-agent --use-api --no-verify-jwt --remote=… --yes` → v91
+  ACTIVE. GET tanpa secret → 401 "Tidak berwenang." (modul boot normal, auth di dalam fungsi).
+- Catatan: login CLI di laptop owner sempat kedaluwarsa (401); diperbaiki dengan
+  `npx supabase login` oleh owner sendiri.
+- Belum terverifikasi: run WA nyata dengan rekap/closing baru (tidak ada run dalam 10 menit
+  setelah deploy; `ai_usage_logs` terakhir 13 Nov 07:29 WIB — cek saldo MiMo).
+
 ## Operational notes
 
 - **Migration history is not recorded remotely.** `supabase migration list` shows an empty
