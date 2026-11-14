@@ -32,10 +32,39 @@ export interface AiSettings {
   updatedAt: string | null;
 }
 
+export type ProviderProfileId = 'xiaomi' | 'commandcode' | 'custom';
+
+export interface ProviderProfile {
+  id: ProviderProfileId;
+  label: string;
+  baseUrl: string;
+  hasApiKey: boolean;
+  apiKeyLast4: string | null;
+  defaultModel: string;
+  featureModels: Record<string, string>;
+  pricing: AiPricing;
+  isActive: boolean;
+  lastActiveAt: string | null;
+}
+
+export interface ProfileModelInfo {
+  id: string;
+  ownedBy: string;
+  /** false = provider tidak melayani /chat/completions (mis. model Claude di Command Code). */
+  chat: boolean;
+}
+
 export interface AiSettingsPayload {
   settings: AiSettings;
   defaults: AiBehavior;
   encryptionReady: boolean;
+  /** Pesan dari server setelah aksi (mis. "Tersimpan dan langsung berlaku"). */
+  message?: string;
+  /** false/kosong = migrasi profil belum diterapkan; halaman memakai tampilan lama. */
+  profilesReady?: boolean;
+  profiles?: ProviderProfile[];
+  activeProfileId?: ProviderProfileId | null;
+  previousProfileId?: ProviderProfileId | null;
 }
 
 export interface MimoModel {
@@ -76,4 +105,32 @@ export const FEATURE_MODEL_LABELS: Record<string, string> = {
   assistant: 'AI Knowledge Assistant',
   reviewer: 'AI Chat Reviewer',
   simulator: 'AI Chat Simulator',
+};
+
+export const PROFILE_PRESETS: Record<
+  ProviderProfileId,
+  { baseUrl: string; urlHint: string; keyHint: string; modelHint: string; modelHints: string[] }
+> = {
+  xiaomi: {
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    urlHint: 'Default: https://api.xiaomimimo.com/v1',
+    keyHint: 'Kunci dari konsol Xiaomi MiMo. Saldo dan kuota mengikuti akun Xiaomi.',
+    modelHint: 'Xiaomi langsung memakai nama tanpa awalan, mis. mimo-v2.6-pro.',
+    modelHints: ['mimo-v2.6-pro', 'mimo-v2.6-flash'],
+  },
+  commandcode: {
+    baseUrl: 'https://api.commandcode.ai/provider/v1',
+    urlHint: 'Default: https://api.commandcode.ai/provider/v1',
+    keyHint: 'Kunci dari Studio Command Code > API keys. Paket Pro punya jatah bulanan per model.',
+    modelHint:
+      'Command Code memakai id berawalan penyedia, mis. xiaomi/mimo-v2.6-flash. Nama tanpa awalan ditolak.',
+    modelHints: ['xiaomi/mimo-v2.6-flash', 'xiaomi/mimo-v2.6-pro'],
+  },
+  custom: {
+    baseUrl: '',
+    urlHint: 'Alamat API kompatibel OpenAI (wajib https), biasanya berakhiran /v1.',
+    keyHint: 'Kunci dari penyedia pilihanmu.',
+    modelHint: 'Isi id model persis seperti di dokumentasi penyedia.',
+    modelHints: [],
+  },
 };

@@ -203,3 +203,31 @@ Butuh env `SUPABASE_ACCESS_TOKEN`.
 - Jangan menaruh persona/memory bot di file repo Academy (repo publik) — simpan di database.
 - Sebelum mengubah, sebutkan file + rencana, lalu tunggu izin pemilik.
 - Jangan menebak; kalau ragu, tanya.
+
+---
+
+## 14. Profil provider AI (Xiaomi / Command Code / Custom) — 14 Nov 2026
+
+**Tujuan:** pindah provider dari UI tanpa menyentuh logika bot. Semua fungsi (`ai`, `ai-admin`, `wa-agent`) tetap membaca satu baris `ai_settings` (id=1). Profil hanya "tempat parkir" pengaturan; mengaktifkan profil = menyalin ke `ai_settings`.
+
+**File:**
+- `supabase/migrations/20261114_ai_provider_profiles.sql` — tabel `ai_provider_profiles` + fungsi `activate_ai_profile()` + seed otomatis dari `ai_settings` saat ini. Idempotent. Rollback: `supabase/rollback/20261114_ai_provider_profiles_rollback.sql` (hanya hapus tabel & fungsi; `ai_settings` tidak disentuh).
+- `supabase/functions/_shared/ai-profiles.ts` — aksi baru di `ai-admin`: `list_profiles`, `save_profile`, `delete_profile_key`, `test_profile`, `list_profile_models`, `activate_profile`, `rollback_profile`.
+- `features/ai-admin/ProfilesPanel.tsx` — tab Provider & API (3 kartu profil + editor). Tab Model jadi ringkasan.
+
+**Aturan keselamatan:**
+- Pindah profil dan simpan perubahan pada profil AKTIF selalu di-tes dulu (1 request kecil). Gagal = tidak berubah. Ada tombol "Tetap lanjutkan tanpa tes" bila memang disengaja.
+- Kunci API tiap profil tersimpan terpisah (terenkripsi, kunci enkripsi sama), jadi bolak-balik tidak perlu mengetik ulang.
+- Profil aktif tidak bisa dihapus kuncinya. Tombol "Kembali ke <sebelumnya>" ada setelah pernah pindah.
+- Bila migrasi belum diterapkan, UI otomatis memakai tampilan lama (`profilesReady=false`).
+- Command Code: model WAJIB berawalan penyedia (`xiaomi/mimo-v2.6-flash`). Xiaomi langsung: tanpa awalan (`mimo-v2.6-pro`). Seed migrasi memperbaiki awalan otomatis.
+- Mode bot (`wa_bot_control`) TIDAK disentuh fitur ini.
+
+**Cara menerapkan (urutan):**
+1. Supabase SQL Editor (project Academy) → jalankan isi file migrasi.
+2. `supabase functions deploy ai-admin`
+3. Deploy frontend Academy.
+4. Cek: tab Provider menampilkan 3 kartu, satu berlabel Aktif; `ai_settings.default_model` = `xiaomi/mimo-v2.6-flash` bila aktif di Command Code.
+Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
+
+**Diuji:** SQL di PGlite (28 cek, termasuk idempotent & rollback), handler (51 cek), UI di jsdom dengan klik/ketik sungguhan (35 cek), `tsc` bersih. BELUM diuji: panggilan nyata ke Command Code/Xiaomi lewat UI produksi.

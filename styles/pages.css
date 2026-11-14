@@ -1355,3 +1355,102 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Profil provider AI (Xiaomi / Command Code / Custom) */
+.ai-prof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ai-prof-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--w);
+  border: 1px solid var(--b);
+  border-radius: var(--r);
+  padding: 16px;
+  min-width: 0;
+}
+
+.ai-prof-card.on {
+  border-color: var(--acc);
+  background: var(--acc2);
+}
+
+.ai-prof-card.sel {
+  box-shadow: 0 0 0 2px var(--b2);
+}
+
+.ai-prof-card.on.sel {
+  box-shadow: 0 0 0 2px var(--acc);
+}
+
+.ai-prof-meta {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.ai-prof-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.ai-prof-meta dt {
+  color: var(--t3);
+  flex: none;
+}
+
+.ai-prof-meta dd {
+  margin: 0;
+  color: var(--t);
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.ai-model-pick {
+  border: 1px solid var(--b);
+  background: var(--gl2);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.ai-model-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.ai-model-item {
+  border: 1px solid var(--b);
+  background: var(--w);
+  color: var(--t);
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  cursor: pointer;
+}
+
+.ai-model-item:hover {
+  border-color: var(--b2);
+}
+
+.ai-model-item.on {
+  border-color: var(--acc);
+  background: var(--accl);
+}
+
+@media (max-width: 860px) {
+  .ai-prof-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

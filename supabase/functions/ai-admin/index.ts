@@ -6,8 +6,9 @@ import {
   requireUser,
   serviceClient,
 } from '../_shared/http.ts';
-import { encryptSecret, last4 } from '../_shared/crypto.ts';
+import { decryptSecret, encryptSecret, last4 } from '../_shared/crypto.ts';
 import { mimoChat, mimoModels, normalizeBaseUrl, type MimoModel } from '../_shared/mimo.ts';
+import { PROFILE_ACTIONS, handleProfileAction, safeProfilesPayload } from '../_shared/ai-profiles.ts';
 import {
   DEFAULT_BEHAVIOR,
   buildAssistantSystemPrompt,
@@ -29,7 +30,7 @@ import {
 } from '../_shared/settings.ts';
 
 const MODELS_TTL_MS = 5 * 60_000;
-const MODELS_CACHE_LIMIT = 60;
+const MODELS_CACHE_LIMIT = 500;
 let modelsCache: { key: string; at: number; models: MimoModel[] } | null = null;
 
 const PLANS = new Set(['payg', 'token_plan', 'custom']);
@@ -87,7 +88,9 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'get_settings': {
         const row = await loadSettings(service);
-        return json({ ok: true, ...(await settingsPayload(row)) });
+        // Profil provider (tambahan). Tidak pernah melempar galat: bila migrasi belum diterapkan,
+        // `profilesReady` = false dan halaman memakai tampilan lama.
+        return json({ ok: true, ...(await settingsPayload(row)), ...(await safeProfilesPayload(service)) });
       }
 
       case 'save_provider': {
@@ -472,8 +475,32 @@ Deno.serve(async (req) => {
         return json({ ok: true, logs: data ?? [] });
       }
 
-      default:
+      default: {
+        // Profil provider (Xiaomi / Command Code / Custom): logika ada di _shared/ai-profiles.ts.
+        if (PROFILE_ACTIONS.has(action)) {
+          const result = await handleProfileAction(action, body, {
+            service,
+            user: { id: user.id, email: user.email ?? null },
+            encrypt: encryptSecret,
+            decrypt: decryptSecret,
+            last4,
+            enforceRateLimit: () => enforceRateLimit(service, user.id, 'admin_test'),
+            logUsage: (entry) =>
+              logUsage(service, {
+                userId: user.id,
+                userEmail: user.email ?? null,
+                feature: 'admin_test',
+                ...entry,
+              }),
+            settingsPayload: async () => settingsPayload(await loadSettings(service)),
+            afterSettingsChange: () => {
+              modelsCache = null;
+            },
+          });
+          return json(result);
+        }
         return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
+      }
     }
   } catch (error) {
     const status = error instanceof AiError ? error.status : 500;

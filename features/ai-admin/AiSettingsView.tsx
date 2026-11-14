@@ -10,6 +10,7 @@ import type { AiSettingsPayload } from '@/lib/ai/admin';
 import { invokeAiAdmin } from '@/lib/ai/remote';
 import { BehaviorTab } from './BehaviorTab';
 import { ModelsTab } from './ModelsTab';
+import { ProfileModelsNotice, ProfilesPanel } from './ProfilesPanel';
 import { ProviderTab } from './ProviderTab';
 import { UsageTab } from './UsageTab';
 
@@ -133,14 +134,22 @@ export function AiSettingsView() {
       ) : payload ? (
         <>
           {tab === 'provider' ? (
-            <ProviderTab
-              settings={payload.settings}
-              encryptionReady={payload.encryptionReady}
-              onUpdate={setPayload}
-            />
+            payload.profilesReady ? (
+              <ProfilesPanel payload={payload} onUpdate={setPayload} />
+            ) : (
+              <ProviderTab
+                settings={payload.settings}
+                encryptionReady={payload.encryptionReady}
+                onUpdate={setPayload}
+              />
+            )
           ) : null}
           {tab === 'models' ? (
-            <ModelsTab settings={payload.settings} onUpdate={setPayload} />
+            payload.profilesReady ? (
+              <ProfileModelsNotice payload={payload} onGoProvider={() => setTab('provider')} />
+            ) : (
+              <ModelsTab settings={payload.settings} onUpdate={setPayload} />
+            )
           ) : null}
           {tab === 'behavior' ? (
             <BehaviorTab
