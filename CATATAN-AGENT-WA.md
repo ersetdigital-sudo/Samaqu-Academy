@@ -238,3 +238,17 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 - Edge Function `ai-admin` di-deploy ke versi 15 (`verify_jwt=false`) lewat `supabase functions deploy ai-admin --remote=<ref> --no-verify-jwt --use-api --yes`. Deploy ini ikut membawa versi terbaru file `_shared` (hitung biaya MiMo per model, token cache) ke `ai-admin`.
 - Rollback fungsi: deploy ulang dari commit `f13c925`. Rollback SQL: `supabase/rollback/20261114_ai_provider_profiles_rollback.sql`.
 - Belum teruji di produksi: klik UI sebagai owner dan panggilan nyata ke Xiaomi langsung (kunci Xiaomi belum diisi).
+
+## Perbaikan bot: pertanyaan terpotong & closing tidak tercatat (14 Nov 2026)
+
+**Kejadian:** customer mengirim bukti transfer sebelum alamatnya lengkap. Balasan kami (231 karakter) berakhir dengan "kode posnya berapa ya?", tetapi riwayat yang dilihat model dipotong di 180 karakter, jadi saat customer menjawab "10230" model bertanya balik "itu apa?". Setelah alamat lengkap, model juga tidak tahu `inbox_id` bukti transfer lama sehingga `catat_closing` tidak pernah dipanggil, padahal balasannya sudah berkata "langsung kami proses". Satu run sempat abort (timeout) dan barisnya baru dilepas 3 menit kemudian.
+
+**Perbaikan (Tahap 1, sudah live):**
+- `wa-agent/history.ts` (baru, murni & teruji): balasan riwayat dipotong di 1200 karakter dan yang dipertahankan UJUNGNYA (pertanyaan terakhir), pesan bergambar menampilkan `inbox_id`-nya, `collectProofs` + `resolveProofInboxId` membetulkan `inbox_id` di `catat_closing` memakai gambar terbaru dari nomor yang sama bila model kosong/menunjuk pesan teks. Nomor lain tidak pernah dipinjam.
+- `index.ts`: aturan prompt "ATURAN KONTEKS & CLOSING LANJUTAN" (jawaban singkat = jawaban pertanyaan terakhir kami; panggil `catat_closing` dengan bukti lama; jangan klaim "diproses" sebelum berhasil). Bila run error, baris `processing` milik run itu langsung dikembalikan ke `pending` (attempts < 3) tanpa menunggu 3 menit.
+- SAMAQU `/api/ops/wa-inbox` GET: riwayat kini menyertakan `id` (commit 137c32af). Penambahan kolom saja, kompatibel mundur.
+
+**Diuji:** 24 cek unit `history.ts`; replay model asli (Command Code, data karangan, tool dipalsukan, tanpa WA): cara lama 0/3 benar (2 tanya balik), cara baru 3/3 `catat_closing` dengan `inbox_id` bukti yang benar. Health check + dry-run (harga, ukuran, salam) normal setelah deploy.
+**Belum teruji:** pelepasan baris saat error pada produksi nyata, dan percakapan nyata end-to-end.
+
+**Tahap 2 (belum):** jaring pengaman: bila bukti transfer masuk tapi tidak ada closing/draft setelah beberapa waktu, munculkan kasus di Perlu Review / notifikasi admin.

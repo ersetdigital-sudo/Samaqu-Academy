@@ -10,6 +10,7 @@ import {
 } from '../_shared/wa/tools-core.mjs';
 import { normalizePhone, POTONG_PANJANG_LABEL } from '../_shared/wa/closing-core.mjs';
 import { runClosing } from './closing.ts';
+import { resolveProofInboxId, type ProofIndex } from './history.ts';
 import { coverForCategory, readCoverStock } from './cover-stock.ts';
 import { buildRekap, type RekapLine, type RekapService } from './rekap-format.ts';
 
@@ -500,6 +501,8 @@ export interface ToolContext {
   adLead?: boolean;
   /** Supabase Academy, untuk catat_closing (tabel wa_closings). */
   service?: any;
+  /** Pesan bergambar (bukti transfer) dari batch + riwayatnya; dipakai untuk membetulkan inbox_id closing. */
+  proofs?: ProofIndex;
 }
 
 export interface ToolResult {
@@ -962,7 +965,14 @@ export async function executeTool(
       }
 
       case 'catat_closing':
-        return await runClosing(args, ctx, { opsFetch, adminWa: ADMIN_WA, decideBonus, rupiah });
+        // inbox_id dibetulkan ke pesan BERGAMBAR customer yang sama kalau model lupa/menunjuk pesan teks
+        // (bukti transfer sering dikirim sebelum data alamat lengkap).
+        return await runClosing(resolveProofInboxId(args, ctx.proofs), ctx, {
+          opsFetch,
+          adminWa: ADMIN_WA,
+          decideBonus,
+          rupiah,
+        });
 
       case 'info_series': {
         if (!ctx.service) return { isError: true, text: 'Database Academy tidak tersedia.' };

@@ -11,6 +11,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 import { bonusStockContext } from './cover-stock.ts';
 import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
+import { collectProofs, historyText } from './history.ts';
 
 /**
  * Bot CS WhatsApp versi server.
@@ -236,18 +237,8 @@ async function memoryContext(service: SupabaseClient): Promise<string> {
     .join('\n\n');
 }
 
-function historyText(item: any): string {
-  const history = Array.isArray(item?.riwayat) ? item.riwayat : [];
-  const lines = history
-    .map((h: any) => {
-      const parts: string[] = [];
-      if (h.message) parts.push(`    Customer: ${h.message}`);
-      if (h.reply_text) parts.push(`    Kami: ${String(h.reply_text).replace(/\s+/g, ' ').slice(0, 180)}`);
-      return parts.join('\n');
-    })
-    .filter(Boolean);
-  return lines.length ? `  Konteks sebelumnya:\n${lines.join('\n')}\n` : '';
-}
+// `historyText` kini di ./history.ts (murni, diuji): balasan lama tidak lagi dipotong di 180
+// karakter pertama (pertanyaan di ujung hilang), dan pesan bergambar memuat inbox_id-nya.
 
 function inboxPrompt(items: any[]): string {
   const rows = items.map((item) => {
@@ -362,6 +353,8 @@ Deno.serve(async (req) => {
   const startedAt = Date.now();
   let runId: number | null = null;
   let lockedSender: string | null = null;
+  /** Pesan yang diklaim run ini (id + jumlah percobaan), untuk dilepas cepat kalau run error. */
+  let claimedForRun: Array<{ id: string; attempts: number }> = [];
 
   try {
     const url = new URL(req.url);
@@ -551,7 +544,12 @@ Deno.serve(async (req) => {
       }
 
       for (const item of items) ctx.senders.set(String(item.id), String(item.sender || ''));
+      claimedForRun = items.map((item) => ({ id: String(item.id), attempts: Number(item.attempts) || 0 }));
     }
+
+    // Pesan bergambar (bukti transfer) dari batch ini + riwayatnya: dipakai catat_closing supaya
+    // bukti yang dikirim SEBELUM data alamat lengkap tetap bisa dirujuk.
+    ctx.proofs = collectProofs(items);
 
     const question = items.map((item) => String(item.message || '')).join('\n').slice(0, 2000);
     ctx.adLead = looksLikeAdLead(question);
@@ -571,6 +569,7 @@ Deno.serve(async (req) => {
       'ATURAN PRIVASI PESANAN: cek_pesanan hanya boleh dipanggil dengan nomor HP customer ini, nomor pesanan, atau nomor resi. Jangan pernah menyebut pesanan/resi yang bukan hasil pencarian nomor customer ini. Kalau belum ada nomor HP/nomor pesanan, tanya dulu — jangan menebak.',
       'ATURAN ONGKIR: saat memanggil cek_ongkir atau rekap_pesanan, kirim `items` (product_id dari cari_produk, size, quantity) untuk SEMUA barang. Berat dihitung server dari berat varian per ukuran, lalu berat produk; kalau kosong fallback 1000 g. Jangan mengirim berat_gram hasil hitungan sendiri.',
       'ALUR REKENING: sebelum mengirim nomor rekening, WAJIB panggil rekap_pesanan (inbox_id, items, kota, kecamatan, nama, alamat, layanan kalau sudah dipilih). Tool itu sudah memutuskan baris Bonus dan menyusun teks lengkap: kirim TEKS UNTUK CUSTOMER persis lewat kirim_wa, jangan menambah baris bonus, mengubah angka, atau membuat "invoice" kedua. Setelah customer setuju, kirim rekening saja (tanpa mengulang rincian). Kalau rekap berbeda dari hitungan customer, jelaskan dan tunggu persetujuan.',
+      'ATURAN KONTEKS & CLOSING LANJUTAN: baca "Konteks sebelumnya" dulu. Jawaban singkat customer (angka seperti "10230", atau "Iya", "yg ini") hampir selalu menjawab pertanyaan TERAKHIR kami di konteks itu: jangan tanya balik "maksudnya apa". Kalau customer sudah mengirim bukti transfer SEBELUMNYA (baris "lampiran gambar, inbox_id: …") dan data pesanan + alamat sekarang sudah lengkap, panggil catat_closing dengan inbox_id lampiran itu; nominal ambil dari balasan kami sebelumnya (mis. "Bukti transfer Rp408.000"). JANGAN menulis "langsung kami proses" atau "data sudah lengkap" sebelum catat_closing berhasil.',
       WA_AGENT_RULES,
     ]
       .filter(Boolean)
@@ -838,6 +837,22 @@ Deno.serve(async (req) => {
       if (lockedSender) await releaseLock(serviceClient(), lockedSender);
     } catch {
       // abaikan
+    }
+    // Lepas pesan yang sedang diproses run ini SEKARANG, bukan menunggu pembersih 3 menit: satu
+    // panggilan AI yang terputus (batas 45 detik) tidak boleh membuat customer menunggu lama.
+    // Maksimal 3 percobaan per pesan; sesudah itu dibiarkan ke pembersih biasa supaya pesan
+    // bermasalah tidak berputar tiap menit.
+    try {
+      const releasable = claimedForRun.filter((entry) => entry.attempts < 3).map((entry) => entry.id);
+      if (releasable.length) {
+        await samaquPatch(`wa_inbox?id=in.(${releasable.join(',')})&status=eq.processing`, {
+          status: 'pending',
+          claimed_at: null,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // pembersih 3 menit tetap jadi cadangan
     }
     try {
       await finishRun(serviceClient(), runId, {
