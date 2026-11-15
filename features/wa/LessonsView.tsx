@@ -68,13 +68,17 @@ function GroupCard({
   onToggle,
   isOwner,
   busy,
+  running,
   onGenerate,
 }: {
   group: LessonsGroup;
   open: boolean;
   onToggle: () => void;
   isOwner: boolean;
+  /** Ada aksi yang berjalan di mana saja: semua tombol nonaktif supaya tidak ada dua aksi serentak. */
   busy: boolean;
+  /** Aksi yang berjalan adalah penyusunan untuk KARTU INI: hanya kartu ini yang berlabel "Menyusun…". */
+  running: boolean;
   onGenerate: () => void;
 }) {
   const tone = NATURE_TONE[group.nature] || 'muted';
@@ -96,7 +100,7 @@ function GroupCard({
         ) : null}
         {isOwner ? (
           <button type="button" className="btn sm" onClick={onGenerate} disabled={busy} data-testid={`susun-${group.key}`}>
-            {busy ? 'Menyusun…' : 'Susun usulan pelajaran'}
+            {running ? 'Menyusun…' : 'Susun usulan pelajaran'}
           </button>
         ) : null}
       </div>
@@ -511,6 +515,7 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
                   onToggle={() => toggle(group.key)}
                   isOwner={isOwner}
                   busy={busy !== null}
+                  running={busy === `gen:${group.key}`}
                   onGenerate={() => onGenerateGroup(group)}
                 />
               ))}
