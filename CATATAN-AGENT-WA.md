@@ -270,3 +270,11 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 - **Soal "reasoning":** model dipanggil dengan `thinking: 'disabled'` (lebih cepat dan murah; run sudah 40–106 dtk), jadi tidak ada rantai pikiran tersembunyi. Yang tampil adalah teks model + tool + hasilnya. Mengaktifkan thinking akan memperlambat run; tidak dilakukan.
 
 **Diuji:** 32 uji jaring pengaman (sintetis + kasus Dinna), 13 uji jejak, replay data nyata 6 hari, dry-run produksi (jejak tersimpan), sapuan produksi pertama membuat 1 kasus. **Belum terverifikasi:** tampilan visual tab Log Bot (lipatan) di layar live; perilaku sapuan saat model/API lambat; apakah 20 menit pas untuk ritme admin (bisa diubah di `SAFETY_WAIT_MS`).
+
+## Redesign tab Log Bot (WA Inbox)
+- Satu kartu per AKTIVITAS bot, bukan per pengecekan cron. Komponen: `features/wa/LogBotView.tsx` (memuat data sendiri, polling 30 dtk), parser murni: `features/wa/log-parse.ts` (kind: dibalas/perhatian/gagal/jaring/diambil_alih/uji/mode/berjalan/kosong). Gaya: blok `wl-*` di `styles/components.css`.
+- Run kosong (live, handled 0, held 0, tanpa error, bukan jaring pengaman; sekitar 70% isi tabel) disembunyikan di server: `wa-admin` action `logs` dengan `compact: true` mengembalikan `{ items, idle: { count, since } }`. Tanpa `compact` perilakunya sama seperti dulu. Checkbox "Tampilkan run kosong" meminta 200 baris tanpa compact.
+- Filter: Perlu perhatian (default) / Semua aktivitas / Gagal / Jaring pengaman. Ringkasan atas: dibalas hari ini (WIB), run gagal, kasus jaring pengaman, rata-rata waktu jawab.
+- Penyebab gagal diterjemahkan ke bahasa biasa di `plainError` (timeout, saldo, 401/403, 429, 5xx, run tidak selesai); pesan teknis asli tetap ada di bawah "Lihat detail teknis".
+- Rincian ronde AI, tool, hasil dilipat di "Lihat langkah AI". Run lama tanpa jejak langkah menampilkan catatan mentah.
+- Tidak ada perubahan di bot, database, atau menu.

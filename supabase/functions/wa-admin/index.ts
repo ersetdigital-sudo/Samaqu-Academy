@@ -218,14 +218,35 @@ async function stats() {
   return { pending, processing, sent, skipped, total: list.length };
 }
 
-async function runs(limit = 50) {
-  const { data, error } = await serviceClient()
-    .from('wa_agent_runs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+/**
+ * Daftar run bot. `compact` menyembunyikan run kosong (cron tiap menit tanpa pesan baru atau bentrok
+ * dengan run lain: ±70% isi tabel) supaya run yang penting tidak tertimbun; jumlah run kosong pada
+ * rentang yang sama dikembalikan terpisah. Mode lama (tanpa `compact`) tidak berubah.
+ */
+async function runs(limit = 50, compact = false) {
+  const client = serviceClient();
+  let query = client.from('wa_agent_runs').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (compact) {
+    query = query.or('handled.gt.0,held.gt.0,error.not.is.null,mode.neq.live,note.ilike.jaring pengaman*');
+  }
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const items = data ?? [];
+  if (!compact) return { items, idle: null };
+
+  const since = items.length
+    ? String(items[items.length - 1].created_at)
+    : new Date(Date.now() - 24 * 3600e3).toISOString();
+  const { count } = await client
+    .from('wa_agent_runs')
+    .select('id', { count: 'exact', head: true })
+    .eq('mode', 'live')
+    .eq('handled', 0)
+    .eq('held', 0)
+    .is('error', null)
+    .or('note.is.null,note.not.ilike.jaring pengaman*')
+    .gte('created_at', since);
+  return { items, idle: { count: count ?? 0, since } };
 }
 
 async function reply(sender: string, message: string, by: string | null) {
@@ -300,7 +321,8 @@ Deno.serve(async (req) => {
       return json({ ok: true, stats: await stats() });
     }
     if (action === 'logs') {
-      return json({ ok: true, items: await runs(Math.min(Math.max(Number(body.limit) || 50, 1), 200)) });
+      const result = await runs(Math.min(Math.max(Number(body.limit) || 50, 1), 200), body.compact === true);
+      return json({ ok: true, items: result.items, idle: result.idle });
     }
     return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
   } catch (error) {

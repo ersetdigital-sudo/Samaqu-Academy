@@ -106,6 +106,10 @@ export function releaseConversation(sender: string) {
   return invoke<Record<string, never>>('release', { sender });
 }
 
-export function loadRuns(limit = 50) {
-  return invoke<{ items: WaRun[] }>('logs', { limit });
+/**
+ * Log bot. `compact` = sembunyikan run kosong di server; jumlah run kosong dikembalikan di `idle`.
+ * Tanpa `compact` perilakunya sama seperti dulu.
+ */
+export function loadRuns(limit = 50, compact = false) {
+  return invoke<{ items: WaRun[]; idle?: { count: number; since: string | null } | null }>('logs', { limit, compact });
 }

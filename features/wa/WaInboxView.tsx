@@ -7,16 +7,15 @@ import { useRole } from '@/components/providers/RoleProvider';
 import {
   loadConversations,
   loadMessages,
-  loadRuns,
   releaseConversation,
   sendReply,
   takeOver,
   type WaConversation,
   type WaMessage,
-  type WaRun,
   type WaStats,
 } from './wa-api';
 import { useWaRealtime } from './useWaRealtime';
+import { LogBotView } from './LogBotView';
 
 function waktu(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -111,8 +110,6 @@ export function WaInboxView() {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'chat' | 'log'>('chat');
-  const [runs, setRuns] = useState<WaRun[]>([]);
-  const [loadingRuns, setLoadingRuns] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [shellHeight, setShellHeight] = useState(0);
@@ -181,24 +178,7 @@ export function WaInboxView() {
 
   useWaRealtime({ onSignal: () => void refreshAll() });
 
-  useEffect(() => {
-    if (tab !== 'log') return;
-    let cancelled = false;
-    const load = async () => {
-      setLoadingRuns(true);
-      const res = await loadRuns();
-      if (cancelled) return;
-      setLoadingRuns(false);
-      if (res.ok) setRuns(res.data?.items || []);
-      else setError(res.error || 'Gagal memuat log bot.');
-    };
-    void load();
-    const timer = setInterval(() => void load(), 15_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [tab]);
+  // Tab Log Bot memuat datanya sendiri (lihat `LogBotView`).
 
   // Tinggi panel dihitung dari posisi nyata di layar, supaya kolom balasan selalu kelihatan.
   useEffect(() => {
@@ -285,49 +265,7 @@ export function WaInboxView() {
       ) : null}
 
       {tab === 'log' ? (
-        <div className="wa-logs">
-          {loadingRuns && runs.length === 0 ? (
-            <div className="empty">Memuat log…</div>
-          ) : runs.length === 0 ? (
-            <div className="empty">Belum ada log run.</div>
-          ) : (
-            runs.map((run) => {
-              const isSwitch = run.mode === 'switch';
-              return (
-              <div key={run.id} className="wa-log">
-                <div className="wa-log-top">
-                  <b>{waktu(run.created_at)}</b>
-                  <span className={`tag ${run.error ? 'rd' : run.mode === 'running' ? 'yl' : run.mode === 'live' ? 'gr' : 'yl'}`}>
-                    {isSwitch ? 'ganti mode' : run.mode === 'running' ? 'berjalan' : run.mode}
-                  </span>
-                  {isSwitch ? null : <span className="xs muted">{run.duration_ms ?? 0} ms</span>}
-                </div>
-                {isSwitch ? null : (
-                <div className="wa-log-line">
-                  masuk {run.handled} · dibalas {run.replied} · sisa {run.leftover} · putaran {run.rounds}
-                  {run.held ? ` · ditahan ${run.held}` : ''}
-                </div>
-                )}
-                {run.tools?.length ? (
-                  <div className="xs muted">tool: {run.tools.join(', ')}</div>
-                ) : null}
-                {run.error ? <div className="wa-log-err">{run.error}</div> : null}
-                {run.note ? <div className="wa-log-note">{run.note}</div> : null}
-                {run.detail ? (
-                  // Rincian bisa panjang (konteks + langkah tiap ronde + hasil tool): dilipat supaya
-                  // daftar run tetap ringkas. Run yang error langsung terbuka (penyebabnya ada di sana).
-                  <details className="wa-log-steps" open={Boolean(run.error)}>
-                    <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, margin: '6px 0 4px' }}>
-                      Rincian langkah ({run.detail.split('\n').length} baris)
-                    </summary>
-                    <pre className="wa-log-detail">{run.detail}</pre>
-                  </details>
-                ) : null}
-              </div>
-              );
-            })
-          )}
-        </div>
+        <LogBotView />
       ) : (
         <div
           ref={shellRef}
