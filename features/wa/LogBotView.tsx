@@ -11,6 +11,7 @@ import {
   type ParsedRun,
   type ParsedSteps,
 } from './log-parse';
+import { buildTimeline, nomorRapi } from './log-timeline';
 
 /**
  * Tab "Log Bot" di WA Inbox.
@@ -36,12 +37,10 @@ function jam(iso: string): string {
   return `${date}, ${time}`;
 }
 
-function nomorRapi(phone: string): string {
-  const digits = String(phone || '').replace(/\D/g, '');
-  return digits.startsWith('62') ? `0${digits.slice(2)}` : digits;
-}
+const TONE_MARK: Record<string, string> = { ok: '✓', bad: '✕', warn: '!', info: '•', muted: '•' };
 
 function StepsView({ steps, raw }: { steps: ParsedSteps | null; raw: string }) {
+  const timeline = useMemo(() => (steps ? buildTimeline(steps) : []), [steps]);
   if (!steps) {
     return (
       <div className="wl-steps">
@@ -52,32 +51,49 @@ function StepsView({ steps, raw }: { steps: ParsedSteps | null; raw: string }) {
   }
   return (
     <div className="wl-steps">
-      <p className="wl-steps-note">
-        Model AI dijalankan tanpa mode berpikir (lebih cepat dan murah), jadi yang tampil adalah teks model, tool yang dipanggil, dan hasilnya.
-      </p>
+      {timeline.length ? (
+        <ol className="wl-timeline">
+          {timeline.map((step, index) => (
+            <li className={`wl-step tone-${step.tone}`} key={index}>
+              <span className="wl-step-mark" aria-hidden="true">
+                {TONE_MARK[step.tone] || '•'}
+              </span>
+              <div className="wl-step-body">
+                <div className="wl-step-title">
+                  {step.title}
+                  {step.slow ? <em className="wl-step-slow">{step.slow}</em> : null}
+                </div>
+                {step.note ? <div className="wl-step-note">AI menulis: {step.note}</div> : null}
+                {step.result ? <div className="wl-step-result">{step.result}</div> : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : null}
       {steps.context ? (
         <details className="wl-ctx">
           <summary>Yang dilihat AI (pesan masuk dan riwayat)</summary>
           <pre className="wl-raw">{steps.context}</pre>
         </details>
       ) : null}
-      {steps.rounds.map((round, index) => (
-        <div className="wl-round" key={index}>
-          <div className="wl-round-title">{round.title}</div>
-          {round.text ? <div className="wl-round-text">{round.text}</div> : null}
-          {round.tools.map((tool, toolIndex) => (
-            <div className="wl-tool" key={toolIndex}>
-              <div className="wl-tool-call">{tool.call}</div>
-              {tool.result ? <div className="wl-tool-result">{tool.result}</div> : null}
-            </div>
-          ))}
-        </div>
-      ))}
-      {steps.events.map((event, index) => (
-        <div className="wl-event" key={index}>
-          {event}
-        </div>
-      ))}
+      <details className="wl-ctx wl-tech">
+        <summary>Detail teknis (ronde, token, milidetik)</summary>
+        <p className="wl-steps-note">
+          Model AI dijalankan tanpa mode berpikir (lebih cepat dan murah), jadi yang tercatat adalah teks model, tool yang dipanggil, dan hasilnya.
+        </p>
+        {steps.rounds.map((round, index) => (
+          <div className="wl-round" key={index}>
+            <div className="wl-round-title">{round.title}</div>
+            {round.text ? <div className="wl-round-text">{round.text}</div> : null}
+            {round.tools.map((tool, toolIndex) => (
+              <div className="wl-tool" key={toolIndex}>
+                <div className="wl-tool-call">{tool.call}</div>
+                {tool.result ? <div className="wl-tool-result">{tool.result}</div> : null}
+              </div>
+            ))}
+          </div>
+        ))}
+      </details>
     </div>
   );
 }

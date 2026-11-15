@@ -285,3 +285,8 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 - Definisi "kosong" harus tetap sama dengan filter `compact` di `wa-admin` (`runs()`); kalau salah satu diubah, ubah keduanya.
 - `pg_cron` tidak terpasang di database Academy, makanya dipasang di wa-agent. Hasil dicatat di log fungsi ("purge log: N kosong, M lama") hanya kalau ada yang terhapus.
 - Dry-run sebelum diterapkan (15 Nov 2026): 4.133 baris kosong > 2 hari akan terhapus, 0 baris > 14 hari; 7.517 total, 1.579 aktif dipertahankan.
+
+## Langkah AI sebagai urutan kerja (Log Bot)
+- `features/wa/log-timeline.ts` (murni): `buildTimeline(steps)` mengubah ronde/tool/hasil jadi langkah berbahasa biasa ("Cek apakah 0899… sudah tercatat sebagai lead → Sudah ada 1 lead", "Kirim balasan WhatsApp ke … → Terkirim", "Selesai"). Satu tool = satu langkah; tool baru yang belum dikenal otomatis tampil dengan nama yang dirapikan (tambah kasus di `describe()` kalau mau kalimat khusus).
+- Waktu mikir model dibebankan ke langkah pertama tiap ronde; badge "N dtk" hanya muncul kalau langkah > 3 dtk.
+- Angka teknis (ronde, token, cache, milidetik, ID, argumen penuh) dipindah ke lipatan "Detail teknis". Format sumber ditulis `wa-agent/trace.ts`; kalau format itu diubah, sesuaikan `parseCall` / `parseSteps`.
