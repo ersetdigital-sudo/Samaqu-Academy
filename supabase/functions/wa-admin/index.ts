@@ -314,17 +314,26 @@ function lessonsDeps(user: { id: string; email?: string | null }): lessons.Lesso
       if (!apiKey) throw new lessons.LessonsError('API key MiMo belum diisi di pengaturan AI.', 503);
       const started = Date.now();
       const entry = { userId: user.id, userEmail: user.email ?? null, feature: 'admin_test' as const, model: row.default_model };
-      try {
-        const result = await mimoChat({
+      const ask = (maxTokens: number) =>
+        mimoChat({
           apiKey,
           baseUrl: row.base_url,
           model: row.default_model,
           messages,
           temperature: 0.2,
-          maxTokens: 1500,
+          maxTokens,
           thinking: 'disabled',
           timeoutMs: 60_000,
         });
+      try {
+        // Model kadang menghabiskan seluruh jatah token tanpa isi (selesai: length). Ulangi SEKALI dengan jatah lebih besar.
+        let result;
+        try {
+          result = await ask(2500);
+        } catch (first) {
+          if (!/terpotong|kosong/i.test(errorMessage(first))) throw first;
+          result = await ask(4500);
+        }
         await logUsage(service, {
           ...entry,
           usage: result.usage,
@@ -340,6 +349,9 @@ function lessonsDeps(user: { id: string; email?: string | null }): lessons.Lesso
         };
       } catch (error) {
         await logUsage(service, { ...entry, status: 'error', error: errorMessage(error), latencyMs: Date.now() - started });
+        if (/terpotong|kosong/i.test(errorMessage(error))) {
+          throw new lessons.LessonsError('AI belum berhasil menyusun usulan (jawabannya terpotong). Klik sekali lagi.', 502);
+        }
         throw error;
       }
     },
