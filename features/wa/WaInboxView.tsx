@@ -313,7 +313,16 @@ export function WaInboxView() {
                 ) : null}
                 {run.error ? <div className="wa-log-err">{run.error}</div> : null}
                 {run.note ? <div className="wa-log-note">{run.note}</div> : null}
-                {run.detail ? <pre className="wa-log-detail">{run.detail}</pre> : null}
+                {run.detail ? (
+                  // Rincian bisa panjang (konteks + langkah tiap ronde + hasil tool): dilipat supaya
+                  // daftar run tetap ringkas. Run yang error langsung terbuka (penyebabnya ada di sana).
+                  <details className="wa-log-steps" open={Boolean(run.error)}>
+                    <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, margin: '6px 0 4px' }}>
+                      Rincian langkah ({run.detail.split('\n').length} baris)
+                    </summary>
+                    <pre className="wa-log-detail">{run.detail}</pre>
+                  </details>
+                ) : null}
               </div>
               );
             })

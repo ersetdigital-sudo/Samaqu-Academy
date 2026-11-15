@@ -12,6 +12,8 @@ import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 import { bonusStockContext } from './cover-stock.ts';
 import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
+import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
+import { RunTrace } from './trace.ts';
 
 /**
  * Bot CS WhatsApp versi server.
@@ -274,6 +276,87 @@ async function handoverSenders(service: SupabaseClient): Promise<Set<string>> {
   }
 }
 
+/**
+ * Jaring pengaman closing: gambar yang diduga bukti transfer sudah masuk ≥ 20 menit tapi tidak ada
+ * closing/draft/order/kasus untuk nomor itu → buat kasus di Perlu Review (lewat API yang sama dengan
+ * eskalasi biasa; satu kasus per pesan berkat indeks unik). Aturannya di `safety-net.ts` (diuji).
+ *
+ * Aman: HANYA membaca data dan membuat kasus (tidak mengirim WA, tidak mengubah pesan/order). Kalau
+ * salah satu data gagal dibaca, TIDAK ada kasus dibuat (lebih baik terlambat daripada kasus palsu).
+ */
+async function sweepUnclosedProofs(service: SupabaseClient): Promise<number> {
+  if (!SAMAQU_SUPA_URL || !SAMAQU_SERVICE_KEY) return 0;
+  const since = new Date(Date.now() - SAFETY_LOOKBACK_MS).toISOString();
+  const [inbox, drafts, orders, escalations, closingsRes, held] = await Promise.all([
+    samaquGet(
+      `wa_inbox?select=id,sender,sender_name,message,reply_text,media_key,created_at,status&is_group=eq.false&created_at=gte.${since}&order=created_at.asc&limit=1000`,
+    ),
+    samaquGet(`order_drafts?select=customer_whatsapp,source_inbox_id,created_at&created_at=gte.${since}&limit=1000`),
+    samaquGet(`orders?select=customer_whatsapp,created_at&created_at=gte.${since}&limit=1000`),
+    samaquGet(`wa_escalations?select=inbox_id,sender,created_at&created_at=gte.${since}&limit=1000`),
+    service.from('wa_closings').select('sender,created_at').gte('created_at', since).limit(1000),
+    handoverSenders(service),
+  ]);
+  if (![inbox, drafts, orders, escalations].every(Array.isArray) || closingsRes.error) return 0;
+
+  const proofs = findUnclosedProofs({
+    now: Date.now(),
+    inbox,
+    drafts,
+    orders,
+    escalations,
+    closings: (closingsRes.data ?? []) as Array<{ sender: string; created_at: string }>,
+    handover: held,
+  });
+
+  let raised = 0;
+  for (const proof of proofs) {
+    const text = caseText(proof);
+    try {
+      await opsFetch('/api/ops/perlu-review', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'escalation_create',
+          inbox_id: proof.inboxId,
+          sender: proof.sender,
+          sender_name: proof.senderName || null,
+          customer_message: text.customerMessage,
+          summary: text.summary,
+          reason: text.reason,
+        }),
+      });
+      raised += 1;
+    } catch (error) {
+      console.error('jaring pengaman: gagal membuat kasus', proof.inboxId, errorMessage(error));
+    }
+  }
+  return raised;
+}
+
+/**
+ * Jalankan jaring pengaman paling sering sekali tiap 5 menit (cron memanggil tiap menit), dibatasi
+ * 8 detik, dan tidak pernah menggagalkan run. Hasilnya dicatat di Log Bot hanya kalau ada kasus baru.
+ */
+async function maybeSweep(service: SupabaseClient): Promise<void> {
+  if (new Date().getUTCMinutes() % 5 !== 0) return;
+  try {
+    const raised = await Promise.race([
+      sweepUnclosedProofs(service),
+      new Promise<number>((resolve) => setTimeout(() => resolve(0), 8_000)),
+    ]);
+    if (raised > 0) {
+      const id = await startRun(service, 'jaring-pengaman');
+      await finishRun(service, id, {
+        mode: 'live',
+        note: `jaring pengaman: ${raised} kasus bukti transfer tanpa closing dibuat di Perlu Review`,
+        detail: 'Bukti transfer masuk ≥ 20 menit tanpa closing/draft/order/kasus. Cek di Perlu Review.',
+      });
+    }
+  } catch (error) {
+    console.error('jaring pengaman error', errorMessage(error));
+  }
+}
+
 async function startRun(service: SupabaseClient, mode: string): Promise<number | null> {
   try {
     // Run yang tidak pernah selesai (timeout/crash) ditandai supaya tidak "berjalan" selamanya.
@@ -355,12 +438,18 @@ Deno.serve(async (req) => {
   let lockedSender: string | null = null;
   /** Pesan yang diklaim run ini (id + jumlah percobaan), untuk dilepas cepat kalau run error. */
   let claimedForRun: Array<{ id: string; attempts: number }> = [];
+  /** Jejak langkah run ini untuk Log Bot (juga tersimpan saat run error). */
+  const trace = new RunTrace();
 
   try {
     const url = new URL(req.url);
     const testMode = url.searchParams.get('test') === '1';
 
     const service = serviceClient();
+    // Jaring pengaman closing (tiap ±5 menit, dibatasi 8 detik, tak pernah menggagalkan run). Jalan di SEMUA
+    // mode bot dan di luar jam kerja AI: bukti yang masuk malam hari tetap jadi kasus untuk dilihat admin pagi.
+    // Tidak jalan di mode uji (dry/test).
+    if (!testMode && !isDry() && url.searchParams.get('dry') !== '1') await maybeSweep(service);
     const row = await loadSettings(service);
 
     // Mode bot (diatur di Pengaturan admin): "local" = lokal yang balas; "auto" =
@@ -620,6 +709,8 @@ Deno.serve(async (req) => {
       : '';
 
     const userText = `${prefix}${imageNote}${inboxPrompt(items)}`;
+    trace.context(userText);
+    if (droppedImages > 0) trace.event(`${droppedImages} lampiran gambar tidak bisa diunduh (kedaluwarsa), tidak dikirim ke model`);
     const messages: ToolChatMessage[] = [
       { role: 'system', content: system },
       {
@@ -672,6 +763,15 @@ Deno.serve(async (req) => {
       const viaText = result.toolCalls.length === 0;
       const calls = viaText ? parseTextToolCalls(result.content) : result.toolCalls;
 
+      trace.round({
+        ms: Date.now() - startedAt,
+        usage: result.usage,
+        content: result.content,
+        viaText: viaText && calls.length > 0,
+        calls: calls.length,
+        finish: result.finishReason,
+      });
+
       if (!calls.length) {
         // Tidak ada tool sama sekali -> ini balasan final. Teks yang berisi markup
         // tetap dibuang oleh cleanForCustomer sebelum dikirim ke customer.
@@ -697,7 +797,9 @@ Deno.serve(async (req) => {
 
       for (const call of calls) {
         usedTools.push(call.function.name);
+        const toolStartedAt = Date.now();
         const executed = await executeTool(call.function.name, call.function.arguments, ctx);
+        trace.tool(call.function.name, call.function.arguments, executed.text, Date.now() - toolStartedAt);
         messages.push({
           role: 'tool',
           tool_call_id: call.id,
@@ -732,6 +834,7 @@ Deno.serve(async (req) => {
     // Hanya jalan kalau belum ada satu pun balasan terkirim di run ini.
     const outgoing = cleanForCustomer(answer);
     if (outgoing && ctx.outbox.length === 0) {
+      trace.event('model menyusun balasan tapi tidak memanggil kirim_wa: balasan teksnya dikirim otomatis oleh pengaman');
       const unanswered = items.filter((item) => !ctx.handled.has(String(item.id)));
       if (unanswered.length >= 1) {
         const item = unanswered[0];
@@ -798,7 +901,9 @@ Deno.serve(async (req) => {
     if (answer) detailParts.push(`CATATAN MODEL:\n${answer}`);
     if (toolNames.length) detailParts.push(`TOOL: ${toolNames.join(', ')}`);
     if (leftover.length) detailParts.push(`BELUM TERJAWAB: ${leftover.join(', ')}`);
-    const detail = detailParts.join('\n\n').slice(0, 6000);
+    if (rounds >= MAX_ROUNDS) trace.event(`berhenti: batas ${MAX_ROUNDS} ronde tercapai`);
+    // Ringkasan hasil di atas (maks 6000), lalu langkah lengkap (konteks, ronde, tool + hasilnya).
+    const detail = [detailParts.join('\n\n').slice(0, 6000), trace.render()].filter(Boolean).join('\n\n');
 
     await finishRun(service, runId, {
       mode: testMode ? 'test' : dry ? 'dry' : 'live',
@@ -855,10 +960,13 @@ Deno.serve(async (req) => {
       // pembersih 3 menit tetap jadi cadangan
     }
     try {
+      // Langkah yang SUDAH terjadi sebelum error tetap tersimpan, supaya terlihat di Log Bot kenapa gagal.
+      trace.event(`RUN GAGAL: ${message}`);
       await finishRun(serviceClient(), runId, {
         mode: 'error',
         error: message.slice(0, 500),
         duration_ms: Date.now() - startedAt,
+        detail: trace.render(),
       });
     } catch {
       // jangan sampai logging menggagalkan respons

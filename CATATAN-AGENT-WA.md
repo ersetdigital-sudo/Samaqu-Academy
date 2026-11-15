@@ -252,3 +252,21 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 **Belum teruji:** pelepasan baris saat error pada produksi nyata, dan percakapan nyata end-to-end.
 
 **Tahap 2 (belum):** jaring pengaman: bila bukti transfer masuk tapi tidak ada closing/draft setelah beberapa waktu, munculkan kasus di Perlu Review / notifikasi admin.
+
+## Jaring pengaman bukti transfer + log lengkap Log Bot (15 November 2026)
+
+**Latar:** kejadian Dinna (14 Nov): bukti transfer masuk tapi `catat_closing` tidak pernah jalan dan tidak ada yang tahu. Perbaikan Tahap 1 menutup penyebabnya; ini menutup AKIBATNYA apa pun penyebabnya.
+
+**Jaring pengaman (live):** `wa-agent/safety-net.ts` (murni, diuji) + `maybeSweep` di `index.ts`.
+- Tiap ±5 menit (menit kelipatan 5 dari panggilan cron per menit), dibatasi 8 detik, tidak pernah menggagalkan run, jalan di semua mode bot dan di luar jam kerja AI, tidak jalan di mode uji (dry/test).
+- Aturan: gambar dari nomor pribadi, **sudah dibalas bot** (`status=sent`), dan (bot mengirim rekening ≤24 jam sebelumnya — pola bank + nomor ≥7 digit — ATAU balasan atas gambar itu menyebut "bukti transfer/pembayaran … diterima"), sudah **≥ 20 menit**, dan untuk nomor itu tidak ada: closing (Academy `wa_closings`), draft (`source_inbox_id` atau nomor), order, atau kasus Perlu Review (dibuat ≥ 30 menit sebelum bukti sampai sekarang), dan nomor tidak sedang diambil alih admin. Satu kasus per nomor (gambar terlama yang belum tercakup).
+- Gambar yang dilewati (`skipped`, admin yang menangani) TIDAK dihitung. Karena itu chat yang diambil alih admin (mis. Syamsudin, Amirah) tidak memicu kasus.
+- Hasil: kasus `wa_escalations` (reason `bukti_tanpa_closing`) lewat `/api/ops/perlu-review` aksi `escalation_create` (tidak ada WA, tidak ada panel baru); dedupe per pesan lewat indeks unik + cek semua status 24 jam terakhir. Kalau ada kasus dibuat, satu baris tercatat di Log Bot.
+- Kalau salah satu sumber data gagal dibaca, TIDAK ada kasus dibuat (lebih baik terlambat daripada kasus palsu).
+- Perilaku nyata pertama (15 Nov 19.35 WIB): 1 kasus untuk nomor yang bot-nya berkata "bukti transfernya saya catat dulu" tanpa closing.
+- Replay data nyata 6 hari: aturan awal terlalu longgar (foto produk ikut tertandai karena pola "a.n"); sudah diperketat. Sisa penandaan 20 menit yang kemudian dicatat admin (closing terlambat) adalah wajar, admin tinggal menutup kasusnya.
+
+**Log Bot lengkap:** `wa-agent/trace.ts` (`RunTrace`). Kolom `wa_agent_runs.detail` kini berisi: ringkasan (balasan terkirim, tool), lalu LANGKAH BOT: konteks yang dilihat model, tiap ronde (durasi, token, cache, alasan berhenti, teks yang ditulis model), tiap tool (argumen ringkas, `proof_url` tidak ditampilkan, hasilnya, durasi), dan kejadian khusus (pengaman balasan otomatis, batas ronde, lampiran gagal diunduh). **Run yang error ikut menyimpan langkah yang sudah terjadi** (dulu kosong). Tab Log Bot melipat rincian (`<details>`); run error langsung terbuka. Tanpa migrasi database.
+- **Soal "reasoning":** model dipanggil dengan `thinking: 'disabled'` (lebih cepat dan murah; run sudah 40–106 dtk), jadi tidak ada rantai pikiran tersembunyi. Yang tampil adalah teks model + tool + hasilnya. Mengaktifkan thinking akan memperlambat run; tidak dilakukan.
+
+**Diuji:** 32 uji jaring pengaman (sintetis + kasus Dinna), 13 uji jejak, replay data nyata 6 hari, dry-run produksi (jejak tersimpan), sapuan produksi pertama membuat 1 kasus. **Belum terverifikasi:** tampilan visual tab Log Bot (lipatan) di layar live; perilaku sapuan saat model/API lambat; apakah 20 menit pas untuk ritme admin (bisa diubah di `SAFETY_WAIT_MS`).

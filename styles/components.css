@@ -2127,7 +2127,7 @@ th {
   color: #3b4a54;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 260px;
+  max-height: 640px;
   overflow: auto;
   font-family: inherit;
 }
