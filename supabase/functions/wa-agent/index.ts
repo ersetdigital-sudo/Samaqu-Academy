@@ -14,6 +14,8 @@ import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
 import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
 import { RunTrace } from './trace.ts';
+import type { ToolCallRecord } from './redact.ts';
+import { recordRunExtras, type ExtrasClient } from './run-extras.ts';
 
 /**
  * Bot CS WhatsApp versi server.
@@ -357,9 +359,11 @@ async function maybeSweep(service: SupabaseClient): Promise<void> {
   }
 }
 
-// Retensi Log Bot: supaya tabel wa_agent_runs tidak membengkak (jejak langkah AI bisa besar).
+// Retensi Log Bot (rencana Pelajaran AI, 16 Nov 2026). Dulu semua run dihapus setelah 14 hari; sekarang:
+// run kosong 2 hari, data mentah (kolom detail + wa_tool_calls) 90 hari, metadata run 1 tahun.
 const IDLE_RUN_KEEP_MS = 2 * 24 * 3600_000; // run kosong (cek cron tanpa pesan baru)
-const RUN_KEEP_MS = 14 * 24 * 3600_000; // semua run lain
+const RAW_KEEP_MS = 90 * 24 * 3600_000; // jejak langkah mentah: kolom detail dan tabel wa_tool_calls
+const RUN_KEEP_MS = 365 * 24 * 3600_000; // metadata run (tanpa detail)
 
 /**
  * Hapus log lama. Jalan dua kali per jam (menit 17 dan 47; cron memanggil tiap menit), tidak pernah
@@ -371,6 +375,7 @@ async function maybePurgeRuns(service: SupabaseClient): Promise<void> {
   if (minute !== 17 && minute !== 47) return;
   try {
     const idleCutoff = new Date(Date.now() - IDLE_RUN_KEEP_MS).toISOString();
+    const rawCutoff = new Date(Date.now() - RAW_KEEP_MS).toISOString();
     const allCutoff = new Date(Date.now() - RUN_KEEP_MS).toISOString();
     const idle = await service
       .from('wa_agent_runs')
@@ -381,9 +386,19 @@ async function maybePurgeRuns(service: SupabaseClient): Promise<void> {
       .is('error', null)
       .or('note.is.null,note.not.ilike.jaring pengaman*')
       .lt('created_at', idleCutoff);
+    // Data mentah lewat 90 hari: kosongkan detail (barisnya tetap sebagai metadata), hapus catatan tool.
+    const raw = await service
+      .from('wa_agent_runs')
+      .update({ detail: null }, { count: 'exact' })
+      .lt('created_at', rawCutoff)
+      .not('detail', 'is', null);
+    const calls = await service.from('wa_tool_calls').delete({ count: 'exact' }).lt('created_at', rawCutoff);
     const old = await service.from('wa_agent_runs').delete({ count: 'exact' }).lt('created_at', allCutoff);
-    if (idle.error || old.error) console.error('purge log error', idle.error?.message || old.error?.message);
-    else if ((idle.count ?? 0) + (old.count ?? 0) > 0) console.log(`purge log: ${idle.count ?? 0} kosong, ${old.count ?? 0} lama`);
+    const failed = idle.error || raw.error || calls.error || old.error;
+    if (failed) console.error('purge log error', failed.message);
+    else if ((idle.count ?? 0) + (raw.count ?? 0) + (calls.count ?? 0) + (old.count ?? 0) > 0) {
+      console.log(`purge log: ${idle.count ?? 0} kosong, ${raw.count ?? 0} detail dikosongkan, ${calls.count ?? 0} tool call, ${old.count ?? 0} metadata lama`);
+    }
   } catch (error) {
     console.error('purge log error', errorMessage(error));
   }
@@ -425,6 +440,10 @@ async function finishRun(
     error?: string | null;
     note?: string | null;
     detail?: string | null;
+    /** id pesan (wa_inbox.id) yang ditangani run ini: kunci penghubung ke eskalasi/draft di SAMAQU. */
+    inboxIds?: string[];
+    /** catatan tool terstruktur (sudah disamarkan) untuk tabel wa_tool_calls. */
+    toolCalls?: ToolCallRecord[];
   },
 ): Promise<void> {
   const payload = {
@@ -449,6 +468,8 @@ async function finishRun(
   } catch (error) {
     console.error('gagal simpan log run', error);
   }
+  // Pencatatan tambahan SESUDAH log utama tersimpan, terpisah, dan tidak pernah menggagalkan run.
+  await recordRunExtras(service as unknown as ExtrasClient, id, entry.mode, entry.inboxIds, entry.toolCalls);
 }
 
 Deno.serve(async (req) => {
@@ -845,7 +866,7 @@ Deno.serve(async (req) => {
         usedTools.push(call.function.name);
         const toolStartedAt = Date.now();
         const executed = await executeTool(call.function.name, call.function.arguments, ctx);
-        trace.tool(call.function.name, call.function.arguments, executed.text, Date.now() - toolStartedAt);
+        trace.tool(call.function.name, call.function.arguments, executed.text, Date.now() - toolStartedAt, executed.isError === true);
         messages.push({
           role: 'tool',
           tool_call_id: call.id,
@@ -961,6 +982,8 @@ Deno.serve(async (req) => {
       duration_ms: Date.now() - startedAt,
       note: answer ? answer.slice(0, 500) : null,
       detail,
+      inboxIds: items.map((item) => String(item.id)),
+      toolCalls: trace.toolCallRecords(),
     });
 
     if (lockedSender) {
@@ -1013,6 +1036,8 @@ Deno.serve(async (req) => {
         error: message.slice(0, 500),
         duration_ms: Date.now() - startedAt,
         detail: trace.render(),
+        inboxIds: claimedForRun.map((entry) => entry.id),
+        toolCalls: trace.toolCallRecords(),
       });
     } catch {
       // jangan sampai logging menggagalkan respons

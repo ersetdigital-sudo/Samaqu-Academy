@@ -16,6 +16,7 @@ import {
 } from './wa-api';
 import { useWaRealtime } from './useWaRealtime';
 import { LogBotView } from './LogBotView';
+import { LessonsView } from './LessonsView';
 
 function waktu(iso: string | null | undefined): string {
   if (!iso) return '-';
@@ -109,7 +110,7 @@ export function WaInboxView() {
   const [handoverBusy, setHandoverBusy] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'chat' | 'log'>('chat');
+  const [tab, setTab] = useState<'chat' | 'log' | 'lessons'>('chat');
   const endRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [shellHeight, setShellHeight] = useState(0);
@@ -248,6 +249,9 @@ export function WaInboxView() {
         <button type="button" className={`chip${tab === 'log' ? ' on' : ''}`} onClick={() => setTab('log')}>
           Log Bot
         </button>
+        <button type="button" className={`chip${tab === 'lessons' ? ' on' : ''}`} onClick={() => setTab('lessons')}>
+          Pelajaran AI
+        </button>
         <span className="xs muted" style={{ marginLeft: 'auto' }}>
           {stats ? `${stats.pending} belum dibalas · ${stats.sent} terkirim` : ''}
         </span>
@@ -266,6 +270,8 @@ export function WaInboxView() {
 
       {tab === 'log' ? (
         <LogBotView />
+      ) : tab === 'lessons' ? (
+        <LessonsView />
       ) : (
         <div
           ref={shellRef}

@@ -113,3 +113,78 @@ export function releaseConversation(sender: string) {
 export function loadRuns(limit = 50, compact = false) {
   return invoke<{ items: WaRun[]; idle?: { count: number; since: string | null } | null }>('logs', { limit, compact });
 }
+
+/* ── Pelajaran AI (Fase 1, baca saja). Bentuknya mengikuti supabase/functions/_shared/lessons-analysis.ts ── */
+
+export interface LessonsExample {
+  id: string;
+  inboxId: string | null;
+  when: string;
+  who: string;
+  status: string;
+  reason: string;
+  summary: string;
+}
+
+export interface LessonsGroup {
+  key: string;
+  label: string;
+  nature: string;
+  natureLabel: string;
+  hint: string;
+  cases: number;
+  open: number;
+  uniqueOpen: number;
+  customers: number;
+  examples: LessonsExample[];
+}
+
+export interface LessonsRepeat {
+  who: string;
+  cases: number;
+  open: number;
+  kinds: string[];
+  firstAt: string;
+  lastAt: string;
+}
+
+export interface LessonsLearning {
+  id: string;
+  topic: string;
+  scope: string;
+  chars: number;
+  created_at: string;
+  flags: string[];
+}
+
+export interface LessonsOverview {
+  generatedAt: string;
+  totals: {
+    escalations: number;
+    open: number;
+    answered: number;
+    closed: number;
+    uniqueOpen: number;
+    duplicateOpen: number;
+    learnings: number;
+    published: number;
+    needReview: number;
+  };
+  groups: LessonsGroup[];
+  repeats: LessonsRepeat[];
+  learnings: LessonsLearning[];
+}
+
+export interface LessonsTrace {
+  since: string;
+  /** false = tabel wa_tool_calls belum bisa dibaca (mis. migrasi belum jalan). */
+  ready: boolean;
+  total: number;
+  errors: number;
+  tools: Array<{ tool: string; calls: number; errors: number; avgMs: number }>;
+  runsWithInbox: number;
+}
+
+export function loadLessons() {
+  return invoke<{ overview: LessonsOverview; trace: LessonsTrace }>('lessons');
+}

@@ -9,6 +9,8 @@
  * pikiran tersembunyi untuk ditampilkan. Yang tersedia: teks model + tool + hasilnya.
  */
 
+import { redactArgs, redactResult, type ToolCallRecord } from './redact.ts';
+
 export interface TraceUsage {
   promptTokens?: number;
   completionTokens?: number;
@@ -16,6 +18,8 @@ export interface TraceUsage {
 }
 
 export const TRACE_MAX_CHARS = 24_000;
+/** Batas catatan tool terstruktur per run (satu run biasanya 1 sampai 6 panggilan). */
+export const MAX_TOOL_RECORDS = 40;
 
 /** Potong teks jadi satu baris pendek (spasi dirapikan). */
 export function clip(text: unknown, max: number): string {
@@ -47,6 +51,8 @@ export function argSummary(rawArgs: string, max = 220): string {
 export class RunTrace {
   private lines: string[] = [];
   private rounds = 0;
+  /** Catatan tool terstruktur (argumen + hasil sudah disamarkan) untuk tabel wa_tool_calls. */
+  private calls: ToolCallRecord[] = [];
 
   /** Teks yang dilihat model pada run ini (pesan masuk + riwayat). */
   context(text: string): void {
@@ -68,9 +74,29 @@ export class RunTrace {
   }
 
   /** Satu tool dipanggil + hasilnya. */
-  tool(name: string, rawArgs: string, result: string, ms: number): void {
+  tool(name: string, rawArgs: string, result: string, ms: number, isError = false): void {
     this.lines.push(`  → ${name}(${argSummary(rawArgs)}) · ${ms} ms`);
     this.lines.push(`      ⇒ ${clip(result, 280)}`);
+    // Catatan terstruktur: tidak boleh pernah mengganggu run (penyamaran gagal = baris ini dilewati).
+    try {
+      if (this.calls.length < MAX_TOOL_RECORDS) {
+        this.calls.push({
+          seq: this.calls.length + 1,
+          tool_name: String(name).slice(0, 80),
+          tool_arguments: redactArgs(rawArgs),
+          tool_result: redactResult(result),
+          status: isError ? 'error' : 'ok',
+          duration_ms: Math.max(0, Math.round(Number(ms) || 0)),
+        });
+      }
+    } catch {
+      // abaikan
+    }
+  }
+
+  /** Salinan catatan tool run ini, urut sesuai pemanggilan. */
+  toolCallRecords(): ToolCallRecord[] {
+    return [...this.calls];
   }
 
   /** Kejadian penting di luar ronde (pengaman, error, pesan tersisa). */

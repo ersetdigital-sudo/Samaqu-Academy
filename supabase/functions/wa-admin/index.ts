@@ -1,4 +1,5 @@
 import { errorMessage, json, requireUser, serviceClient } from '../_shared/http.ts';
+import { analyze, summarizeToolCalls, type EscalationRow, type LearningRow } from '../_shared/lessons-analysis.ts';
 
 /**
  * API CRM WhatsApp untuk halaman /wa di Academy (khusus user login).
@@ -249,6 +250,51 @@ async function runs(limit = 50, compact = false) {
   return { items, idle: { count: count ?? 0, since } };
 }
 
+/**
+ * Tab "Pelajaran AI" (Fase 1, BACA SAJA): ringkasan eskalasi + pelajaran dari database SAMAQU dan rekam
+ * jejak tool dari database Academy. Tidak menulis apa pun dan tidak memanggil AI. Pengelompokan memakai
+ * kata kunci (lihat _shared/lessons-analysis.ts), jadi hasilnya perkiraan kasar untuk melihat pola.
+ */
+async function lessonsOverview() {
+  const [escalations, learnings] = await Promise.all([
+    serviceFetch(
+      'wa_escalations?select=id,inbox_id,sender,reason,summary,customer_message,status,created_at&order=created_at.desc&limit=1000',
+    ),
+    serviceFetch('wa_learnings?select=id,scope,sender,topic,instruction,status,created_at&order=created_at.desc&limit=500'),
+  ]);
+  const overview = analyze(
+    Array.isArray(escalations) ? (escalations as EscalationRow[]) : [],
+    Array.isArray(learnings) ? (learnings as LearningRow[]) : [],
+  );
+
+  // Rekam jejak tool 7 hari terakhir (database Academy). Opsional: kalau gagal, bagian ini kosong dan
+  // tab tetap tampil.
+  const since = new Date(Date.now() - 7 * 24 * 3600e3).toISOString();
+  const trace = { since, ready: false, total: 0, errors: 0, tools: [] as ReturnType<typeof summarizeToolCalls>['tools'], runsWithInbox: 0 };
+  try {
+    const client = serviceClient();
+    const [calls, linked] = await Promise.all([
+      client.from('wa_tool_calls').select('tool_name,status,duration_ms').gte('created_at', since).limit(5000),
+      client
+        .from('wa_agent_runs')
+        .select('id', { count: 'exact', head: true })
+        .not('inbox_ids', 'is', null)
+        .gte('created_at', since),
+    ]);
+    if (!calls.error) {
+      const summary = summarizeToolCalls((calls.data ?? []) as Array<{ tool_name: string; status: string; duration_ms: number | null }>);
+      trace.ready = true;
+      trace.total = summary.total;
+      trace.errors = summary.errors;
+      trace.tools = summary.tools;
+    }
+    if (!linked.error) trace.runsWithInbox = linked.count ?? 0;
+  } catch (error) {
+    console.error('lessons trace error', errorMessage(error));
+  }
+  return { overview, trace };
+}
+
 async function reply(sender: string, message: string, by: string | null) {
   const target = norm(sender);
   const text = String(message || '').trim();
@@ -323,6 +369,9 @@ Deno.serve(async (req) => {
     if (action === 'logs') {
       const result = await runs(Math.min(Math.max(Number(body.limit) || 50, 1), 200), body.compact === true);
       return json({ ok: true, items: result.items, idle: result.idle });
+    }
+    if (action === 'lessons') {
+      return json({ ok: true, ...(await lessonsOverview()) });
     }
     return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
   } catch (error) {
