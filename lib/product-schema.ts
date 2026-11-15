@@ -65,6 +65,7 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
   Koko: GARMENT,
   Kandora: GARMENT,
   Kabak: GARMENT,
+  Vest: GARMENT,
   'Cover & Hanger': GARMENT,
   'Fabric Collection': [
     { key: 'name', label: 'Nama Bahan', required: true, section: 'Informasi Bahan' },
@@ -95,7 +96,7 @@ export const PRODUCT_SCHEMA: Record<ProductCategory, ProductField[]> = {
 };
 
 export function isGarment(category: string): boolean {
-  return ['Thobe', 'Gamis', 'Koko', 'Kandora', 'Kabak', 'Cover & Hanger'].includes(category);
+  return ['Thobe', 'Gamis', 'Koko', 'Kandora', 'Kabak', 'Vest', 'Cover & Hanger'].includes(category);
 }
 
 export function getProductFields(category: ProductCategory): ProductField[] {

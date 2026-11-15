@@ -98,6 +98,7 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   'Koko',
   'Kandora',
   'Kabak',
+  'Vest',
   'Cover & Hanger',
   'Fabric Collection',
   'Size Chart',
@@ -149,7 +150,7 @@ export const PRODUCT_PHOTO_LABELS: Record<string, string> = {
   'Product Series': 'Foto Seri',
 };
 
-export const GARMENT_CATEGORIES = ['Thobe', 'Gamis', 'Koko', 'Kandora', 'Kabak', 'Cover & Hanger'] as const;
+export const GARMENT_CATEGORIES = ['Thobe', 'Gamis', 'Koko', 'Kandora', 'Kabak', 'Vest', 'Cover & Hanger'] as const;
 
 export const PRODUCT_STATUSES = [
   'Tersedia',

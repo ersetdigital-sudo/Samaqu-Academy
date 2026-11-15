@@ -47,6 +47,7 @@ const CATEGORY_WORDS: [string, ProductCategory][] = [
   ['koko', 'Koko'],
   ['kandora', 'Kandora'],
   ['kabak', 'Kabak'],
+  ['vest', 'Vest'],
   ['cover', 'Cover & Hanger'],
   ['hanger', 'Cover & Hanger'],
   ['size chart', 'Size Chart'],

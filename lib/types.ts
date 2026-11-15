@@ -9,6 +9,7 @@ export type ProductCategory =
   | 'Koko'
   | 'Kandora'
   | 'Kabak'
+  | 'Vest'
   | 'Cover & Hanger'
   | 'Fabric Collection'
   | 'Size Chart'
