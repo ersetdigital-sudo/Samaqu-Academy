@@ -213,7 +213,7 @@ export function parseRun(run: WaRun): ParsedRun {
       kind: 'mode',
       label: run.mode === 'switch' ? 'Ganti mode' : 'Ambil alih',
       tone: 'info',
-      headline: note || detail.botText || (run.mode === 'switch' ? 'Mode bot diubah.' : 'Percakapan diambil alih admin.'),
+      headline: note || detail.botText || (run.mode === 'switch' ? 'Mode agent diubah.' : 'Percakapan diambil alih admin.'),
       attention: false,
     };
   }

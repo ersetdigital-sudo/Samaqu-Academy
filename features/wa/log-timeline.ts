@@ -161,6 +161,18 @@ export function buildTimeline(steps: ParsedSteps): TimelineStep[] {
 
     if (round.tools.length === 0) {
       // Ronde tanpa tool = penutup: AI selesai dan menulis kalimat terakhir.
+      // Kecuali AI terpotong batas panjang tanpa hasil apa pun: itu kegagalan, bukan "selesai".
+      if (!text && /selesai:\s*length/i.test(round.title)) {
+        const seconds = thinking > SLOW_SECONDS ? `${thinking.toFixed(1).replace('.', ',')} dtk` : '';
+        timeline.push({
+          tone: 'warn',
+          title: 'AI tidak menghasilkan balasan',
+          result: 'AI menulis terlalu panjang sampai terpotong batas, tanpa balasan atau tool. Pesan dicoba lagi.',
+          note: '',
+          slow: seconds,
+        });
+        continue;
+      }
       timeline.push({ tone: 'ok', title: 'Selesai', result: text, note: '', slow: '' });
       continue;
     }

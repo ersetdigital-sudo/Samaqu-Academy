@@ -290,3 +290,9 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 - `features/wa/log-timeline.ts` (murni): `buildTimeline(steps)` mengubah ronde/tool/hasil jadi langkah berbahasa biasa ("Cek apakah 0899… sudah tercatat sebagai lead → Sudah ada 1 lead", "Kirim balasan WhatsApp ke … → Terkirim", "Selesai"). Satu tool = satu langkah; tool baru yang belum dikenal otomatis tampil dengan nama yang dirapikan (tambah kasus di `describe()` kalau mau kalimat khusus).
 - Waktu mikir model dibebankan ke langkah pertama tiap ronde; badge "N dtk" hanya muncul kalau langkah > 3 dtk.
 - Angka teknis (ronde, token, cache, milidetik, ID, argumen penuh) dipindah ke lipatan "Detail teknis". Format sumber ditulis `wa-agent/trace.ts`; kalau format itu diubah, sesuaikan `parseCall` / `parseSteps`.
+
+## Ronde kosong terpotong `length` (kasus 15 Nov 2026, run 7529)
+- Gejala: AI menulis 1.500 token (batas `maxTokens`) tanpa teks dan tanpa tool (`selesai: length`) → tidak ada balasan, pesan dikembalikan ke antrean, customer menunggu ±6 menit. Jarang (1 dari 247 run aktif/24 jam); percobaan ulang pesan yang sama langsung berhasil (184 token).
+- Perbaikan: di loop ronde `wa-agent/index.ts`, ronde kosong + `finishReason === 'length'` diulang SEKALI di run yang sama (`emptyLengthRetries`), dicatat sebagai kejadian di jejak. Batas 1.500 sengaja tidak dinaikkan.
+- Log Bot: ronde seperti itu tampil kuning "AI tidak menghasilkan balasan", bukan "Selesai" hijau. Label "Bot" di kartu diganti "Agent".
+- Belum diketahui: kenapa run 7525 (19.53) menggantung tanpa jejak sebelum run 7529.

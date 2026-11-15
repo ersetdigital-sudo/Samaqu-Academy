@@ -761,6 +761,8 @@ Deno.serve(async (req) => {
     let rounds = 0;
     /** Berapa kali panggilan tool dibaca dari markup teks (dibatasi supaya tidak loop). */
     let textFallbackRounds = 0;
+    /** Berapa kali ronde kosong karena terpotong `length` sudah diulang (maks 1 per run). */
+    let emptyLengthRetries = 0;
 
     for (; rounds < MAX_ROUNDS; rounds++) {
       const startedAt = Date.now();
@@ -806,6 +808,15 @@ Deno.serve(async (req) => {
         calls: calls.length,
         finish: result.finishReason,
       });
+
+      // Model kadang menghabiskan seluruh jatah token tanpa menghasilkan teks maupun tool
+      // (selesai: length, mis. 15 Nov 2026 run 7529). Ulangi ronde itu SEKALI saat itu juga
+      // daripada menunggu cron menit berikutnya; percobaan ulang biasanya langsung berhasil.
+      if (!calls.length && !String(result.content || '').trim() && result.finishReason === 'length' && emptyLengthRetries < 1) {
+        emptyLengthRetries += 1;
+        trace.event('AI terpotong batas panjang tanpa hasil (selesai: length): ronde diulang sekali');
+        continue;
+      }
 
       if (!calls.length) {
         // Tidak ada tool sama sekali -> ini balasan final. Teks yang berisi markup

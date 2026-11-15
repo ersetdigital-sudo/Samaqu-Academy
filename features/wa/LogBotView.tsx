@@ -120,7 +120,7 @@ function RunCard({ item, open, onToggle }: { item: ParsedRun; open: boolean; onT
       ) : null}
       {item.botText ? (
         <div className="wl-bubble bot">
-          <span>Bot</span>
+          <span>Agent</span>
           {item.botText}
         </div>
       ) : null}
@@ -172,7 +172,7 @@ export function LogBotView() {
         setRuns(res.data?.items || []);
         setIdle(res.data?.idle || null);
       } else {
-        setError(res.error || 'Gagal memuat log bot.');
+        setError(res.error || 'Gagal memuat log agent.');
       }
     };
     void load();
@@ -254,7 +254,7 @@ export function LogBotView() {
         <div className="empty">Memuat log…</div>
       ) : visible.length === 0 ? (
         <div className="empty">
-          {filter === 'perlu' ? 'Tidak ada yang perlu perhatian. Bot berjalan normal.' : 'Tidak ada aktivitas untuk filter ini.'}
+          {filter === 'perlu' ? 'Tidak ada yang perlu perhatian. Agent berjalan normal.' : 'Tidak ada aktivitas untuk filter ini.'}
         </div>
       ) : (
         <div className="wl-list">
