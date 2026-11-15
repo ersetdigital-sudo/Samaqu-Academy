@@ -271,7 +271,7 @@ export function WaInboxView() {
       {tab === 'log' ? (
         <LogBotView />
       ) : tab === 'lessons' ? (
-        <LessonsView />
+        <LessonsView isOwner={role === 'owner'} />
       ) : (
         <div
           ref={shellRef}

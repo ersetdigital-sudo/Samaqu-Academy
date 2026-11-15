@@ -57,6 +57,10 @@ export interface WaEnvelope<T> {
   ok: boolean;
   data?: T;
   error?: string;
+  /** Kode galat dari server (mis. needs_confirm, lint_hard, owner_only) dan rinciannya, bila ada. */
+  code?: string;
+  soft?: string[];
+  hard?: string[];
 }
 
 async function invoke<T>(action: string, payload: Record<string, unknown> = {}): Promise<WaEnvelope<T>> {
@@ -70,8 +74,8 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
     const context = (error as { context?: Response }).context;
     if (context && typeof context.json === 'function') {
       try {
-        const body = (await context.json()) as { error?: string };
-        if (body?.error) return { ok: false, error: body.error };
+        const body = (await context.json()) as { error?: string; code?: string; soft?: string[]; hard?: string[] };
+        if (body?.error) return { ok: false, error: body.error, code: body.code, soft: body.soft, hard: body.hard };
       } catch {
         // biarkan pesan SDK
       }
@@ -187,4 +191,66 @@ export interface LessonsTrace {
 
 export function loadLessons() {
   return invoke<{ overview: LessonsOverview; trace: LessonsTrace }>('lessons');
+}
+
+/* ── Pelajaran AI Fase 2: usulan pelajaran. Aksi yang mengubah sesuatu hanya diterima server dari owner. ── */
+
+export interface LessonFlags {
+  hard: string[];
+  soft: string[];
+}
+
+export interface LessonProposal {
+  id: string;
+  status: 'proposed' | 'publishing' | 'published' | 'rejected' | 'retired' | string;
+  groupKey: string | null;
+  kind: string;
+  kindLabel: string;
+  source: string;
+  title: string;
+  lesson: string;
+  question: string | null;
+  note: string | null;
+  evidence: Array<Record<string, unknown>>;
+  cases: number;
+  replacesLearningId: string | null;
+  publishedLearningId: string | null;
+  createdAt: string;
+  createdBy: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  rejectReason: string | null;
+  flags: LessonFlags;
+  stuck: boolean;
+}
+
+export function loadProposals() {
+  return invoke<{ proposals: LessonProposal[]; publishedSoftLimit: number }>('lessons_proposals');
+}
+
+export function generateLessons(input: { groupKey?: string; learningId?: string }) {
+  return invoke<{ created: number; message: string; proposals: LessonProposal[] }>('lessons_generate', {
+    group_key: input.groupKey,
+    learning_id: input.learningId,
+  });
+}
+
+export function editProposal(id: string, lessonText: string) {
+  return invoke<{ proposal: LessonProposal }>('lessons_edit', { id, lesson_text: lessonText });
+}
+
+export function rejectProposal(id: string, reason?: string) {
+  return invoke<{ proposal: LessonProposal }>('lessons_reject', { id, reason });
+}
+
+export function publishProposal(id: string, lessonText: string, confirmSoft = false) {
+  return invoke<{ proposal: LessonProposal; learningId: string; publishedCount: number; warnings: string[] }>('lessons_publish', {
+    id,
+    lesson_text: lessonText,
+    confirm_soft: confirmSoft,
+  });
+}
+
+export function retireLearning(learningId: string) {
+  return invoke<{ learningId: string; proposalId: string | null }>('lessons_retire', { learning_id: learningId });
 }

@@ -16,6 +16,8 @@ export interface EscalationRow {
   customer_message?: string | null;
   status?: string | null;
   instruction?: string | null;
+  /** Balasan admin yang benar-benar terkirim (sumber kebenaran untuk menyusun pelajaran). */
+  reply_text?: string | null;
   learning_id?: string | null;
   created_at: string;
 }

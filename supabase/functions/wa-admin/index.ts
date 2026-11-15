@@ -1,5 +1,8 @@
-import { errorMessage, json, requireUser, serviceClient } from '../_shared/http.ts';
+import { errorMessage, isOwner, json, requireUser, serviceClient } from '../_shared/http.ts';
 import { analyze, summarizeToolCalls, type EscalationRow, type LearningRow } from '../_shared/lessons-analysis.ts';
+import * as lessons from '../_shared/lessons-actions.ts';
+import { mimoChat } from '../_shared/mimo.ts';
+import { apiKeyFor, estimateCost, loadSettings, logUsage, priceForModel } from '../_shared/settings.ts';
 
 /**
  * API CRM WhatsApp untuk halaman /wa di Academy (khusus user login).
@@ -295,6 +298,55 @@ async function lessonsOverview() {
   return { overview, trace };
 }
 
+/**
+ * Pelajaran AI Fase 2: pasang database dan model asli untuk aksi usulan (_shared/lessons-actions.ts).
+ * Biaya AI dicatat sebagai `admin_test` (aksi AI yang dipicu admin), BUKAN `wa`, supaya angka biaya per
+ * closing di AI Performance yang dihitung dari balasan customer tidak tercemar.
+ */
+function lessonsDeps(user: { id: string; email?: string | null }): lessons.LessonsDeps {
+  return {
+    academy: serviceClient(),
+    samaqu: serviceFetch,
+    model: async (messages) => {
+      const service = serviceClient();
+      const row = await loadSettings(service);
+      const apiKey = await apiKeyFor(row);
+      if (!apiKey) throw new lessons.LessonsError('API key MiMo belum diisi di pengaturan AI.', 503);
+      const started = Date.now();
+      const entry = { userId: user.id, userEmail: user.email ?? null, feature: 'admin_test' as const, model: row.default_model };
+      try {
+        const result = await mimoChat({
+          apiKey,
+          baseUrl: row.base_url,
+          model: row.default_model,
+          messages,
+          temperature: 0.2,
+          maxTokens: 1500,
+          thinking: 'disabled',
+          timeoutMs: 60_000,
+        });
+        await logUsage(service, {
+          ...entry,
+          usage: result.usage,
+          status: 'success',
+          latencyMs: Date.now() - started,
+          estimatedCost: estimateCost(result.usage, priceForModel(row.default_model) || row.pricing),
+        });
+        return {
+          content: result.content,
+          model: result.model,
+          promptTokens: result.usage.promptTokens,
+          completionTokens: result.usage.completionTokens,
+        };
+      } catch (error) {
+        await logUsage(service, { ...entry, status: 'error', error: errorMessage(error), latencyMs: Date.now() - started });
+        throw error;
+      }
+    },
+    log: (message) => console.error('lessons', message),
+  };
+}
+
 async function reply(sender: string, message: string, by: string | null) {
   const target = norm(sender);
   const text = String(message || '').trim();
@@ -372,6 +424,38 @@ Deno.serve(async (req) => {
     }
     if (action === 'lessons') {
       return json({ ok: true, ...(await lessonsOverview()) });
+    }
+    if (action.startsWith('lessons_')) {
+      // Daftar boleh dilihat semua user login; semua aksi yang mengubah sesuatu hanya owner (dicek di lessons-actions).
+      const deps = lessonsDeps(auth.user);
+      const actor = { email: auth.user.email ?? null, isOwner: isOwner(auth.user) };
+      const text = (key: string) => (typeof body[key] === 'string' ? (body[key] as string) : undefined);
+      try {
+        if (action === 'lessons_proposals') return json({ ok: true, ...(await lessons.listProposals(deps)) });
+        if (action === 'lessons_generate') {
+          return json({ ok: true, ...(await lessons.generate(deps, actor, { groupKey: text('group_key'), learningId: text('learning_id') })) });
+        }
+        if (action === 'lessons_edit') {
+          return json({ ok: true, proposal: await lessons.edit(deps, actor, { id: String(body.id ?? ''), lessonText: text('lesson_text'), title: text('title') }) });
+        }
+        if (action === 'lessons_reject') {
+          return json({ ok: true, proposal: await lessons.reject(deps, actor, { id: String(body.id ?? ''), reason: text('reason') }) });
+        }
+        if (action === 'lessons_publish') {
+          return json({
+            ok: true,
+            ...(await lessons.publish(deps, actor, { id: String(body.id ?? ''), lessonText: text('lesson_text'), confirmSoft: body.confirm_soft === true })),
+          });
+        }
+        if (action === 'lessons_retire') {
+          return json({ ok: true, ...(await lessons.retire(deps, actor, { learningId: String(body.learning_id ?? '') })) });
+        }
+      } catch (error) {
+        if (error instanceof lessons.LessonsError) {
+          return json({ ok: false, error: error.message, code: error.code, ...(error.extra ?? {}) }, error.status);
+        }
+        throw error;
+      }
     }
     return json({ ok: false, error: 'Aksi tidak dikenal.' }, 400);
   } catch (error) {

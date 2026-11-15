@@ -1,21 +1,41 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { loadLessons, type LessonsGroup, type LessonsOverview, type LessonsTrace } from './wa-api';
+import {
+  editProposal,
+  generateLessons,
+  loadLessons,
+  loadProposals,
+  publishProposal,
+  rejectProposal,
+  retireLearning,
+  type LessonProposal,
+  type LessonsGroup,
+  type LessonsOverview,
+  type LessonsTrace,
+} from './wa-api';
 
 /**
- * Tab "Pelajaran AI" di WA Inbox. FASE 1: BACA SAJA.
+ * Tab "Pelajaran AI" di WA Inbox.
  *
- * Menunjukkan di mana agent paling sering tidak bisa menjawab (eskalasi ke admin), customer yang
- * berulang kali dieskalasi, kualitas pelajaran yang sudah terbit, dan apakah rekam jejak tool berjalan.
- * Tidak ada tombol yang mengubah data atau perilaku agent. Persetujuan pelajaran (khusus owner) baru
- * hadir di fase berikutnya.
+ * Fase 1: melihat pola kesalahan agent (eskalasi dikelompokkan, customer berulang, kualitas pelajaran
+ * terbit, rekam jejak tool). Fase 2: usulan pelajaran yang disusun AI dari kasus nyata. Semua tombol yang
+ * mengubah sesuatu hanya ditampilkan untuk owner, dan server menolak non-owner apa pun yang tampil di layar.
+ * Tidak ada pelajaran yang masuk ke agent sebelum owner menyetujuinya.
  */
 
 const STATUS_LABEL: Record<string, string> = {
   open: 'Belum dijawab',
   answered: 'Dijawab',
   closed: 'Ditutup',
+};
+
+const PROPOSAL_STATUS: Record<string, string> = {
+  proposed: 'Menunggu keputusan',
+  publishing: 'Sedang diterbitkan',
+  published: 'Terbit',
+  rejected: 'Ditolak',
+  retired: 'Ditarik',
 };
 
 const NATURE_TONE: Record<string, string> = {
@@ -37,7 +57,26 @@ function waktu(iso: string): string {
   return `${day}, ${time}`;
 }
 
-function GroupCard({ group, open, onToggle }: { group: LessonsGroup; open: boolean; onToggle: () => void }) {
+interface Notice {
+  tone: 'ok' | 'err';
+  text: string;
+}
+
+function GroupCard({
+  group,
+  open,
+  onToggle,
+  isOwner,
+  busy,
+  onGenerate,
+}: {
+  group: LessonsGroup;
+  open: boolean;
+  onToggle: () => void;
+  isOwner: boolean;
+  busy: boolean;
+  onGenerate: () => void;
+}) {
   const tone = NATURE_TONE[group.nature] || 'muted';
   return (
     <article className={`wl-card tone-${tone}`} data-kind={group.key}>
@@ -49,11 +88,18 @@ function GroupCard({ group, open, onToggle }: { group: LessonsGroup; open: boole
         </span>
       </header>
       <p className="wl-headline">{group.hint}</p>
-      {group.examples.length ? (
-        <button type="button" className="wl-toggle" aria-expanded={open} onClick={onToggle}>
-          {open ? 'Sembunyikan contoh' : `Lihat contoh (${group.examples.length})`}
-        </button>
-      ) : null}
+      <div className="pl-actions">
+        {group.examples.length ? (
+          <button type="button" className="wl-toggle" aria-expanded={open} onClick={onToggle}>
+            {open ? 'Sembunyikan contoh' : `Lihat contoh (${group.examples.length})`}
+          </button>
+        ) : null}
+        {isOwner ? (
+          <button type="button" className="btn sm" onClick={onGenerate} disabled={busy} data-testid={`susun-${group.key}`}>
+            {busy ? 'Menyusun…' : 'Susun usulan pelajaran'}
+          </button>
+        ) : null}
+      </div>
       {open ? (
         <ul className="pl-ex">
           {group.examples.map((example) => (
@@ -71,6 +117,147 @@ function GroupCard({ group, open, onToggle }: { group: LessonsGroup; open: boole
           ))}
         </ul>
       ) : null}
+    </article>
+  );
+}
+
+function ProposalCard({
+  proposal,
+  isOwner,
+  busy,
+  confirm,
+  onSave,
+  onPublish,
+  onReject,
+}: {
+  proposal: LessonProposal;
+  isOwner: boolean;
+  busy: boolean;
+  /** Peringatan lunak dari server yang menunggu konfirmasi owner untuk usulan ini. */
+  confirm: string[] | null;
+  onSave: (id: string, text: string) => void;
+  onPublish: (id: string, text: string, confirmSoft: boolean) => void;
+  onReject: (id: string) => void;
+}) {
+  const [text, setText] = useState(proposal.lesson);
+  const [showEvidence, setShowEvidence] = useState(false);
+  const waiting = proposal.status === 'proposed';
+  const changed = text.trim() !== proposal.lesson.trim();
+  return (
+    <article className={`wl-card tone-${waiting ? 'info' : proposal.status === 'published' ? 'ok' : 'muted'}`} data-proposal={proposal.id}>
+      <header className="wl-head">
+        <b className="wl-who">{proposal.title}</b>
+        <span className="wl-chip">{proposal.kindLabel}</span>
+        <span className={`wl-chip${waiting ? ' tone-info' : proposal.status === 'published' ? ' tone-ok' : ''}`}>
+          {PROPOSAL_STATUS[proposal.status] || proposal.status}
+        </span>
+        {proposal.source === 'rewrite' ? <span className="wl-chip tone-warn">Tulis ulang</span> : null}
+        <span className="pl-stat">{proposal.cases} kasus</span>
+      </header>
+
+      {proposal.question ? (
+        <div className="pl-box" data-testid="pl-question">
+          <b>Pertanyaan untuk owner</b>
+          <span>{proposal.question}</span>
+        </div>
+      ) : null}
+      {proposal.note ? (
+        <div className="pl-box note">
+          <b>Catatan AI</b>
+          <span>{proposal.note}</span>
+        </div>
+      ) : null}
+
+      {waiting && isOwner ? (
+        <>
+          <label className="pl-label" htmlFor={`pl-${proposal.id}`}>
+            {proposal.question && !proposal.lesson ? 'Tulis aturan resmi (jawaban owner)' : 'Teks pelajaran'}
+          </label>
+          <textarea
+            id={`pl-${proposal.id}`}
+            className="pl-text"
+            rows={3}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            maxLength={2000}
+          />
+          <div className="pl-count">{text.trim().length} karakter · saran maksimal 300, batas 600</div>
+        </>
+      ) : proposal.lesson ? (
+        <p className="wl-headline" data-testid="pl-lesson-ro">
+          {proposal.lesson}
+        </p>
+      ) : null}
+
+      {proposal.flags.hard.length && proposal.lesson ? (
+        <div className="pl-flags">
+          {proposal.flags.hard.map((flag) => (
+            <span className="pl-flag hard" key={flag}>
+              {flag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {proposal.flags.soft.length ? (
+        <div className="pl-flags">
+          {proposal.flags.soft.map((flag) => (
+            <span className="pl-flag" key={flag}>
+              {flag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {confirm && confirm.length ? (
+        <div className="pl-box warn" role="alert" data-testid="pl-confirm">
+          <b>Pastikan dulu sebelum diterbitkan</b>
+          <span>{confirm.join('; ')}</span>
+          <button type="button" className="btn sm" disabled={busy} onClick={() => onPublish(proposal.id, text, true)}>
+            Tetap terbitkan
+          </button>
+        </div>
+      ) : null}
+
+      {proposal.evidence.length ? (
+        <>
+          <button type="button" className="wl-toggle" aria-expanded={showEvidence} onClick={() => setShowEvidence((value) => !value)}>
+            {showEvidence ? 'Sembunyikan bukti' : `Lihat bukti (${proposal.evidence.length})`}
+          </button>
+          {showEvidence ? (
+            <ul className="pl-ex">
+              {proposal.evidence.map((item, index) => (
+                <li key={String(item.id ?? index)}>
+                  <div className="pl-ex-head">
+                    {item.when ? <span>{waktu(String(item.when))}</span> : null}
+                    {item.who ? <span>{String(item.who)}</span> : null}
+                    {item.status ? <span>{STATUS_LABEL[String(item.status)] || String(item.status)}</span> : null}
+                  </div>
+                  {item.reason || item.topic ? <b>{String(item.reason ?? item.topic)}</b> : null}
+                  {item.summary ? <div>{String(item.summary)}</div> : null}
+                  {item.answer ? <div className="pl-answer">Jawaban admin: {String(item.answer)}</div> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+
+      {waiting && isOwner ? (
+        <div className="pl-actions">
+          <button type="button" className="btn sm p" disabled={busy || !text.trim()} onClick={() => onPublish(proposal.id, text, false)}>
+            Setujui dan terbitkan
+          </button>
+          <button type="button" className="btn sm" disabled={busy || !changed} onClick={() => onSave(proposal.id, text)}>
+            Simpan perubahan
+          </button>
+          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => onReject(proposal.id)}>
+            Tolak
+          </button>
+        </div>
+      ) : null}
+      {waiting && !isOwner ? <p className="pl-sub">Hanya owner yang bisa menyetujui atau menolak.</p> : null}
+      {proposal.status === 'rejected' && proposal.rejectReason ? <p className="pl-sub">Alasan ditolak: {proposal.rejectReason}</p> : null}
+      {proposal.stuck ? <p className="pl-sub">Status menggantung. Muat ulang; kalau masih begitu, hubungi pengembang.</p> : null}
     </article>
   );
 }
@@ -117,16 +304,22 @@ function TracePanel({ trace }: { trace: LessonsTrace }) {
   );
 }
 
-export function LessonsView() {
+export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
   const [overview, setOverview] = useState<LessonsOverview | null>(null);
   const [trace, setTrace] = useState<LessonsTrace | null>(null);
+  const [proposals, setProposals] = useState<LessonProposal[]>([]);
+  const [softLimit, setSoftLimit] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Record<string, string[]>>({});
+  const [showHistory, setShowHistory] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await loadLessons();
+    const [res, props] = await Promise.all([loadLessons(), loadProposals()]);
     setLoading(false);
     if (res.ok && res.data) {
       setError('');
@@ -134,6 +327,11 @@ export function LessonsView() {
       setTrace(res.data.trace);
     } else {
       setError(res.error || 'Gagal memuat Pelajaran AI.');
+    }
+    // Usulan opsional: kalau tabelnya belum bisa dibaca, bagian lain tab tetap tampil.
+    if (props.ok && props.data) {
+      setProposals(props.data.proposals);
+      setSoftLimit(props.data.publishedSoftLimit || 20);
     }
   }, []);
 
@@ -149,14 +347,65 @@ export function LessonsView() {
       return next;
     });
 
+  /** Jalankan aksi owner: satu aksi pada satu waktu, hasilnya jadi pesan, lalu muat ulang data. */
+  async function run<T>(key: string, action: () => Promise<{ ok: boolean; error?: string; code?: string; soft?: string[]; data?: T }>, onOk: (data: T) => string) {
+    if (busy) return;
+    setBusy(key);
+    setNotice(null);
+    const res = await action();
+    setBusy(null);
+    if (res.ok && res.data !== undefined) {
+      setNotice({ tone: 'ok', text: onOk(res.data) });
+      await load();
+      return;
+    }
+    if (res.code === 'needs_confirm' && res.soft?.length) {
+      const id = key.replace(/^publish:/, '');
+      setConfirm((current) => ({ ...current, [id]: res.soft || [] }));
+      return;
+    }
+    setNotice({ tone: 'err', text: res.error || 'Aksi gagal.' });
+  }
+
+  const onGenerateGroup = (group: LessonsGroup) =>
+    void run(`gen:${group.key}`, () => generateLessons({ groupKey: group.key }), (data) => data.message);
+  const onGenerateRewrite = (learningId: string) =>
+    void run(`rew:${learningId}`, () => generateLessons({ learningId }), (data) => data.message);
+  const onSave = (id: string, text: string) => void run(`save:${id}`, () => editProposal(id, text), () => 'Perubahan disimpan.');
+  const onPublish = (id: string, text: string, confirmSoft: boolean) =>
+    void run(
+      `publish:${id}`,
+      () => publishProposal(id, text, confirmSoft),
+      (data) => {
+        setConfirm((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+        return ['Pelajaran diterbitkan: agent akan memakainya pada pesan berikutnya.', ...(data.warnings || [])].join(' ');
+      },
+    );
+  const onReject = (id: string) => {
+    const reason = typeof window !== 'undefined' ? window.prompt('Alasan menolak (opsional):', '') : '';
+    if (reason === null) return;
+    void run(`reject:${id}`, () => rejectProposal(id, reason || undefined), () => 'Usulan ditolak.');
+  };
+  const onRetire = (learningId: string, topic: string) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Tarik pelajaran "${topic}"? Agent berhenti memakainya (tidak dihapus, bisa dilacak).`)) return;
+    void run(`retire:${learningId}`, () => retireLearning(learningId), () => 'Pelajaran ditarik.');
+  };
+
   const totals = overview?.totals;
+  const waiting = proposals.filter((item) => item.status === 'proposed' || item.status === 'publishing');
+  const history = proposals.filter((item) => item.status !== 'proposed' && item.status !== 'publishing');
+  const published = overview?.learnings.length ?? 0;
 
   return (
     <div className="wl pl" data-testid="pelajaran-ai">
       <div className="pl-intro">
         <b>Pelajaran AI</b>
         <span>
-          Belajar dari kesalahan agent. Saat ini hanya untuk melihat pola: tidak ada yang berubah otomatis, dan pelajaran baru nanti tetap disetujui owner.
+          Belajar dari kesalahan agent. AI menyusun usulan dari kasus eskalasi; hanya owner yang bisa menyetujui, dan tidak ada yang berubah di agent sebelum disetujui.
         </span>
         <button type="button" className="btn ghost sm" onClick={() => void load()} disabled={loading}>
           {loading ? 'Memuat…' : 'Muat ulang'}
@@ -164,6 +413,11 @@ export function LessonsView() {
       </div>
 
       {error ? <div className="wa-error-inline" role="alert">{error}</div> : null}
+      {notice ? (
+        <div className={`pl-notice ${notice.tone}`} role={notice.tone === 'err' ? 'alert' : 'status'} data-testid="pl-notice">
+          {notice.text}
+        </div>
+      ) : null}
 
       {!overview && loading ? <div className="empty">Memuat…</div> : null}
 
@@ -193,6 +447,56 @@ export function LessonsView() {
             </div>
           ) : null}
 
+          <h3 className="pl-h">
+            Usulan pelajaran <em className="pl-em">{waiting.length}</em>
+          </h3>
+          <p className="pl-sub">
+            Disusun AI dari kasus nyata. Baca teks dan buktinya, ubah kalau perlu, lalu setujui. Teks yang memuat nomor, rekening, atau data satu kasus akan ditolak otomatis.
+          </p>
+          {waiting.length === 0 ? (
+            <div className="empty" data-testid="pl-usulan-kosong">
+              {isOwner ? 'Belum ada usulan. Pakai "Susun usulan pelajaran" di salah satu kelompok di bawah.' : 'Belum ada usulan.'}
+            </div>
+          ) : (
+            <div className="wl-list">
+              {waiting.map((proposal) => (
+                <ProposalCard
+                  key={`${proposal.id}:${proposal.lesson}`}
+                  proposal={proposal}
+                  isOwner={isOwner}
+                  busy={busy !== null}
+                  confirm={confirm[proposal.id] || null}
+                  onSave={onSave}
+                  onPublish={onPublish}
+                  onReject={onReject}
+                />
+              ))}
+            </div>
+          )}
+          {history.length ? (
+            <>
+              <button type="button" className="wl-toggle" aria-expanded={showHistory} onClick={() => setShowHistory((value) => !value)} data-testid="pl-riwayat-toggle">
+                {showHistory ? 'Sembunyikan riwayat' : `Riwayat usulan (${history.length})`}
+              </button>
+              {showHistory ? (
+                <div className="wl-list" data-testid="pl-riwayat">
+                  {history.map((proposal) => (
+                    <ProposalCard
+                      key={proposal.id}
+                      proposal={proposal}
+                      isOwner={false}
+                      busy
+                      confirm={null}
+                      onSave={onSave}
+                      onPublish={onPublish}
+                      onReject={onReject}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+
           <h3 className="pl-h">Kelompok kesalahan</h3>
           <p className="pl-sub">Pengelompokan kasar berdasarkan kata kunci, untuk melihat pola. Urut dari yang paling banyak belum dijawab.</p>
           {overview.groups.length === 0 ? (
@@ -200,7 +504,15 @@ export function LessonsView() {
           ) : (
             <div className="wl-list">
               {overview.groups.map((group) => (
-                <GroupCard key={group.key} group={group} open={open.has(group.key)} onToggle={() => toggle(group.key)} />
+                <GroupCard
+                  key={group.key}
+                  group={group}
+                  open={open.has(group.key)}
+                  onToggle={() => toggle(group.key)}
+                  isOwner={isOwner}
+                  busy={busy !== null}
+                  onGenerate={() => onGenerateGroup(group)}
+                />
               ))}
             </div>
           )}
@@ -224,9 +536,11 @@ export function LessonsView() {
             </>
           ) : null}
 
-          <h3 className="pl-h">Pelajaran yang sudah terbit</h3>
+          <h3 className="pl-h">
+            Pelajaran yang sudah terbit <em className={`pl-em${published > softLimit ? ' warn' : ''}`}>{published}</em>
+          </h3>
           <p className="pl-sub">
-            Setiap pelajaran global dikirim ke agent pada setiap pesan. Yang ditandai berisi data satu kasus atau terlalu panjang, jadi sebaiknya ditulis ulang.
+            Setiap pelajaran global dikirim ke agent pada setiap pesan (saran maksimal {softLimit}). Yang ditandai berisi data satu kasus atau terlalu panjang, jadi sebaiknya ditulis ulang atau ditarik.
           </p>
           {overview.learnings.length === 0 ? (
             <div className="empty">Belum ada pelajaran.</div>
@@ -237,6 +551,18 @@ export function LessonsView() {
                   <b className="wl-who">{learning.topic}</b>
                   <span className="wl-chip">{learning.scope === 'global' ? 'Semua customer' : 'Satu customer'}</span>
                   <span className="pl-stat">{learning.chars} karakter · {waktu(learning.created_at)}</span>
+                  {isOwner ? (
+                    <span className="pl-row-actions">
+                      {learning.flags.length ? (
+                        <button type="button" className="btn sm" disabled={busy !== null} onClick={() => onGenerateRewrite(learning.id)}>
+                          {busy === `rew:${learning.id}` ? 'Menyusun…' : 'Susun tulis ulang'}
+                        </button>
+                      ) : null}
+                      <button type="button" className="btn ghost sm" disabled={busy !== null} onClick={() => onRetire(learning.id, learning.topic)}>
+                        Tarik
+                      </button>
+                    </span>
+                  ) : null}
                   {learning.flags.length ? (
                     <div className="pl-flags">
                       {learning.flags.map((flag) => (
