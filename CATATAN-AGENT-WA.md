@@ -278,3 +278,10 @@ Sebaiknya di luar jam AI (Senin–Sabtu 07.30–16.30).
 - Penyebab gagal diterjemahkan ke bahasa biasa di `plainError` (timeout, saldo, 401/403, 429, 5xx, run tidak selesai); pesan teknis asli tetap ada di bawah "Lihat detail teknis".
 - Rincian ronde AI, tool, hasil dilipat di "Lihat langkah AI". Run lama tanpa jejak langkah menampilkan catatan mentah.
 - Tidak ada perubahan di bot, database, atau menu.
+
+## Retensi log (pembersihan otomatis wa_agent_runs)
+- `maybePurgeRuns` di `wa-agent/index.ts`, jalan di menit 17 dan 47 tiap jam (cron memanggil tiap menit; tidak jalan di mode uji/dry). Tidak pernah menggagalkan run.
+- Run KOSONG (mode live, handled 0, held 0, tanpa error, bukan catatan jaring pengaman) dihapus setelah 2 hari. Semua run lain dihapus setelah 14 hari. Konstanta: `IDLE_RUN_KEEP_MS`, `RUN_KEEP_MS`.
+- Definisi "kosong" harus tetap sama dengan filter `compact` di `wa-admin` (`runs()`); kalau salah satu diubah, ubah keduanya.
+- `pg_cron` tidak terpasang di database Academy, makanya dipasang di wa-agent. Hasil dicatat di log fungsi ("purge log: N kosong, M lama") hanya kalau ada yang terhapus.
+- Dry-run sebelum diterapkan (15 Nov 2026): 4.133 baris kosong > 2 hari akan terhapus, 0 baris > 14 hari; 7.517 total, 1.579 aktif dipertahankan.

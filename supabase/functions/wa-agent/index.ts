@@ -357,6 +357,38 @@ async function maybeSweep(service: SupabaseClient): Promise<void> {
   }
 }
 
+// Retensi Log Bot: supaya tabel wa_agent_runs tidak membengkak (jejak langkah AI bisa besar).
+const IDLE_RUN_KEEP_MS = 2 * 24 * 3600_000; // run kosong (cek cron tanpa pesan baru)
+const RUN_KEEP_MS = 14 * 24 * 3600_000; // semua run lain
+
+/**
+ * Hapus log lama. Jalan dua kali per jam (menit 17 dan 47; cron memanggil tiap menit), tidak pernah
+ * menggagalkan run. Definisi "kosong" sama dengan filter compact di wa-admin: live, tidak ada pesan masuk,
+ * tidak ditahan, tanpa error, dan bukan catatan jaring pengaman.
+ */
+async function maybePurgeRuns(service: SupabaseClient): Promise<void> {
+  const minute = new Date().getUTCMinutes();
+  if (minute !== 17 && minute !== 47) return;
+  try {
+    const idleCutoff = new Date(Date.now() - IDLE_RUN_KEEP_MS).toISOString();
+    const allCutoff = new Date(Date.now() - RUN_KEEP_MS).toISOString();
+    const idle = await service
+      .from('wa_agent_runs')
+      .delete({ count: 'exact' })
+      .eq('mode', 'live')
+      .eq('handled', 0)
+      .eq('held', 0)
+      .is('error', null)
+      .or('note.is.null,note.not.ilike.jaring pengaman*')
+      .lt('created_at', idleCutoff);
+    const old = await service.from('wa_agent_runs').delete({ count: 'exact' }).lt('created_at', allCutoff);
+    if (idle.error || old.error) console.error('purge log error', idle.error?.message || old.error?.message);
+    else if ((idle.count ?? 0) + (old.count ?? 0) > 0) console.log(`purge log: ${idle.count ?? 0} kosong, ${old.count ?? 0} lama`);
+  } catch (error) {
+    console.error('purge log error', errorMessage(error));
+  }
+}
+
 async function startRun(service: SupabaseClient, mode: string): Promise<number | null> {
   try {
     // Run yang tidak pernah selesai (timeout/crash) ditandai supaya tidak "berjalan" selamanya.
@@ -449,7 +481,10 @@ Deno.serve(async (req) => {
     // Jaring pengaman closing (tiap ±5 menit, dibatasi 8 detik, tak pernah menggagalkan run). Jalan di SEMUA
     // mode bot dan di luar jam kerja AI: bukti yang masuk malam hari tetap jadi kasus untuk dilihat admin pagi.
     // Tidak jalan di mode uji (dry/test).
-    if (!testMode && !isDry() && url.searchParams.get('dry') !== '1') await maybeSweep(service);
+    if (!testMode && !isDry() && url.searchParams.get('dry') !== '1') {
+      await maybeSweep(service);
+      await maybePurgeRuns(service);
+    }
     const row = await loadSettings(service);
 
     // Mode bot (diatur di Pengaturan admin): "local" = lokal yang balas; "auto" =
