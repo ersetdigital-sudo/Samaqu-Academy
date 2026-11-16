@@ -1,6 +1,18 @@
 import type { TokenUsage } from './settings.ts';
 
-const CHAT_TIMEOUT_MS = 45_000;
+/**
+ * Batas waktu SATU panggilan model.
+ *
+ * Dulu 45 detik. Terlalu ketat untuk model yang memanggil tool berlapis: dari 200 run
+ * sukses terakhir, median 36,6 detik, p90 66 detik, dan 27% butuh lebih dari 45 detik.
+ * Akibatnya run yang sudah berjalan normal terpotong di tengah ("The signal has been
+ * aborted") padahal balasannya sudah hampir selesai disusun.
+ *
+ * 90 detik dipilih supaya p99 (98 detik) tetap tertangkap, dengan ruang lebih untuk
+ * variasi jaringan. Run tetap dibatasi MAX_ROUNDS di pemanggil, jadi ini tidak membuat
+ * percakapan bisa menggantung tanpa batas.
+ */
+const CHAT_TIMEOUT_MS = 90_000;
 const MODELS_TIMEOUT_MS = 20_000;
 
 export interface MimoMessage {

@@ -54,7 +54,17 @@ export interface MimoToolChatResult {
   model: string;
 }
 
-const CHAT_TIMEOUT_MS = 45_000;
+/**
+ * Batas waktu SATU panggilan model yang memakai tool.
+ *
+ * Dulu 45 detik. Terlalu ketat: dari 200 run sukses terakhir median 36,6 detik, p90 66
+ * detik, dan 27% butuh lebih dari 45 detik. Run yang sudah berjalan normal terpotong di
+ * tengah ("The signal has been aborted") padahal balasannya hampir selesai.
+ *
+ * Samakan dengan CHAT_TIMEOUT_MS di _shared/mimo.ts. Jumlah putaran tetap dibatasi
+ * MAX_ROUNDS di pemanggil, jadi percakapan tidak bisa menggantung tanpa batas.
+ */
+const CHAT_TIMEOUT_MS = 90_000;
 
 function usageFrom(raw: unknown): TokenUsage {
   const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};

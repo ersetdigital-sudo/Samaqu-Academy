@@ -798,7 +798,9 @@ Deno.serve(async (req) => {
         // dan dulu terpotong tepat sebelum `</tool_call>` sehingga tidak pernah dieksekusi.
         maxTokens: Math.min(behavior.maxTokens || 900, 1500),
         thinking: 'disabled',
-        timeoutMs: 45_000,
+        // Satu sumber batas waktu: pakai default di _shared/mimo.ts (90 detik). Jangan
+        // menulis angka sendiri di sini - dulu 45 detik di-hardcode dan memotong run yang
+        // sebenarnya wajar (median run sukses 36,6 detik, p90 66 detik).
         // Kalau provider tetap menolak karena gambar, ulangi sekali tanpa gambar.
         retryWithoutImages: true,
       });
