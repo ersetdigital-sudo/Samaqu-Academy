@@ -144,6 +144,8 @@ export interface LessonsGroup {
 }
 
 export interface LessonsRepeat {
+  /** Nomor customer (62…) untuk membuka percakapannya di tab Chat. Kosong pada respons lama. */
+  sender?: string;
   who: string;
   cases: number;
   open: number;

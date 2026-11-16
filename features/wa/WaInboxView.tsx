@@ -225,6 +225,22 @@ export function WaInboxView() {
     await refreshList();
   }
 
+  /** Dari tab Pelajaran AI: buka percakapan customer itu di tab Chat supaya bisa langsung dibalas. */
+  function openChatFor(sender: string) {
+    const target = digitNomor(sender);
+    const match = target ? items.find((item) => digitNomor(item.sender) === target) : undefined;
+    if (!match) {
+      setError('Percakapan dengan nomor ini belum ada di daftar Chat. Coba muat ulang, lalu cari nomornya di tab Chat.');
+      return;
+    }
+    setError('');
+    setSearch('');
+    setOnlyPending(false);
+    setSelected(match.sender);
+    setOpened((prev) => new Set(prev).add(match.sender));
+    setTab('chat');
+  }
+
   async function onToggleHandover() {
     if (!current || handoverBusy) return;
     setHandoverBusy(true);
@@ -271,7 +287,7 @@ export function WaInboxView() {
       {tab === 'log' ? (
         <LogBotView />
       ) : tab === 'lessons' ? (
-        <LessonsView isOwner={role === 'owner'} />
+        <LessonsView isOwner={role === 'owner'} onOpenChat={openChatFor} />
       ) : (
         <div
           ref={shellRef}

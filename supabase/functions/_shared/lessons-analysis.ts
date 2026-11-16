@@ -203,6 +203,8 @@ export interface KindGroup {
 }
 
 export interface RepeatCustomer {
+  /** Nomor customer ternormalkan (62…), dipakai tombol "Buka chat" untuk mencocokkan percakapan. */
+  sender: string;
   who: string;
   cases: number;
   open: number;
@@ -322,6 +324,7 @@ export function analyze(escalations: EscalationRow[], learnings: LearningRow[], 
       const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
       const named = [...sorted].reverse().find((row) => String(row.sender_name ?? '').trim());
       return {
+        sender: key,
         who: whoLabel(key, named?.sender_name),
         cases: rows.length,
         open: rows.filter((row) => isOpen(row.status)).length,

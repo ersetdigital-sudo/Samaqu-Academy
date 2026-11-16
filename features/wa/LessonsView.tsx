@@ -341,7 +341,7 @@ function TracePanel({ trace }: { trace: LessonsTrace }) {
   );
 }
 
-export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
+export function LessonsView({ isOwner = false, onOpenChat }: { isOwner?: boolean; onOpenChat?: (sender: string) => void }) {
   const [overview, setOverview] = useState<LessonsOverview | null>(null);
   const [trace, setTrace] = useState<LessonsTrace | null>(null);
   const [proposals, setProposals] = useState<LessonProposal[]>([]);
@@ -592,6 +592,11 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
                     <span className="pl-stat" style={{ marginLeft: 'auto' }}>
                       {waktu(repeat.firstAt)} sampai {waktu(repeat.lastAt)}
                     </span>
+                    {onOpenChat && repeat.sender ? (
+                      <button type="button" className="btn sm" onClick={() => onOpenChat(repeat.sender || '')} data-testid="buka-chat">
+                        Buka chat
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>
