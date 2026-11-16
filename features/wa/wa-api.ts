@@ -157,6 +157,8 @@ export interface LessonsLearning {
   topic: string;
   scope: string;
   chars: number;
+  /** Isi aturan lengkap untuk "Lihat isi". */
+  text: string;
   created_at: string;
   flags: string[];
 }

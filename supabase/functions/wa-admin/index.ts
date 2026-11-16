@@ -261,7 +261,7 @@ async function runs(limit = 50, compact = false) {
 async function lessonsOverview() {
   const [escalations, learnings] = await Promise.all([
     serviceFetch(
-      'wa_escalations?select=id,inbox_id,sender,reason,summary,customer_message,status,created_at&order=created_at.desc&limit=1000',
+      'wa_escalations?select=id,inbox_id,sender,sender_name,reason,summary,customer_message,status,created_at&order=created_at.desc&limit=1000',
     ),
     serviceFetch('wa_learnings?select=id,scope,sender,topic,instruction,status,created_at&order=created_at.desc&limit=500'),
   ]);

@@ -132,16 +132,35 @@ export const NATURE_LABEL: Record<Nature, string> = {
   perlu_dicek: 'Perlu dicek',
 };
 
-const PHONE_RE = /(?<![A-Za-z\d])(?:\+?62|0)8\d{7,12}(?!\d)/g;
-
+/** Hanya untuk teks yang DIKIRIM KE AI. Tampilan di layar owner memakai formatPhone/whoLabel (terbaca utuh). */
 export function maskDigits(raw: string): string {
   const digits = String(raw ?? '').replace(/\D/g, '');
   if (digits.length <= 5) return '***';
   return `${digits.slice(0, 2)}${'*'.repeat(digits.length - 5)}${digits.slice(-3)}`;
 }
 
+/** Nomor ditampilkan utuh dan mudah dibaca: 6287881718586 menjadi 0878 8171 8586. Selain nomor HP dibiarkan. */
+export function formatPhone(raw: unknown): string {
+  const text = String(raw ?? '').trim();
+  if (!text) return '';
+  if (!/^\+?[\d\s-]+$/.test(text)) return text;
+  let digits = text.replace(/\D/g, '');
+  if (digits.length < 8) return text;
+  if (digits.startsWith('62')) digits = `0${digits.slice(2)}`;
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+
+/** Identitas customer untuk layar owner: "Nama · 0878 8171 8586", atau nomornya saja kalau nama tidak ada. */
+export function whoLabel(sender: unknown, name?: unknown): string {
+  const phone = formatPhone(sender);
+  const label = String(name ?? '').replace(/\s+/g, ' ').trim();
+  if (label && phone) return `${label} · ${phone}`;
+  return label || phone || '-';
+}
+
+// Teks untuk layar owner: dirapikan dan dipotong, tidak disamarkan (penyamaran hanya untuk yang dikirim ke AI).
 function clip(text: unknown, max: number): string {
-  const clean = String(text ?? '').replace(PHONE_RE, (m) => maskDigits(m)).replace(/\s+/g, ' ').trim();
+  const clean = String(text ?? '').replace(/\s+/g, ' ').trim();
   return clean.length <= max ? clean : `${clean.slice(0, max - 1)}…`;
 }
 
@@ -197,6 +216,8 @@ export interface LearningReview {
   topic: string;
   scope: string;
   chars: number;
+  /** Isi aturan lengkap, untuk dibaca owner lewat "Lihat isi". */
+  text: string;
   created_at: string;
   flags: string[];
 }
@@ -235,6 +256,7 @@ export function reviewLearning(row: LearningRow): LearningReview {
     topic: clip(row.topic || '(tanpa topik)', 90),
     scope: String(row.scope || ''),
     chars: text.length,
+    text: text.trim(),
     created_at: row.created_at,
     flags,
   };
@@ -284,7 +306,7 @@ export function analyze(escalations: EscalationRow[], learnings: LearningRow[], 
         id: String(row.id),
         inboxId: row.inbox_id ? String(row.inbox_id) : null,
         when: row.created_at,
-        who: row.sender ? maskDigits(String(row.sender)) : '-',
+        who: whoLabel(row.sender, row.sender_name),
         status: String(row.status ?? ''),
         reason: clip(row.reason, 90),
         summary: clip(row.summary || row.customer_message, 170),
@@ -298,8 +320,9 @@ export function analyze(escalations: EscalationRow[], learnings: LearningRow[], 
     .filter(([, rows]) => rows.length >= 3)
     .map(([key, rows]) => {
       const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
+      const named = [...sorted].reverse().find((row) => String(row.sender_name ?? '').trim());
       return {
-        who: maskDigits(key),
+        who: whoLabel(key, named?.sender_name),
         cases: rows.length,
         open: rows.filter((row) => isOpen(row.status)).length,
         kinds: [...new Set(rows.map((row) => classify(row).label))],

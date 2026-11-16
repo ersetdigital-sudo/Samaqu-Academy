@@ -10,7 +10,7 @@
  * (3) owner membaca bukti dan teksnya sebelum menyetujui.
  */
 
-import { classify, maskDigits, senderKey, type EscalationRow, type KindKey } from './lessons-analysis.ts';
+import { classify, maskDigits, senderKey, whoLabel, type EscalationRow, type KindKey } from './lessons-analysis.ts';
 
 export const LESSON_MAX_CHARS = 600; // batas keras
 export const LESSON_SOFT_CHARS = 300; // lebih panjang dari ini = peringatan (dikirim ke agent di tiap pesan)
@@ -97,6 +97,11 @@ export interface LessonCase {
   summary: string;
   /** Jawaban admin yang sudah terkirim (disamarkan). Kosong = belum pernah dijawab. */
   answer: string;
+  /**
+   * Versi utuh untuk LAYAR owner (bukti usulan): nama + nomor terbaca, teks tidak disamarkan.
+   * Tidak pernah masuk prompt: buildPrompt hanya memakai id, status, reason, summary, answer di atas.
+   */
+  display?: { who: string; reason: string; summary: string; answer: string };
 }
 
 // 08… dan 628… adalah satu customer yang sama (senderKey menormalkan keduanya).
@@ -125,6 +130,12 @@ export function buildCases(rows: EscalationRow[], groupKey: KindKey, max = MAX_C
       reason: scrub(row.reason, 120),
       summary: scrub(row.summary || row.customer_message, 240),
       answer: scrub(row.reply_text || row.instruction, 400),
+      display: {
+        who: whoLabel(row.sender, row.sender_name),
+        reason: clip(row.reason, 120),
+        summary: clip(row.summary || row.customer_message, 240),
+        answer: clip(row.reply_text || row.instruction, 400),
+      },
     });
     if (out.length >= max) break;
   }

@@ -166,7 +166,7 @@ export async function listProposals(deps: LessonsDeps): Promise<{ proposals: Pro
   return { proposals: rows.map((row) => toView(row, now)), publishedSoftLimit: PUBLISHED_SOFT_LIMIT };
 }
 
-const ESC_COLUMNS = 'id,inbox_id,sender,reason,summary,customer_message,status,instruction,reply_text,created_at';
+const ESC_COLUMNS = 'id,inbox_id,sender,sender_name,reason,summary,customer_message,status,instruction,reply_text,created_at';
 
 /**
  * Susun usulan dari satu kelompok kasus (`groupKey`) atau tulis ulang satu pelajaran lama (`learningId`).
@@ -255,11 +255,11 @@ export async function generate(
           id: c.id,
           inboxId: c.inboxId,
           when: c.when,
-          who: c.who,
+          who: c.display?.who ?? c.who,
           status: c.status,
-          reason: c.reason,
-          summary: c.summary,
-          answer: scrub(c.answer, 200),
+          reason: c.display?.reason ?? c.reason,
+          summary: c.display?.summary ?? c.summary,
+          answer: (c.display?.answer ?? scrub(c.answer, 400)).slice(0, 400),
         })));
     const row = {
       status: 'proposed',

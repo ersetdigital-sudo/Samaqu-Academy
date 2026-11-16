@@ -354,6 +354,7 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
   const [confirm, setConfirm] = useState<Record<string, string[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [jump, setJump] = useState(false);
+  const [readOpen, setReadOpen] = useState<Set<string>>(new Set());
   const proposalsRef = useRef<HTMLHeadingElement>(null);
 
   const load = useCallback(async () => {
@@ -384,6 +385,14 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
     setJump(false);
     proposalsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }, [jump]);
+
+  const toggleRead = (id: string) =>
+    setReadOpen((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const toggle = (key: string) =>
     setOpen((current) => {
@@ -604,17 +613,33 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
                   <b className="wl-who">{learning.topic}</b>
                   <span className="wl-chip">{learning.scope === 'global' ? 'Semua customer' : 'Satu customer'}</span>
                   <span className="pl-stat">{learning.chars} karakter · {waktu(learning.created_at)}</span>
-                  {isOwner ? (
-                    <span className="pl-row-actions">
-                      {learning.flags.length ? (
-                        <button type="button" className="btn sm" disabled={busy !== null} onClick={() => onGenerateRewrite(learning.id)}>
-                          {busy === `rew:${learning.id}` ? 'Menyusun…' : 'Susun tulis ulang'}
+                  <span className="pl-row-actions">
+                    <button
+                      type="button"
+                      className="btn sm"
+                      aria-expanded={readOpen.has(learning.id)}
+                      onClick={() => toggleRead(learning.id)}
+                      data-testid={`isi-${learning.id}`}
+                    >
+                      {readOpen.has(learning.id) ? 'Sembunyikan isi' : 'Lihat isi'}
+                    </button>
+                    {isOwner ? (
+                      <>
+                        {learning.flags.length ? (
+                          <button type="button" className="btn sm" disabled={busy !== null} onClick={() => onGenerateRewrite(learning.id)}>
+                            {busy === `rew:${learning.id}` ? 'Menyusun…' : 'Susun tulis ulang'}
+                          </button>
+                        ) : null}
+                        <button type="button" className="btn ghost sm" disabled={busy !== null} onClick={() => onRetire(learning.id, learning.topic)}>
+                          Tarik
                         </button>
-                      ) : null}
-                      <button type="button" className="btn ghost sm" disabled={busy !== null} onClick={() => onRetire(learning.id, learning.topic)}>
-                        Tarik
-                      </button>
-                    </span>
+                      </>
+                    ) : null}
+                  </span>
+                  {readOpen.has(learning.id) ? (
+                    <div className="pl-learning-text" data-testid="pl-isi">
+                      {learning.text || '(isi kosong)'}
+                    </div>
                   ) : null}
                   {learning.flags.length ? (
                     <div className="pl-flags">
