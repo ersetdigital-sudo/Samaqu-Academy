@@ -116,7 +116,48 @@ function cleanForCustomer(text: string): string {
   const cut = lines.findIndex((line) =>
     /^\s*(\d+\s+nomor ditangani|laporan\s*:)/i.test(line),
   );
-  return (cut >= 0 ? lines.slice(0, cut) : lines).join('\n').trim();
+  return stripInternalIds((cut >= 0 ? lines.slice(0, cut) : lines).join('\n')).trim();
+}
+
+/**
+ * Buang penanda internal dari balasan customer.
+ *
+ * Setiap pesan masuk ditampilkan ke model sebagai `• [<uuid>] Nama · nomor` supaya
+ * `kirim_wa` bisa memakai inbox_id yang benar. Model kadang menyalin uuid itu ke
+ * balasan, sehingga customer menerima `[inbox_id: 6bffcb0a-...]` — penanda internal
+ * yang tidak ada artinya bagi mereka. Pernah terjadi 16 Nov 2026 pada customer yang
+ * sama sekali tidak mengirim gambar, jadi ini bukan hanya soal bukti transfer.
+ *
+ * Hanya membuang penanda; kalimat di sekitarnya tetap utuh. Baris yang jadi kosong
+ * karena itu ikut dibuang supaya tidak menyisakan enter menggantung.
+ */
+function stripInternalIds(text: string): string {
+  const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+  const cleaned = String(text || '')
+    // "inbox_id: <uuid>" dengan atau tanpa kurung siku / tanda kutip.
+    .replace(new RegExp(`[\\s,;:-]*\\[?\\s*inbox[_ ]?id\\s*[:=]\\s*["'\`]?${UUID}["'\`]?\\s*\\]?`, 'gi'), '')
+    .replace(new RegExp(`\\[\\s*${UUID}\\s*\\]`, 'gi'), '')
+    .replace(new RegExp(`\\b${UUID}\\b`, 'gi'), '');
+  return cleaned
+    .split(/\r?\n/)
+    // Sisa spasi ganda / spasi sebelum tanda baca / kurung yang jadi kosong.
+    .map((line) =>
+      line
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\s+([.,!?])/g, '$1')
+        .replace(/\(\s*\)/g, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/[ \t]+$/g, ''),
+    )
+    .filter((line, index, all) => {
+      // Buang baris yang isinya jadi kosong, kecuali baris kosong pemisah blok
+      // (tetap dipertahankan supaya tata letak balasan tidak berubah).
+      if (line.trim()) return true;
+      const before = all[index - 1];
+      const after = all[index + 1];
+      return Boolean(before && after);
+    })
+    .join('\n');
 }
 
 /** Baca tabel SAMAQU (service role) tanpa menulis apa pun. */
