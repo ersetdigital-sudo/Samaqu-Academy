@@ -333,7 +333,9 @@ export function analyze(escalations: EscalationRow[], learnings: LearningRow[], 
     .sort((a, b) => b.cases - a.cases)
     .slice(0, 12);
 
-  const reviewed = learnings
+  // Hanya pelajaran yang benar-benar terbit (yang dibaca agent). Yang sudah ditarik (archived) atau draft tidak ditampilkan dan tidak dihitung.
+  const active = learnings.filter((row) => row.status === 'published');
+  const reviewed = active
     .map(reviewLearning)
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
@@ -346,8 +348,8 @@ export function analyze(escalations: EscalationRow[], learnings: LearningRow[], 
       closed: escalations.filter((row) => row.status === 'closed').length,
       uniqueOpen: uniqueOpenSet.size,
       duplicateOpen: Math.max(0, openTotal - uniqueOpenSet.size),
-      learnings: learnings.length,
-      published: learnings.filter((row) => row.status === 'published').length,
+      learnings: active.length,
+      published: active.length,
       needReview: reviewed.filter((item) => item.flags.length > 0).length,
     },
     groups,
