@@ -428,6 +428,9 @@ Deno.serve(async (req) => {
     if (action === 'escalations') {
       return json({ ok: true, items: await escalations.pendingFor({ samaqu: serviceFetch }, String(body.sender ?? '')) });
     }
+    if (action === 'escalation_customers') {
+      return json({ ok: true, items: await escalations.waitingCustomers({ samaqu: serviceFetch }) });
+    }
     if (action === 'escalation_close') {
       await escalations.closeEscalation({ samaqu: serviceFetch }, String(body.id ?? ''));
       return json({ ok: true });

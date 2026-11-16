@@ -56,6 +56,56 @@ export async function pendingFor(deps: EscalationDeps, sender: string): Promise<
     }));
 }
 
+/** Satu customer yang punya Pertanyaan AI menunggu (ringkasan untuk daftar tab "Perlu Dijawab"). */
+export interface WaitingCustomer {
+  /** Nomor ternormalkan (62…). */
+  sender: string;
+  name: string;
+  /** Jumlah pertanyaan menunggu. */
+  count: number;
+  /** Pertanyaan tertua yang masih menunggu: dasar lama menunggu. */
+  oldestAt: string;
+  latestAt: string;
+  latestReason: string;
+  /** Tiga pertanyaan menunggu atau lebih. */
+  repeated: boolean;
+}
+
+/** Semua customer dengan Pertanyaan AI menunggu, yang paling lama menunggu di atas. */
+export async function waitingCustomers(deps: EscalationDeps): Promise<WaitingCustomer[]> {
+  const rows = await deps.samaqu(`wa_escalations?select=${COLUMNS}&status=in.(open,claimed)&order=created_at.desc&limit=1000`);
+  const byKey = new Map<string, WaitingCustomer>();
+  // Urutan terbaru dulu: nama dan alasan pertama yang ditemui = yang terbaru.
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const key = senderKey(row?.sender);
+    if (!key) continue;
+    const at = String(row.created_at ?? '');
+    const entry = byKey.get(key);
+    if (!entry) {
+      byKey.set(key, {
+        sender: key,
+        name: String(row.sender_name ?? '').trim(),
+        count: 1,
+        oldestAt: at,
+        latestAt: at,
+        latestReason: clip(row.reason || row.summary || row.customer_message, 120),
+        repeated: false,
+      });
+      continue;
+    }
+    entry.count += 1;
+    if (at && (!entry.oldestAt || at < entry.oldestAt)) entry.oldestAt = at;
+    if (at && at > entry.latestAt) {
+      entry.latestAt = at;
+      entry.latestReason = clip(row.reason || row.summary || row.customer_message, 120);
+    }
+    if (!entry.name) entry.name = String(row.sender_name ?? '').trim();
+  }
+  return [...byKey.values()]
+    .map((item) => ({ ...item, repeated: item.count >= 3 }))
+    .sort((a, b) => a.oldestAt.localeCompare(b.oldestAt));
+}
+
 /** Tandai semua eskalasi menunggu milik customer ini `answered` dengan balasan admin. Mengembalikan jumlahnya. */
 export async function markAnswered(deps: EscalationDeps, sender: string, replyText: string): Promise<number> {
   const text = String(replyText ?? '').trim();

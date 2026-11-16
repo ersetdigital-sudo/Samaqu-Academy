@@ -341,7 +341,7 @@ function TracePanel({ trace }: { trace: LessonsTrace }) {
   );
 }
 
-export function LessonsView({ isOwner = false, onOpenChat }: { isOwner?: boolean; onOpenChat?: (sender: string) => void }) {
+export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
   const [overview, setOverview] = useState<LessonsOverview | null>(null);
   const [trace, setTrace] = useState<LessonsTrace | null>(null);
   const [proposals, setProposals] = useState<LessonProposal[]>([]);
@@ -578,30 +578,6 @@ export function LessonsView({ isOwner = false, onOpenChat }: { isOwner?: boolean
               ))}
             </div>
           )}
-
-          {overview.repeats.length ? (
-            <>
-              <h3 className="pl-h">Customer yang berulang kali dieskalasi</h3>
-              <p className="pl-sub">Tiga eskalasi atau lebih dari satu customer: tanda ada pertanyaan yang belum terjawab.</p>
-              <div className="wl-list">
-                {overview.repeats.map((repeat) => (
-                  <div className="pl-row" key={repeat.who + repeat.firstAt}>
-                    <b className="wl-who">{repeat.who}</b>
-                    <span className="wl-chip tone-warn">{repeat.cases} eskalasi</span>
-                    <span className="pl-stat">{repeat.open} belum dijawab · {repeat.kinds.join(', ')}</span>
-                    <span className="pl-stat" style={{ marginLeft: 'auto' }}>
-                      {waktu(repeat.firstAt)} sampai {waktu(repeat.lastAt)}
-                    </span>
-                    {onOpenChat && repeat.sender ? (
-                      <button type="button" className="btn sm" onClick={() => onOpenChat(repeat.sender || '')} data-testid="buka-chat">
-                        Buka chat
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : null}
 
           <h3 className="pl-h">
             Pelajaran yang sudah terbit <em className={`pl-em${published > softLimit ? ' warn' : ''}`}>{published}</em>

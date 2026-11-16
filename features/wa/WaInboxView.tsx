@@ -9,6 +9,7 @@ import {
   loadConversations,
   loadEscalations,
   loadMessages,
+  loadWaiting,
   releaseConversation,
   sendReply,
   takeOver,
@@ -16,6 +17,7 @@ import {
   type WaEscalation,
   type WaMessage,
   type WaStats,
+  type WaWaitingCustomer,
 } from './wa-api';
 import { useWaRealtime } from './useWaRealtime';
 import { LogBotView } from './LogBotView';
@@ -99,6 +101,20 @@ function inisial(name: string, sender: string): string {
   return parts.slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
+/** Lama customer menunggu jawaban: "5 mnt", "3 jam", "8 hr". */
+function lamaMenunggu(iso: string, now = Date.now()): string {
+  const ms = now - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '-';
+  const menit = Math.floor(ms / 60000);
+  if (menit < 60) return `${Math.max(menit, 1)} mnt`;
+  const jam = Math.floor(menit / 60);
+  if (jam < 24) return `${jam} jam`;
+  return `${Math.floor(jam / 24)} hr`;
+}
+
+/** Tiga hari atau lebih menunggu: ditandai merah. */
+const TERLAMBAT_MS = 3 * 24 * 3600 * 1000;
+
 export function WaInboxView() {
   const [items, setItems] = useState<WaConversation[]>([]);
   const [stats, setStats] = useState<WaStats | null>(null);
@@ -113,7 +129,11 @@ export function WaInboxView() {
   const [handoverBusy, setHandoverBusy] = useState(false);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'chat' | 'log' | 'lessons'>('chat');
+  const [tab, setTab] = useState<'chat' | 'waiting' | 'log' | 'lessons'>('chat');
+  const [waiting, setWaiting] = useState<WaWaitingCustomer[]>([]);
+  const [onlyRepeat, setOnlyRepeat] = useState(false);
+  // Customer yang dipilih dari daftar "Perlu Dijawab" tapi tidak ada di daftar Chat (mis. percakapan lama).
+  const [selectedInfo, setSelectedInfo] = useState<{ sender: string; name: string } | null>(null);
   const [escalations, setEscalations] = useState<WaEscalation[]>([]);
   const [closingEsc, setClosingEsc] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -161,24 +181,38 @@ export function WaInboxView() {
     setEscalations(res.ok ? res.data?.items || [] : []);
   }, []);
 
+  // Daftar customer yang menunggu jawaban. Gagal memuat tidak mengganggu tab Chat: daftar lama dibiarkan.
+  const loadWaitingList = useCallback(async () => {
+    const res = await loadWaiting();
+    if (res.ok) setWaiting(res.data?.items || []);
+  }, []);
+
   const refreshAll = useCallback(async () => {
     await refreshList();
+    await loadWaitingList();
     if (selected) {
       await openThread(selected, false);
       await loadEsc(selected);
     }
-  }, [refreshList, openThread, loadEsc, selected]);
+  }, [refreshList, loadWaitingList, openThread, loadEsc, selected]);
 
   useEffect(() => {
     void refreshList();
-    const timer = setInterval(() => void refreshList(), 60_000);
-    const onFocus = () => void refreshList();
+    void loadWaitingList();
+    const timer = setInterval(() => {
+      void refreshList();
+      void loadWaitingList();
+    }, 60_000);
+    const onFocus = () => {
+      void refreshList();
+      void loadWaitingList();
+    };
     window.addEventListener('focus', onFocus);
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', onFocus);
     };
-  }, [refreshList]);
+  }, [refreshList, loadWaitingList]);
 
   useEffect(() => {
     const onVisible = () => {
@@ -207,7 +241,7 @@ export function WaInboxView() {
 
   // Tinggi panel dihitung dari posisi nyata di layar, supaya kolom balasan selalu kelihatan.
   useEffect(() => {
-    if (tab !== 'chat') return;
+    if (tab !== 'chat' && tab !== 'waiting') return;
     const calc = () => {
       const el = shellRef.current;
       if (!el) return;
@@ -231,7 +265,25 @@ export function WaInboxView() {
     });
   }, [items, search, onlyPending]);
 
-  const current = items.find((item) => item.sender === selected) || null;
+  // Daftar "Perlu Dijawab": cari/saring di sisi layar (nama atau nomor), nomor 08…/62… dianggap sama.
+  const waitingRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const digit = digitNomor(q);
+    return waiting.filter((row) => {
+      if (onlyRepeat && !row.repeated) return false;
+      if (!q) return true;
+      if (row.name.toLowerCase().includes(q) || row.latestReason.toLowerCase().includes(q)) return true;
+      return digit.length >= 4 && digitNomor(row.sender).includes(digit);
+    });
+  }, [waiting, search, onlyRepeat]);
+
+  // Percakapan yang sedang dibuka. Kalau tidak ada di daftar Chat (percakapan lama), pakai data dari daftar "Perlu Dijawab"
+  // supaya customer tetap bisa dibuka dan dibalas.
+  const current: WaConversation | null =
+    items.find((item) => item.sender === selected) ||
+    (selected && selectedInfo && selectedInfo.sender === selected
+      ? { sender: selected, name: selectedInfo.name, lastMessage: '', lastAt: '', lastStatus: '', pending: 0, sent: 0, total: 0, handover: false }
+      : null);
 
   async function onSend() {
     const text = draft.trim();
@@ -248,6 +300,7 @@ export function WaInboxView() {
     await openThread(selected);
     await refreshList();
     await loadEsc(selected);
+    await loadWaitingList();
   }
 
   async function onCloseEscalation(id: string) {
@@ -261,22 +314,7 @@ export function WaInboxView() {
     }
     setError('');
     await loadEsc(selected);
-  }
-
-  /** Dari tab Pelajaran AI: buka percakapan customer itu di tab Chat supaya bisa langsung dibalas. */
-  function openChatFor(sender: string) {
-    const target = digitNomor(sender);
-    const match = target ? items.find((item) => digitNomor(item.sender) === target) : undefined;
-    if (!match) {
-      setError('Percakapan dengan nomor ini belum ada di daftar Chat. Coba muat ulang, lalu cari nomornya di tab Chat.');
-      return;
-    }
-    setError('');
-    setSearch('');
-    setOnlyPending(false);
-    setSelected(match.sender);
-    setOpened((prev) => new Set(prev).add(match.sender));
-    setTab('chat');
+    await loadWaitingList();
   }
 
   async function onToggleHandover() {
@@ -297,8 +335,12 @@ export function WaInboxView() {
   return (
     <>
       <div className="wa-tabs">
-        <button type="button" className={`chip${tab === 'chat' ? ' on' : ''}`} onClick={() => setTab('chat')}>
+        <button type="button" className={`chip${tab === 'chat' ? ' on' : ''}`} onClick={() => { setTab('chat'); setSearch(''); }}>
           Chat
+        </button>
+        <button type="button" className={`chip${tab === 'waiting' ? ' on' : ''}`} onClick={() => { setTab('waiting'); setSearch(''); }} data-testid="tab-perlu-dijawab">
+          Perlu Dijawab
+          {waiting.length > 0 ? <span className="wa-tab-count">{waiting.length}</span> : null}
         </button>
         <button type="button" className={`chip${tab === 'log' ? ' on' : ''}`} onClick={() => setTab('log')}>
           Log Bot
@@ -325,7 +367,7 @@ export function WaInboxView() {
       {tab === 'log' ? (
         <LogBotView />
       ) : tab === 'lessons' ? (
-        <LessonsView isOwner={role === 'owner'} onOpenChat={openChatFor} />
+        <LessonsView isOwner={role === 'owner'} />
       ) : (
         <div
           ref={shellRef}
@@ -336,10 +378,18 @@ export function WaInboxView() {
         <div className="wa-side-head">
           <div className="wa-me">CS</div>
           <div className="wa-side-title">
-            <b>WhatsApp CS</b>
-            <small>SAMAQU</small>
+            <b>{tab === 'waiting' ? 'Perlu Dijawab' : 'WhatsApp CS'}</b>
+            <small>{tab === 'waiting' ? `${waiting.length} customer menunggu jawaban` : 'SAMAQU'}</small>
           </div>
-          <button className="wa-icb" type="button" title="Muat ulang" onClick={() => void refreshList()}>
+          <button
+            className="wa-icb"
+            type="button"
+            title="Muat ulang"
+            onClick={() => {
+              void refreshList();
+              void loadWaitingList();
+            }}
+          >
             <Icon name="refresh-cw" size={16} />
           </button>
         </div>
@@ -347,23 +397,76 @@ export function WaInboxView() {
         <div className="wa-search">
           <input
             className="inp"
-            placeholder="Cari atau mulai chat"
+            placeholder={tab === 'waiting' ? 'Cari nama atau nomor' : 'Cari atau mulai chat'}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
 
-        <div className="wa-filters">
-          <button type="button" className={`chip${onlyPending ? '' : ' on'}`} onClick={() => setOnlyPending(false)}>
-            Semua
-          </button>
-          <button type="button" className={`chip${onlyPending ? ' on' : ''}`} onClick={() => setOnlyPending(true)}>
-            Belum dibalas{stats?.pending ? ` (${stats.pending})` : ''}
-          </button>
-        </div>
+        {tab === 'waiting' ? (
+          <div className="wa-filters">
+            <button type="button" className={`chip${onlyRepeat ? '' : ' on'}`} onClick={() => setOnlyRepeat(false)}>
+              Semua{waiting.length ? ` (${waiting.length})` : ''}
+            </button>
+            <button type="button" className={`chip${onlyRepeat ? ' on' : ''}`} onClick={() => setOnlyRepeat(true)}>
+              Berulang{waiting.some((row) => row.repeated) ? ` (${waiting.filter((row) => row.repeated).length})` : ''}
+            </button>
+          </div>
+        ) : (
+          <div className="wa-filters">
+            <button type="button" className={`chip${onlyPending ? '' : ' on'}`} onClick={() => setOnlyPending(false)}>
+              Semua
+            </button>
+            <button type="button" className={`chip${onlyPending ? ' on' : ''}`} onClick={() => setOnlyPending(true)}>
+              Belum dibalas{stats?.pending ? ` (${stats.pending})` : ''}
+            </button>
+          </div>
+        )}
 
         <div className="wa-list">
-          {loading ? (
+          {tab === 'waiting' ? (
+            waitingRows.length === 0 ? (
+              <div className="empty" data-testid="waiting-kosong">
+                {waiting.length === 0 ? 'Semua pertanyaan sudah dijawab.' : 'Tidak ada customer yang cocok.'}
+              </div>
+            ) : (
+              waitingRows.map((row) => {
+                // Pakai format nomor dari daftar Chat bila ada (itu yang dipakai saat membalas); kalau tidak ada, nomor 62….
+                const conv = items.find((item) => digitNomor(item.sender) === digitNomor(row.sender));
+                const rowSender = conv?.sender || row.sender;
+                const nama = row.name || conv?.name || '';
+                const telat = Date.now() - new Date(row.oldestAt).getTime() >= TERLAMBAT_MS;
+                return (
+                  <button
+                    key={row.sender}
+                    type="button"
+                    data-waiting={row.sender}
+                    className={`wa-item${rowSender === selected ? ' on' : ''}`}
+                    onClick={() => {
+                      setSelected(rowSender);
+                      setSelectedInfo({ sender: rowSender, name: nama });
+                      setOpened((prev) => new Set(prev).add(rowSender));
+                    }}
+                  >
+                    <div className="wa-av">{inisial(nama, row.sender)}</div>
+                    <div className="wa-item-body">
+                      <div className="wa-item-top">
+                        <b>{nama || rapikanNomor(row.sender)}</b>
+                        <span className={telat ? 'wa-late' : undefined} title="Sudah menunggu sejak pertanyaan tertua">
+                          {lamaMenunggu(row.oldestAt)}
+                        </span>
+                      </div>
+                      <div className="wa-item-bottom">
+                        <span className="wa-preview">{row.latestReason || '—'}</span>
+                        <span className="wa-badge" title="Jumlah pertanyaan menunggu">{row.count}</span>
+                      </div>
+                      {row.repeated ? <span className="wa-flag">berulang</span> : null}
+                    </div>
+                  </button>
+                );
+              })
+            )
+          ) : loading ? (
             <div className="empty">Memuat percakapan…</div>
           ) : filtered.length === 0 ? (
             <div className="empty">Tidak ada percakapan.</div>

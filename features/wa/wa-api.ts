@@ -122,6 +122,22 @@ export function closeEscalation(id: string) {
   return invoke<Record<string, never>>('escalation_close', { id });
 }
 
+/** Satu customer yang punya Pertanyaan AI menunggu (daftar tab "Perlu Dijawab"). */
+export interface WaWaitingCustomer {
+  /** Nomor ternormalkan (62…). */
+  sender: string;
+  name: string;
+  count: number;
+  oldestAt: string;
+  latestAt: string;
+  latestReason: string;
+  repeated: boolean;
+}
+
+export function loadWaiting() {
+  return invoke<{ items: WaWaitingCustomer[] }>('escalation_customers');
+}
+
 export function takeOver(sender: string) {
   return invoke<Record<string, never>>('takeover', { sender });
 }
@@ -163,17 +179,6 @@ export interface LessonsGroup {
   examples: LessonsExample[];
 }
 
-export interface LessonsRepeat {
-  /** Nomor customer (62…) untuk membuka percakapannya di tab Chat. Kosong pada respons lama. */
-  sender?: string;
-  who: string;
-  cases: number;
-  open: number;
-  kinds: string[];
-  firstAt: string;
-  lastAt: string;
-}
-
 export interface LessonsLearning {
   id: string;
   topic: string;
@@ -199,7 +204,6 @@ export interface LessonsOverview {
     needReview: number;
   };
   groups: LessonsGroup[];
-  repeats: LessonsRepeat[];
   learnings: LessonsLearning[];
 }
 
