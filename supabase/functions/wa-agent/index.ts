@@ -704,7 +704,6 @@ Deno.serve(async (req) => {
     const bonusStock = await bonusStockContext();
 
     const system = [
-      waktuSekarangWib(),
       behavior.systemInstructions,
       memory ? `MEMORI ORGANISASI (sudah disetujui):\n${memory}` : '',
       bonusStock,
@@ -716,6 +715,11 @@ Deno.serve(async (req) => {
       'ALUR REKENING: sebelum mengirim nomor rekening, WAJIB panggil rekap_pesanan (inbox_id, items, kota, kecamatan, nama, alamat, layanan kalau sudah dipilih). Tool itu sudah memutuskan baris Bonus dan menyusun teks lengkap: kirim TEKS UNTUK CUSTOMER persis lewat kirim_wa, jangan menambah baris bonus, mengubah angka, atau membuat "invoice" kedua. Setelah customer setuju, kirim rekening saja (tanpa mengulang rincian). Kalau rekap berbeda dari hitungan customer, jelaskan dan tunggu persetujuan.',
       'ATURAN KONTEKS & CLOSING LANJUTAN: baca "Konteks sebelumnya" dulu. Jawaban singkat customer (angka seperti "10230", atau "Iya", "yg ini") hampir selalu menjawab pertanyaan TERAKHIR kami di konteks itu: jangan tanya balik "maksudnya apa". Kalau customer sudah mengirim bukti transfer SEBELUMNYA (baris "lampiran gambar, inbox_id: …") dan data pesanan + alamat sekarang sudah lengkap, panggil catat_closing dengan inbox_id lampiran itu; nominal ambil dari balasan kami sebelumnya (mis. "Bukti transfer Rp408.000"). JANGAN menulis "langsung kami proses" atau "data sudah lengkap" sebelum catat_closing berhasil.',
       WA_AGENT_RULES,
+      // Waktu SENGAJA di paling akhir: cache prompt mencocokkan dari depan, jadi bagian
+      // yang berubah tiap menit harus ditaruh paling belakang. Dulu baris ini paling atas,
+      // dan setiap perubahan menit membatalkan cache untuk persona + memori (~59.000
+      // karakter) yang seharusnya dibaca ulang seharga cache, bukan harga input penuh.
+      waktuSekarangWib(),
     ]
       .filter(Boolean)
       .join('\n\n---\n\n');
