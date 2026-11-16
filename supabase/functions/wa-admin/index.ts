@@ -1,6 +1,7 @@
 import { errorMessage, isOwner, json, requireUser, serviceClient } from '../_shared/http.ts';
 import { analyze, summarizeToolCalls, type EscalationRow, type LearningRow } from '../_shared/lessons-analysis.ts';
 import * as lessons from '../_shared/lessons-actions.ts';
+import * as escalations from '../_shared/escalations.ts';
 import { mimoChat } from '../_shared/mimo.ts';
 import { apiKeyFor, estimateCost, loadSettings, logUsage, priceForModel } from '../_shared/settings.ts';
 
@@ -383,7 +384,16 @@ async function reply(sender: string, message: string, by: string | null) {
   // Balas manual = admin mengambil alih percakapan ini.
   await setHandover(sender, true, by);
 
-  return { target: sent?.target || target };
+  // Pertanyaan AI customer ini dianggap terjawab. Pesan sudah terkirim, jadi kegagalan di sini TIDAK boleh
+  // membuat balasan terlihat gagal: cukup dicatat, dan eskalasi tetap bisa ditutup manual.
+  let answered = 0;
+  try {
+    answered = await escalations.markAnswered({ samaqu: serviceFetch }, sender, text);
+  } catch (error) {
+    console.error('tandai eskalasi terjawab gagal', errorMessage(error));
+  }
+
+  return { target: sent?.target || target, answered };
 }
 
 Deno.serve(async (req) => {
@@ -414,6 +424,13 @@ Deno.serve(async (req) => {
         ok: true,
         ...(await reply(String(body.sender ?? ''), String(body.message ?? ''), auth.user.email ?? null)),
       });
+    }
+    if (action === 'escalations') {
+      return json({ ok: true, items: await escalations.pendingFor({ samaqu: serviceFetch }, String(body.sender ?? '')) });
+    }
+    if (action === 'escalation_close') {
+      await escalations.closeEscalation({ samaqu: serviceFetch }, String(body.id ?? ''));
+      return json({ ok: true });
     }
     if (action === 'takeover') {
       const sender = String(body.sender ?? '');

@@ -99,7 +99,27 @@ export function loadMessages(sender: string) {
 }
 
 export function sendReply(sender: string, message: string) {
-  return invoke<{ target: string }>('reply', { sender, message });
+  return invoke<{ target: string; answered?: number }>('reply', { sender, message });
+}
+
+/** Pertanyaan AI (eskalasi) yang masih menunggu untuk satu customer. */
+export interface WaEscalation {
+  id: string;
+  sender: string;
+  name: string;
+  reason: string;
+  summary: string;
+  message: string;
+  status: string;
+  createdAt: string;
+}
+
+export function loadEscalations(sender: string) {
+  return invoke<{ items: WaEscalation[] }>('escalations', { sender });
+}
+
+export function closeEscalation(id: string) {
+  return invoke<Record<string, never>>('escalation_close', { id });
 }
 
 export function takeOver(sender: string) {

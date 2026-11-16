@@ -5,12 +5,15 @@ import { AppLink as Link } from '@/components/ui/AppLink';
 import { Icon } from '@/components/ui/Icon';
 import { useRole } from '@/components/providers/RoleProvider';
 import {
+  closeEscalation,
   loadConversations,
+  loadEscalations,
   loadMessages,
   releaseConversation,
   sendReply,
   takeOver,
   type WaConversation,
+  type WaEscalation,
   type WaMessage,
   type WaStats,
 } from './wa-api';
@@ -111,6 +114,8 @@ export function WaInboxView() {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'chat' | 'log' | 'lessons'>('chat');
+  const [escalations, setEscalations] = useState<WaEscalation[]>([]);
+  const [closingEsc, setClosingEsc] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [shellHeight, setShellHeight] = useState(0);
@@ -142,10 +147,27 @@ export function WaInboxView() {
     setMessages(res.data?.items || []);
   }, []);
 
+  // Pertanyaan AI yang menunggu untuk customer yang sedang dibuka. Gagal memuat tidak mengganggu percakapan.
+  const selectedRef = useRef('');
+  selectedRef.current = selected;
+  const loadEsc = useCallback(async (sender: string) => {
+    if (!sender) {
+      setEscalations([]);
+      return;
+    }
+    const res = await loadEscalations(sender);
+    // Jawaban terlambat dari customer yang sudah ditinggalkan tidak boleh menimpa kotak customer yang sedang dibuka.
+    if (selectedRef.current !== sender) return;
+    setEscalations(res.ok ? res.data?.items || [] : []);
+  }, []);
+
   const refreshAll = useCallback(async () => {
     await refreshList();
-    if (selected) await openThread(selected, false);
-  }, [refreshList, openThread, selected]);
+    if (selected) {
+      await openThread(selected, false);
+      await loadEsc(selected);
+    }
+  }, [refreshList, openThread, loadEsc, selected]);
 
   useEffect(() => {
     void refreshList();
@@ -169,7 +191,9 @@ export function WaInboxView() {
   useEffect(() => {
     if (selected) void openThread(selected);
     else setMessages([]);
-  }, [selected, openThread]);
+    setEscalations([]);
+    void loadEsc(selected);
+  }, [selected, openThread, loadEsc]);
 
   useEffect(() => {
     if (!selected) return;
@@ -223,6 +247,20 @@ export function WaInboxView() {
     setError('');
     await openThread(selected);
     await refreshList();
+    await loadEsc(selected);
+  }
+
+  async function onCloseEscalation(id: string) {
+    if (!id || closingEsc) return;
+    setClosingEsc(id);
+    const res = await closeEscalation(id);
+    setClosingEsc('');
+    if (!res.ok) {
+      setError(res.error || 'Gagal menandai selesai.');
+      return;
+    }
+    setError('');
+    await loadEsc(selected);
   }
 
   /** Dari tab Pelajaran AI: buka percakapan customer itu di tab Chat supaya bisa langsung dibalas. */
@@ -403,6 +441,32 @@ export function WaInboxView() {
                 <Icon name="refresh-cw" size={16} />
               </button>
             </header>
+
+            {escalations.length ? (
+              <div className="wa-esc" data-testid="wa-esc">
+                <div className="wa-esc-title">
+                  Pertanyaan AI menunggu ({escalations.length})
+                  <small>Membalas customer ini otomatis menandainya terjawab.</small>
+                </div>
+                {escalations.map((item) => (
+                  <div className="wa-esc-item" key={item.id} data-esc={item.id}>
+                    <div className="wa-esc-body">
+                      <b>{item.reason || 'Perlu bantuan admin'}</b>
+                      {item.summary ? <span>{item.summary}</span> : null}
+                      <small>{waktu(item.createdAt)}</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={closingEsc !== ''}
+                      onClick={() => void onCloseEscalation(item.id)}
+                    >
+                      {closingEsc === item.id ? 'Menutup…' : 'Tandai selesai'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             <div className="wa-thread">
               {loadingThread ? (
