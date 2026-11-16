@@ -2703,6 +2703,15 @@ th {
   gap: 6px;
   margin-left: auto;
 }
+.pl-preview {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--t2);
+}
+.btn.danger {
+  border-color: var(--red);
+}
 .pl-label {
   display: block;
   margin: 10px 0 4px;

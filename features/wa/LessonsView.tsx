@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   editProposal,
   generateLessons,
@@ -145,8 +145,22 @@ function ProposalCard({
 }) {
   const [text, setText] = useState(proposal.lesson);
   const [showEvidence, setShowEvidence] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const waiting = proposal.status === 'proposed';
   const changed = text.trim() !== proposal.lesson.trim();
+  const needsAnswer = waiting && !proposal.lesson;
+  // Usulan menunggu milik owner tampil ringkas dulu; form baru terbuka saat "Tinjau" diklik.
+  const compact = waiting && isOwner && !reviewing;
+  // Setelah "Simpan perubahan" teks dari server masuk lagi tanpa menutup kartu yang sedang dibuka.
+  useEffect(() => {
+    setText(proposal.lesson);
+  }, [proposal.lesson]);
+  const rawPreview = needsAnswer ? proposal.question || '' : proposal.lesson;
+  const preview = (needsAnswer ? 'Pertanyaan AI: ' : '') + (rawPreview.length > 180 ? `${rawPreview.slice(0, 177)}…` : rawPreview);
+  const cancel = () => {
+    setText(proposal.lesson);
+    setReviewing(false);
+  };
   return (
     <article className={`wl-card tone-${waiting ? 'info' : proposal.status === 'published' ? 'ok' : 'muted'}`} data-proposal={proposal.id}>
       <header className="wl-head">
@@ -155,110 +169,129 @@ function ProposalCard({
         <span className={`wl-chip${waiting ? ' tone-info' : proposal.status === 'published' ? ' tone-ok' : ''}`}>
           {PROPOSAL_STATUS[proposal.status] || proposal.status}
         </span>
+        {needsAnswer ? <span className="wl-chip tone-warn">Perlu jawaban owner</span> : null}
         {proposal.source === 'rewrite' ? <span className="wl-chip tone-warn">Tulis ulang</span> : null}
         <span className="pl-stat">{proposal.cases} kasus</span>
       </header>
 
-      {proposal.question ? (
-        <div className="pl-box" data-testid="pl-question">
-          <b>Pertanyaan untuk owner</b>
-          <span>{proposal.question}</span>
-        </div>
-      ) : null}
-      {proposal.note ? (
-        <div className="pl-box note">
-          <b>Catatan AI</b>
-          <span>{proposal.note}</span>
-        </div>
-      ) : null}
-
-      {waiting && isOwner ? (
+      {compact ? (
         <>
-          <label className="pl-label" htmlFor={`pl-${proposal.id}`}>
-            {proposal.question && !proposal.lesson ? 'Tulis aturan resmi (jawaban owner)' : 'Teks pelajaran'}
-          </label>
-          <textarea
-            id={`pl-${proposal.id}`}
-            className="pl-text"
-            rows={3}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            maxLength={2000}
-          />
-          <div className="pl-count">{text.trim().length} karakter · saran maksimal 300, batas 600</div>
+          <p className="pl-preview" data-testid="pl-preview">
+            {preview}
+          </p>
+          <div className="pl-actions">
+            <button type="button" className="btn sm p" onClick={() => setReviewing(true)} data-testid="pl-tinjau">
+              Tinjau
+            </button>
+          </div>
         </>
-      ) : proposal.lesson ? (
-        <p className="wl-headline" data-testid="pl-lesson-ro">
-          {proposal.lesson}
-        </p>
-      ) : null}
-
-      {proposal.flags.hard.length && proposal.lesson ? (
-        <div className="pl-flags">
-          {proposal.flags.hard.map((flag) => (
-            <span className="pl-flag hard" key={flag}>
-              {flag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {proposal.flags.soft.length ? (
-        <div className="pl-flags">
-          {proposal.flags.soft.map((flag) => (
-            <span className="pl-flag" key={flag}>
-              {flag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      {confirm && confirm.length ? (
-        <div className="pl-box warn" role="alert" data-testid="pl-confirm">
-          <b>Pastikan dulu sebelum diterbitkan</b>
-          <span>{confirm.join('; ')}</span>
-          <button type="button" className="btn sm" disabled={busy} onClick={() => onPublish(proposal.id, text, true)}>
-            Tetap terbitkan
-          </button>
-        </div>
-      ) : null}
-
-      {proposal.evidence.length ? (
+      ) : (
         <>
-          <button type="button" className="wl-toggle" aria-expanded={showEvidence} onClick={() => setShowEvidence((value) => !value)}>
-            {showEvidence ? 'Sembunyikan bukti' : `Lihat bukti (${proposal.evidence.length})`}
-          </button>
-          {showEvidence ? (
-            <ul className="pl-ex">
-              {proposal.evidence.map((item, index) => (
-                <li key={String(item.id ?? index)}>
-                  <div className="pl-ex-head">
-                    {item.when ? <span>{waktu(String(item.when))}</span> : null}
-                    {item.who ? <span>{String(item.who)}</span> : null}
-                    {item.status ? <span>{STATUS_LABEL[String(item.status)] || String(item.status)}</span> : null}
-                  </div>
-                  {item.reason || item.topic ? <b>{String(item.reason ?? item.topic)}</b> : null}
-                  {item.summary ? <div>{String(item.summary)}</div> : null}
-                  {item.answer ? <div className="pl-answer">Jawaban admin: {String(item.answer)}</div> : null}
-                </li>
+          {proposal.question ? (
+            <div className="pl-box" data-testid="pl-question">
+              <b>Pertanyaan untuk owner</b>
+              <span>{proposal.question}</span>
+            </div>
+          ) : null}
+          {proposal.note ? (
+            <div className="pl-box note">
+              <b>Catatan AI</b>
+              <span>{proposal.note}</span>
+            </div>
+          ) : null}
+
+          {waiting && isOwner ? (
+            <>
+              <label className="pl-label" htmlFor={`pl-${proposal.id}`}>
+                {needsAnswer ? 'Tulis aturan resmi (jawaban owner)' : 'Teks pelajaran'}
+              </label>
+              <textarea
+                id={`pl-${proposal.id}`}
+                className="pl-text"
+                rows={3}
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                maxLength={2000}
+              />
+              <div className="pl-count">{text.trim().length} karakter · saran maksimal 300, batas 600</div>
+            </>
+          ) : proposal.lesson ? (
+            <p className="wl-headline" data-testid="pl-lesson-ro">
+              {proposal.lesson}
+            </p>
+          ) : null}
+
+          {proposal.flags.hard.length && proposal.lesson ? (
+            <div className="pl-flags">
+              {proposal.flags.hard.map((flag) => (
+                <span className="pl-flag hard" key={flag}>
+                  {flag}
+                </span>
               ))}
-            </ul>
+            </div>
+          ) : null}
+          {proposal.flags.soft.length ? (
+            <div className="pl-flags">
+              {proposal.flags.soft.map((flag) => (
+                <span className="pl-flag" key={flag}>
+                  {flag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {confirm && confirm.length ? (
+            <div className="pl-box warn" role="alert" data-testid="pl-confirm">
+              <b>Pastikan dulu sebelum diterbitkan</b>
+              <span>{confirm.join('; ')}</span>
+              <button type="button" className="btn sm" disabled={busy} onClick={() => onPublish(proposal.id, text, true)}>
+                Tetap terbitkan
+              </button>
+            </div>
+          ) : null}
+
+          {proposal.evidence.length ? (
+            <>
+              <button type="button" className="wl-toggle" aria-expanded={showEvidence} onClick={() => setShowEvidence((value) => !value)}>
+                {showEvidence ? 'Sembunyikan bukti' : `Lihat bukti (${proposal.evidence.length})`}
+              </button>
+              {showEvidence ? (
+                <ul className="pl-ex">
+                  {proposal.evidence.map((item, index) => (
+                    <li key={String(item.id ?? index)}>
+                      <div className="pl-ex-head">
+                        {item.when ? <span>{waktu(String(item.when))}</span> : null}
+                        {item.who ? <span>{String(item.who)}</span> : null}
+                        {item.status ? <span>{STATUS_LABEL[String(item.status)] || String(item.status)}</span> : null}
+                      </div>
+                      {item.reason || item.topic ? <b>{String(item.reason ?? item.topic)}</b> : null}
+                      {item.summary ? <div>{String(item.summary)}</div> : null}
+                      {item.answer ? <div className="pl-answer">Jawaban admin: {String(item.answer)}</div> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+
+          {waiting && isOwner ? (
+            <div className="pl-actions">
+              <button type="button" className="btn sm p" disabled={busy || !text.trim()} onClick={() => onPublish(proposal.id, text, false)}>
+                Setujui dan terbitkan
+              </button>
+              <button type="button" className="btn sm" disabled={busy || !changed} onClick={() => onSave(proposal.id, text)}>
+                Simpan perubahan
+              </button>
+              <button type="button" className="btn sm" disabled={busy} onClick={cancel} data-testid="pl-batal">
+                Batal
+              </button>
+              <button type="button" className="btn danger sm" disabled={busy} onClick={() => onReject(proposal.id)}>
+                Tolak
+              </button>
+            </div>
           ) : null}
         </>
-      ) : null}
-
-      {waiting && isOwner ? (
-        <div className="pl-actions">
-          <button type="button" className="btn sm p" disabled={busy || !text.trim()} onClick={() => onPublish(proposal.id, text, false)}>
-            Setujui dan terbitkan
-          </button>
-          <button type="button" className="btn sm" disabled={busy || !changed} onClick={() => onSave(proposal.id, text)}>
-            Simpan perubahan
-          </button>
-          <button type="button" className="btn ghost sm" disabled={busy} onClick={() => onReject(proposal.id)}>
-            Tolak
-          </button>
-        </div>
-      ) : null}
+      )}
       {waiting && !isOwner ? <p className="pl-sub">Hanya owner yang bisa menyetujui atau menolak.</p> : null}
       {proposal.status === 'rejected' && proposal.rejectReason ? <p className="pl-sub">Alasan ditolak: {proposal.rejectReason}</p> : null}
       {proposal.stuck ? <p className="pl-sub">Status menggantung. Muat ulang; kalau masih begitu, hubungi pengembang.</p> : null}
@@ -320,6 +353,8 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Record<string, string[]>>({});
   const [showHistory, setShowHistory] = useState(false);
+  const [jump, setJump] = useState(false);
+  const proposalsRef = useRef<HTMLHeadingElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -343,6 +378,13 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
     void load();
   }, [load]);
 
+  // Setelah penyusunan berhasil, gulir ke daftar usulan supaya hasilnya langsung kelihatan.
+  useEffect(() => {
+    if (!jump) return;
+    setJump(false);
+    proposalsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }, [jump]);
+
   const toggle = (key: string) =>
     setOpen((current) => {
       const next = new Set(current);
@@ -352,7 +394,12 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
     });
 
   /** Jalankan aksi owner: satu aksi pada satu waktu, hasilnya jadi pesan, lalu muat ulang data. */
-  async function run<T>(key: string, action: () => Promise<{ ok: boolean; error?: string; code?: string; soft?: string[]; data?: T }>, onOk: (data: T) => string) {
+  async function run<T>(
+    key: string,
+    action: () => Promise<{ ok: boolean; error?: string; code?: string; soft?: string[]; data?: T }>,
+    onOk: (data: T) => string,
+    afterLoad?: (data: T) => void,
+  ) {
     if (busy) return;
     setBusy(key);
     setNotice(null);
@@ -361,6 +408,7 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
     if (res.ok && res.data !== undefined) {
       setNotice({ tone: 'ok', text: onOk(res.data) });
       await load();
+      afterLoad?.(res.data);
       return;
     }
     if (res.code === 'needs_confirm' && res.soft?.length) {
@@ -372,9 +420,9 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
   }
 
   const onGenerateGroup = (group: LessonsGroup) =>
-    void run(`gen:${group.key}`, () => generateLessons({ groupKey: group.key }), (data) => data.message);
+    void run(`gen:${group.key}`, () => generateLessons({ groupKey: group.key }), (data) => data.message, (data) => setJump(data.created > 0));
   const onGenerateRewrite = (learningId: string) =>
-    void run(`rew:${learningId}`, () => generateLessons({ learningId }), (data) => data.message);
+    void run(`rew:${learningId}`, () => generateLessons({ learningId }), (data) => data.message, (data) => setJump(data.created > 0));
   const onSave = (id: string, text: string) => void run(`save:${id}`, () => editProposal(id, text), () => 'Perubahan disimpan.');
   const onPublish = (id: string, text: string, confirmSoft: boolean) =>
     void run(
@@ -451,7 +499,7 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
             </div>
           ) : null}
 
-          <h3 className="pl-h">
+          <h3 className="pl-h" ref={proposalsRef}>
             Usulan pelajaran <em className="pl-em">{waiting.length}</em>
           </h3>
           <p className="pl-sub">
@@ -465,7 +513,7 @@ export function LessonsView({ isOwner = false }: { isOwner?: boolean }) {
             <div className="wl-list">
               {waiting.map((proposal) => (
                 <ProposalCard
-                  key={`${proposal.id}:${proposal.lesson}`}
+                  key={proposal.id}
                   proposal={proposal}
                   isOwner={isOwner}
                   busy={busy !== null}
