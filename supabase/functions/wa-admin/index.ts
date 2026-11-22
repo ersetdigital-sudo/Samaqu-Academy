@@ -644,10 +644,44 @@ async function reply(sender: string, message: string, by: string | null, media?:
   return { target: sent?.target || target, answered };
 }
 
+/**
+ * Jalur TEPERCAYA dari panel admin SAMAQU (server ke server), TAMBAHAN di depan login Academy yang sudah ada.
+ *
+ * Panel admin SAMAQU punya login sendiri, jadi tidak bisa membawa sesi Academy. Server SAMAQU menyertakan kunci
+ * rahasia (`x-samaqu-proxy` = env WA_ADMIN_PROXY_SECRET) dan email admin yang sedang login (`x-samaqu-admin`),
+ * sehingga catatan "siapa yang membalas" tetap per orang.
+ *
+ * Pengaman:
+ *  - env WA_ADMIN_PROXY_SECRET kosong = jalur ini MATI total (perilaku lama, tidak berubah);
+ *  - hanya aksi di PROXY_ACTIONS yang boleh lewat jalur ini (aksi lain, mis. pelajaran AI, ditolak 403);
+ *  - perbandingan kunci dibuat waktu-konstan.
+ * Cara mematikan darurat: hapus env WA_ADMIN_PROXY_SECRET.
+ */
+const PROXY_SECRET = Deno.env.get('WA_ADMIN_PROXY_SECRET') || '';
+/** Tahap 1: BACA SAJA. Aksi kirim/ambil alih ditambahkan di tahap berikutnya. */
+const PROXY_ACTIONS = new Set(['conversations', 'messages', 'stats']);
+
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function proxyAuth(req: Request): { user: { id: string; email: string; app_metadata: Record<string, never> } } | null {
+  if (!PROXY_SECRET || PROXY_SECRET.length < 24) return null;
+  const given = req.headers.get('x-samaqu-proxy') || '';
+  if (!given || !safeEqual(given, PROXY_SECRET)) return null;
+  const email = (req.headers.get('x-samaqu-admin') || '').trim().slice(0, 200);
+  if (!email) return null;
+  return { user: { id: 'samaqu-proxy', email, app_metadata: {} } };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json({ ok: true });
 
-  const auth = await requireUser(req);
+  const proxy = proxyAuth(req);
+  const auth = proxy ?? (await requireUser(req));
   if (!auth) return json({ ok: false, error: 'Sesi tidak valid. Login ulang.' }, 401);
 
   if (req.method === 'GET') return json({ ok: true });
@@ -660,6 +694,9 @@ Deno.serve(async (req) => {
   }
 
   const action = String(body.action ?? '');
+  if (proxy && !PROXY_ACTIONS.has(action)) {
+    return json({ ok: false, error: 'Aksi ini tidak tersedia lewat panel admin.' }, 403);
+  }
   try {
     if (action === 'conversations') {
       return json({ ok: true, ...(await conversations()) });
@@ -718,7 +755,7 @@ Deno.serve(async (req) => {
     if (action.startsWith('lessons_')) {
       // Daftar boleh dilihat semua user login; semua aksi yang mengubah sesuatu hanya owner (dicek di lessons-actions).
       const deps = lessonsDeps(auth.user);
-      const actor = { email: auth.user.email ?? null, isOwner: isOwner(auth.user) };
+      const actor = { email: auth.user.email ?? null, isOwner: isOwner(auth.user as Parameters<typeof isOwner>[0]) };
       const text = (key: string) => (typeof body[key] === 'string' ? (body[key] as string) : undefined);
       try {
         if (action === 'lessons_proposals') return json({ ok: true, ...(await lessons.listProposals(deps)) });
