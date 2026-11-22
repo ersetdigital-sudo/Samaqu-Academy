@@ -112,6 +112,11 @@ function lamaMenunggu(iso: string, now = Date.now()): string {
   return `${Math.floor(jam / 24)} hr`;
 }
 
+/** Lampiran balasan berupa video (bukan foto)? Dilihat dari ekstensi di URL. */
+function adalahVideo(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(String(url || ''));
+}
+
 /** Nama pendek admin dari email akunnya: "officialsamaqu@gmail.com" -> "Officialsamaqu". */
 function namaAdmin(email: string): string {
   const bagian = String(email || '').split('@')[0].trim();
@@ -640,6 +645,27 @@ export function WaInboxView() {
 
                     {row.reply_text ? (
                       <div className="wa-bubble out">
+                        {row.reply_media_url ? (
+                          adalahVideo(row.reply_media_url) ? (
+                            <video className="wa-media-video" src={row.reply_media_url} controls preload="metadata" />
+                          ) : (
+                            <a
+                              className="wa-media"
+                              href={row.reply_media_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <img
+                                src={row.reply_media_url}
+                                alt="Lampiran balasan"
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.parentElement?.classList.add('gone');
+                                }}
+                              />
+                            </a>
+                          )
+                        ) : null}
                         <div className="wa-text">{row.reply_text}</div>
                         <div className="wa-time">
                           <span className="wa-tick" title="Terkirim">✓✓</span>

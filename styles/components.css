@@ -1805,6 +1805,13 @@ th {
   color: #53bdeb;
   font-size: 11px;
 }
+.wa-media-video {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
 .wa-flag {
   display: inline-block;
   margin-top: 4px;

@@ -33,6 +33,8 @@ export interface WaMessage {
   handled_by?: string | null;
   /** Admin yang mengetik balasan manual (email akun). Kosong untuk balasan bot. */
   admin_email?: string | null;
+  /** Foto/video yang dikirim bersama balasan (URL). Kosong untuk balasan teks dan balasan sebelum fitur ini. */
+  reply_media_url?: string | null;
 }
 
 export interface WaRun {
