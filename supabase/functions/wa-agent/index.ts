@@ -14,6 +14,7 @@ import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
 import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
 import { RunTrace } from './trace.ts';
+import { planRound } from './run-budget.ts';
 import type { ToolCallRecord } from './redact.ts';
 import { recordRunExtras, type ExtrasClient } from './run-extras.ts';
 
@@ -829,8 +830,20 @@ Deno.serve(async (req) => {
     let textFallbackRounds = 0;
     /** Berapa kali ronde kosong karena terpotong `length` sudah diulang (maks 1 per run). */
     let emptyLengthRetries = 0;
+    /** Waktu mulai run (variabel `startedAt` di dalam loop menimpa yang di luar, jadi disalin dulu). */
+    const runStartedAt = startedAt;
 
     for (; rounds < MAX_ROUNDS; rounds++) {
+      // Anggaran waktu run: Supabase (paket Free) mematikan run yang melewati ~150 detik di tengah jalan, sehingga
+      // balasan bisa terkirim sebagian lalu dobel saat pesan diproses ulang. Ronde baru tidak dimulai kalau
+      // sisa anggaran tipis; run selesai rapi lewat jalur yang sama seperti batas MAX_ROUNDS (sisa pesan kembali ke antrean).
+      const plan = planRound(Date.now() - runStartedAt, rounds);
+      if (!plan.go) {
+        trace.event(
+          `berhenti: batas waktu run tercapai (${Math.round((Date.now() - runStartedAt) / 1000)} detik), ronde ${rounds + 1} tidak dimulai`,
+        );
+        break;
+      }
       const startedAt = Date.now();
       const result = await mimoChatWithTools({
         apiKey,
@@ -843,9 +856,10 @@ Deno.serve(async (req) => {
         // dan dulu terpotong tepat sebelum `</tool_call>` sehingga tidak pernah dieksekusi.
         maxTokens: Math.min(behavior.maxTokens || 900, 1500),
         thinking: 'disabled',
-        // Satu sumber batas waktu: pakai default di _shared/mimo.ts (90 detik). Jangan
-        // menulis angka sendiri di sini - dulu 45 detik di-hardcode dan memotong run yang
-        // sebenarnya wajar (median run sukses 36,6 detik, p90 66 detik).
+        // Batas waktu panggilan AI: maksimal 90 detik (sama dengan default di _shared/mimo.ts), tapi dipotong
+        // oleh sisa anggaran run (lihat run-budget.ts) supaya satu panggilan lambat tidak membawa run melewati
+        // batas Supabase. Dulu 45 detik di-hardcode dan memotong run yang wajar; angka 90 tetap batas atasnya.
+        timeoutMs: plan.timeoutMs,
         // Kalau provider tetap menolak karena gambar, ulangi sekali tanpa gambar.
         retryWithoutImages: true,
       });
