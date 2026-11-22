@@ -115,6 +115,19 @@ function lamaMenunggu(iso: string, now = Date.now()): string {
 /** Tiga hari atau lebih menunggu: ditandai merah. */
 const TERLAMBAT_MS = 3 * 24 * 3600 * 1000;
 
+/** Batas balas chat di tab Chat: 5 menit kuning (hampir lewat), 10 menit merah (lewat toleransi). */
+const SLA_KUNING_MS = 5 * 60 * 1000;
+const SLA_MERAH_MS = 10 * 60 * 1000;
+
+/** Kelas warna lama menunggu untuk chat yang belum dibalas. */
+function kelasMenunggu(iso: string, now: number): string | undefined {
+  const ms = now - new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return undefined;
+  if (ms >= SLA_MERAH_MS) return 'wa-late';
+  if (ms >= SLA_KUNING_MS) return 'wa-warn';
+  return undefined;
+}
+
 export function WaInboxView() {
   const [items, setItems] = useState<WaConversation[]>([]);
   const [stats, setStats] = useState<WaStats | null>(null);
@@ -122,7 +135,12 @@ export function WaInboxView() {
   const [messages, setMessages] = useState<WaMessage[]>([]);
   const [search, setSearch] = useState('');
   const [onlyPending, setOnlyPending] = useState(false);
-  const [opened, setOpened] = useState<Set<string>>(new Set());
+  // Jam berjalan supaya lama menunggu di daftar ikut maju tanpa menunggu data baru.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
@@ -445,7 +463,6 @@ export function WaInboxView() {
                     onClick={() => {
                       setSelected(rowSender);
                       setSelectedInfo({ sender: rowSender, name: nama });
-                      setOpened((prev) => new Set(prev).add(rowSender));
                     }}
                   >
                     <div className="wa-av">{inisial(nama, row.sender)}</div>
@@ -476,22 +493,26 @@ export function WaInboxView() {
                 key={item.sender}
                 type="button"
                 className={`wa-item${item.sender === selected ? ' on' : ''}`}
-                onClick={() => {
-                  setSelected(item.sender);
-                  setOpened((prev) => new Set(prev).add(item.sender));
-                }}
+                onClick={() => setSelected(item.sender)}
               >
                 <div className="wa-av">{inisial(item.name, item.sender)}</div>
                 <div className="wa-item-body">
                   <div className="wa-item-top">
                     <b>{item.name || rapikanNomor(item.sender)}</b>
-                    <span>{waktu(item.lastAt)}</span>
+                    {item.pending > 0 && item.oldestPendingAt ? (
+                      <span
+                        className={kelasMenunggu(item.oldestPendingAt, now)}
+                        title="Sudah menunggu sejak pesan tertua yang belum dibalas"
+                      >
+                        menunggu {lamaMenunggu(item.oldestPendingAt, now)}
+                      </span>
+                    ) : (
+                      <span>{waktu(item.lastAt)}</span>
+                    )}
                   </div>
                   <div className="wa-item-bottom">
                     <span className="wa-preview">{item.lastMessage || '—'}</span>
-                    {item.pending > 0 && !opened.has(item.sender) ? (
-                      <span className="wa-badge">{item.pending}</span>
-                    ) : null}
+                    {item.pending > 0 ? <span className="wa-badge">{item.pending}</span> : null}
                   </div>
                   {item.handover ? <span className="wa-flag">diambil alih admin</span> : null}
                 </div>

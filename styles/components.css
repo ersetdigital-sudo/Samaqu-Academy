@@ -1797,6 +1797,10 @@ th {
   color: #d93025;
   font-weight: 600;
 }
+.wa-item-top span.wa-warn {
+  color: #b26a00;
+  font-weight: 600;
+}
 .wa-flag {
   display: inline-block;
   margin-top: 4px;

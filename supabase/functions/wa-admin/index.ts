@@ -137,12 +137,51 @@ async function setHandover(sender: string, active: boolean, by: string | null) {
   }
 }
 
+type PendingEntry = { count: number; pendingCount: number; oldestAt: string; name: string; message: string };
+
+/**
+ * Pesan yang benar-benar belum dibalas (pending/processing) per nomor, TIDAK terbatas pada 600 baris
+ * terbaru. Dipakai untuk hitungan "belum dibalas" dan lama menunggu. Kalau gagal dibaca, hasilnya null
+ * dan pemanggil memakai hitungan lama (dari 600 baris terbaru) tanpa lama menunggu.
+ */
+async function pendingBySender(): Promise<Map<string, PendingEntry> | null> {
+  try {
+    const rows = await serviceFetch(
+      'wa_inbox?select=sender,sender_name,message,created_at,status&status=in.(pending,processing)&order=created_at.asc&limit=1000',
+    );
+    const map = new Map<string, PendingEntry>();
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const sender = String(row.sender || '');
+      if (!sender) continue;
+      let entry = map.get(sender);
+      if (!entry) {
+        entry = {
+          count: 0,
+          pendingCount: 0,
+          oldestAt: String(row.created_at || ''),
+          name: row.sender_name || '',
+          message: row.message || '',
+        };
+        map.set(sender, entry);
+      }
+      entry.count += 1;
+      if (row.status === 'pending') entry.pendingCount += 1;
+      if (!entry.name && row.sender_name) entry.name = row.sender_name;
+    }
+    return map;
+  } catch (e) {
+    console.error('gagal membaca antrean belum dibalas', errorMessage(e));
+    return null;
+  }
+}
+
 async function conversations() {
-  const [rows, handovers] = await Promise.all([
+  const [rows, handovers, pend] = await Promise.all([
     serviceFetch(
       'wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,error&order=created_at.desc&limit=600',
     ),
     handoverSet(),
+    pendingBySender(),
   ]);
   const map = new Map<string, any>();
   const summary = { pending: 0, processing: 0, sent: 0, skipped: 0, total: 0 };
@@ -174,6 +213,40 @@ async function conversations() {
     if (row.status === 'sent') entry.sent += 1;
     if (!entry.name && row.sender_name) entry.name = row.sender_name;
   }
+
+  // Antrean belum dibalas yang akurat + lama menunggu (pesan tertua yang belum dibalas).
+  if (pend) {
+    for (const entry of map.values()) {
+      const p = pend.get(entry.sender);
+      entry.pending = p ? p.count : 0;
+      entry.oldestPendingAt = p ? p.oldestAt : null;
+    }
+    // Nomor yang menunggu tapi tidak masuk 600 baris terbaru tetap harus muncul di daftar.
+    for (const [sender, p] of pend) {
+      if (map.has(sender)) continue;
+      map.set(sender, {
+        sender,
+        name: p.name,
+        lastMessage: p.message,
+        lastAt: p.oldestAt,
+        lastStatus: 'pending',
+        pending: p.count,
+        sent: 0,
+        total: p.count,
+        handover: handovers.has(sender),
+        oldestPendingAt: p.oldestAt,
+      });
+    }
+    let pendingRows = 0;
+    let processingRows = 0;
+    for (const p of pend.values()) {
+      pendingRows += p.pendingCount;
+      processingRows += p.count - p.pendingCount;
+    }
+    summary.pending = pendingRows;
+    summary.processing = processingRows;
+  }
+
   return {
     items: [...map.values()].sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt))),
     stats: summary,
@@ -216,8 +289,18 @@ async function messages(sender: string, limit = 100) {
 async function stats() {
   const rows = await serviceFetch('wa_inbox?select=status,created_at&limit=1000');
   const list = Array.isArray(rows) ? rows : [];
-  const pending = list.filter((r) => r.status === 'pending').length;
-  const processing = list.filter((r) => r.status === 'processing').length;
+  let pending = list.filter((r) => r.status === 'pending').length;
+  let processing = list.filter((r) => r.status === 'processing').length;
+  // Hitungan belum dibalas yang akurat (daftar di atas hanya 1000 baris tanpa urutan).
+  const pend = await pendingBySender();
+  if (pend) {
+    pending = 0;
+    processing = 0;
+    for (const p of pend.values()) {
+      pending += p.pendingCount;
+      processing += p.count - p.pendingCount;
+    }
+  }
   const sent = list.filter((r) => r.status === 'sent').length;
   const skipped = list.filter((r) => r.status === 'skipped').length;
   return { pending, processing, sent, skipped, total: list.length };

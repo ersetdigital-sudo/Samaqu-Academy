@@ -7,6 +7,8 @@ export interface WaConversation {
   lastAt: string;
   lastStatus: string;
   pending: number;
+  /** Jam pesan tertua yang belum dibalas (dasar lama menunggu). Kosong = tidak ada / tidak terbaca. */
+  oldestPendingAt?: string | null;
   sent: number;
   total: number;
   handover: boolean;
