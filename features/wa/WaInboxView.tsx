@@ -130,6 +130,21 @@ const TERLAMBAT_MS = 3 * 24 * 3600 * 1000;
 const SLA_KUNING_MS = 5 * 60 * 1000;
 const SLA_MERAH_MS = 10 * 60 * 1000;
 
+/**
+ * Centang dua ala WhatsApp Web. Abu-abu = terkirim. Biru = sudah dibaca: kita tidak punya data "dibaca"
+ * dari WhatsApp, jadi biru dipakai hanya kalau customer sudah membalas SETELAH pesan kita (pasti sudah dibaca).
+ */
+function Centang({ dibaca }: { dibaca: boolean }) {
+  return (
+    <span className={`wa-tick${dibaca ? ' read' : ''}`} title={dibaca ? 'Dibaca' : 'Terkirim'}>
+      <svg viewBox="0 0 16 11" width="16" height="11" aria-hidden="true">
+        <path d="M1.5 5.9 4.4 8.8 10.3 1.4" />
+        <path d="M5.6 5.9 8.5 8.8 14.4 1.4" />
+      </svg>
+    </span>
+  );
+}
+
 /** Kelas warna lama menunggu untuk chat yang belum dibalas. */
 function kelasMenunggu(iso: string, now: number): string | undefined {
   const ms = now - new Date(iso).getTime();
@@ -293,6 +308,16 @@ export function WaInboxView() {
       return cocokCari(item, q);
     });
   }, [items, search, onlyPending]);
+
+  // Jam pesan customer terakhir di percakapan yang dibuka: dasar centang biru (sudah dibaca).
+  const customerTerakhirMs = useMemo(
+    () =>
+      messages.reduce(
+        (maks, item) => (item.message || item.media_url ? Math.max(maks, Date.parse(item.created_at) || 0) : maks),
+        0,
+      ),
+    [messages],
+  );
 
   // Daftar "Perlu Dijawab": cari/saring di sisi layar (nama atau nomor), nomor 08…/62… dianggap sama.
   const waitingRows = useMemo(() => {
@@ -523,7 +548,7 @@ export function WaInboxView() {
                   </div>
                   <div className="wa-item-bottom">
                     <span className="wa-preview">
-                      {item.lastFrom === 'kita' ? <span className="wa-tick" title="Terkirim">✓✓ </span> : null}
+                      {item.lastFrom === 'kita' ? <Centang dibaca={false} /> : null}
                       {item.lastMessage || '—'}
                     </span>
                     {item.pending > 0 ? <span className="wa-badge">{item.pending}</span> : null}
@@ -668,7 +693,12 @@ export function WaInboxView() {
                         ) : null}
                         <div className="wa-text">{row.reply_text}</div>
                         <div className="wa-time">
-                          <span className="wa-tick" title="Terkirim">✓✓</span>
+                          <Centang
+                            dibaca={
+                              Boolean(row.replied_at) &&
+                              customerTerakhirMs > (Date.parse(String(row.replied_at)) || Number.POSITIVE_INFINITY)
+                            }
+                          />
                           {jam(row.replied_at)}
                           {row.admin_email
                             ? ` · ${namaAdmin(row.admin_email)}`

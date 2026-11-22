@@ -1802,8 +1802,8 @@ th {
   font-weight: 600;
 }
 .wa-preview .wa-tick {
-  color: #53bdeb;
-  font-size: 11px;
+  margin-right: 3px;
+  vertical-align: -1px;
 }
 .wa-media-video {
   display: block;
@@ -2187,10 +2187,22 @@ th {
   white-space: pre-wrap;
 }
 .wa-tick {
-  color: #53bdeb;
+  display: inline-block;
+  color: #8696a0;
   margin-right: 4px;
-  font-size: 11px;
-  letter-spacing: -1px;
+  line-height: 0;
+  vertical-align: middle;
+}
+.wa-tick.read {
+  color: #53bdeb;
+}
+.wa-tick svg {
+  display: inline-block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .wa-log-detail {
