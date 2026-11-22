@@ -112,6 +112,12 @@ function lamaMenunggu(iso: string, now = Date.now()): string {
   return `${Math.floor(jam / 24)} hr`;
 }
 
+/** Nama pendek admin dari email akunnya: "officialsamaqu@gmail.com" -> "Officialsamaqu". */
+function namaAdmin(email: string): string {
+  const bagian = String(email || '').split('@')[0].trim();
+  return bagian ? bagian.charAt(0).toUpperCase() + bagian.slice(1) : 'Admin';
+}
+
 /** Tiga hari atau lebih menunggu: ditandai merah. */
 const TERLAMBAT_MS = 3 * 24 * 3600 * 1000;
 
@@ -511,7 +517,10 @@ export function WaInboxView() {
                     )}
                   </div>
                   <div className="wa-item-bottom">
-                    <span className="wa-preview">{item.lastMessage || '—'}</span>
+                    <span className="wa-preview">
+                      {item.lastFrom === 'kita' ? <span className="wa-tick" title="Terkirim">✓✓ </span> : null}
+                      {item.lastMessage || '—'}
+                    </span>
                     {item.pending > 0 ? <span className="wa-badge">{item.pending}</span> : null}
                   </div>
                   {item.handover ? <span className="wa-flag">diambil alih admin</span> : null}
@@ -635,7 +644,9 @@ export function WaInboxView() {
                         <div className="wa-time">
                           <span className="wa-tick" title="Terkirim">✓✓</span>
                           {jam(row.replied_at)}
-                          {row.error === 'dibalas manual'
+                          {row.admin_email
+                            ? ` · ${namaAdmin(row.admin_email)}`
+                            : row.error === 'dibalas manual'
                             ? ' · manual'
                             : row.handled_by
                               ? ` · ${row.handled_by === 'local' ? 'Local' : 'Server'}`

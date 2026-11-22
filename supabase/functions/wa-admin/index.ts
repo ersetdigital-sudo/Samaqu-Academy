@@ -175,13 +175,40 @@ async function pendingBySender(): Promise<Map<string, PendingEntry> | null> {
   }
 }
 
+type AdminReplyRow = { id: string; sender: string; admin_email: string; message: string; sent_at: string };
+
+/** Balasan manual admin terbaru (tabel wa_admin_replies). Gagal dibaca = daftar kosong, tidak mengganggu. */
+async function adminRepliesRecent(limit = 600): Promise<AdminReplyRow[]> {
+  try {
+    const rows = await serviceFetch(
+      `wa_admin_replies?select=id,sender,admin_email,message,sent_at&order=sent_at.desc&limit=${limit}`,
+    );
+    return Array.isArray(rows) ? rows : [];
+  } catch (e) {
+    console.error('gagal membaca balasan admin', errorMessage(e));
+    return [];
+  }
+}
+
+/** Perbarui "aktivitas terakhir" percakapan kalau kejadian ini lebih baru (preview + jam + urutan daftar). */
+function noteActivity(entry: any, at: unknown, text: unknown, from: 'customer' | 'kita') {
+  const ms = Date.parse(String(at || ''));
+  if (!Number.isFinite(ms)) return;
+  const current = Date.parse(String(entry.lastAt || ''));
+  if (Number.isFinite(current) && ms <= current) return;
+  entry.lastAt = String(at);
+  entry.lastMessage = String(text || '');
+  entry.lastFrom = from;
+}
+
 async function conversations() {
-  const [rows, handovers, pend] = await Promise.all([
+  const [rows, handovers, pend, adminRows] = await Promise.all([
     serviceFetch(
       'wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,error&order=created_at.desc&limit=600',
     ),
     handoverSet(),
     pendingBySender(),
+    adminRepliesRecent(),
   ]);
   const map = new Map<string, any>();
   const summary = { pending: 0, processing: 0, sent: 0, skipped: 0, total: 0 };
@@ -200,6 +227,7 @@ async function conversations() {
         name: row.sender_name || '',
         lastMessage: row.message || '',
         lastAt: row.created_at,
+        lastFrom: 'customer',
         lastStatus: row.status,
         pending: 0,
         sent: 0,
@@ -208,10 +236,18 @@ async function conversations() {
       };
       map.set(sender, entry);
     }
+    // Balasan kita (bot/manual) yang lebih baru dari pesan customer menjadi preview, seperti WhatsApp.
+    if (row.reply_text && row.replied_at) noteActivity(entry, row.replied_at, row.reply_text, 'kita');
     entry.total += 1;
     if (row.status === 'pending' || row.status === 'processing') entry.pending += 1;
     if (row.status === 'sent') entry.sent += 1;
     if (!entry.name && row.sender_name) entry.name = row.sender_name;
+  }
+
+  // Balasan manual admin juga ikut menentukan preview dan urutan.
+  for (const reply of adminRows) {
+    const entry = map.get(String(reply.sender || ''));
+    if (entry) noteActivity(entry, reply.sent_at, reply.message, 'kita');
   }
 
   // Antrean belum dibalas yang akurat + lama menunggu (pesan tertua yang belum dibalas).
@@ -229,6 +265,7 @@ async function conversations() {
         name: p.name,
         lastMessage: p.message,
         lastAt: p.oldestAt,
+        lastFrom: 'customer',
         lastStatus: 'pending',
         pending: p.count,
         sent: 0,
@@ -280,10 +317,57 @@ async function messages(sender: string, limit = 100) {
     handled = new Map();
   }
 
-  return list.map((row) => ({
-    ...row,
-    handled_by: handled.get(String(row.id || '')) || null,
-  }));
+  // Balasan manual admin (siapa yang mengetik). Gagal dibaca = riwayat tampil seperti biasa tanpa nama admin.
+  let admins: AdminReplyRow[] = [];
+  try {
+    const found = await serviceFetch(
+      `wa_admin_replies?select=id,sender,admin_email,message,sent_at&sender=eq.${encodeURIComponent(sender)}&order=sent_at.desc&limit=${limit}`,
+    );
+    admins = Array.isArray(found) ? found : [];
+  } catch (e) {
+    console.error('gagal membaca balasan admin per nomor', errorMessage(e));
+  }
+
+  // Balasan manual yang menutup pesan pending sudah muncul sebagai reply_text baris itu: cukup beri nama admin,
+  // jangan ditampilkan dua kali.
+  const used = new Set<string>();
+  const base = list.map((row: any) => {
+    let adminEmail: string | null = null;
+    if (row.error === 'dibalas manual' && row.reply_text && row.replied_at) {
+      const repliedMs = Date.parse(String(row.replied_at));
+      const match = admins.find(
+        (a) =>
+          !used.has(a.id) &&
+          a.message === String(row.reply_text) &&
+          Math.abs(Date.parse(a.sent_at) - repliedMs) < 120_000,
+      );
+      if (match) {
+        used.add(match.id);
+        adminEmail = match.admin_email;
+      }
+    }
+    return { ...row, handled_by: handled.get(String(row.id || '')) || null, admin_email: adminEmail };
+  });
+
+  // Balasan admin yang tidak menutup pesan pending (mis. membalas setelah bot) tampil sebagai gelembung sendiri.
+  const extra = admins
+    .filter((a) => !used.has(a.id))
+    .map((a) => ({
+      id: `admin-${a.id}`,
+      sender,
+      message: null,
+      status: 'admin',
+      created_at: a.sent_at,
+      replied_at: a.sent_at,
+      reply_text: a.message,
+      error: null,
+      media_url: null,
+      filename: null,
+      handled_by: null,
+      admin_email: a.admin_email,
+    }));
+
+  return [...base, ...extra].sort((a: any, b: any) => Date.parse(String(a.created_at)) - Date.parse(String(b.created_at)));
 }
 
 async function stats() {

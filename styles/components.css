@@ -1801,6 +1801,10 @@ th {
   color: #b26a00;
   font-weight: 600;
 }
+.wa-preview .wa-tick {
+  color: #53bdeb;
+  font-size: 11px;
+}
 .wa-flag {
   display: inline-block;
   margin-top: 4px;

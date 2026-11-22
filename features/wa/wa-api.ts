@@ -6,6 +6,8 @@ export interface WaConversation {
   lastMessage: string;
   lastAt: string;
   lastStatus: string;
+  /** Siapa pengirim pesan terakhir: customer, atau kita (bot/admin). Dipakai untuk preview ala WhatsApp. */
+  lastFrom?: 'customer' | 'kita';
   pending: number;
   /** Jam pesan tertua yang belum dibalas (dasar lama menunggu). Kosong = tidak ada / tidak terbaca. */
   oldestPendingAt?: string | null;
@@ -29,6 +31,8 @@ export interface WaMessage {
   filename?: string | null;
   /** Bot yang mengklaim/membalas pesan ini: "local" atau "server". */
   handled_by?: string | null;
+  /** Admin yang mengetik balasan manual (email akun). Kosong untuk balasan bot. */
+  admin_email?: string | null;
 }
 
 export interface WaRun {
