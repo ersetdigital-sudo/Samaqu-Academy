@@ -1812,6 +1812,32 @@ th {
   border-radius: 6px;
   margin-bottom: 4px;
 }
+/* Gelembung berfoto ala WhatsApp: foto memenuhi lebar gelembung (tidak ada pinggiran hijau di samping foto),
+   teks keterangan di bawahnya. */
+.wa-bubble.has-media {
+  width: min(330px, 78%);
+  padding: 3px 3px 5px;
+}
+.wa-bubble.has-media .wa-media {
+  margin-bottom: 3px;
+}
+.wa-bubble.has-media .wa-media img {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  border-radius: 6px;
+}
+.wa-bubble.has-media .wa-media-video {
+  width: 100%;
+  max-height: none;
+  margin-bottom: 3px;
+}
+.wa-bubble.has-media .wa-text {
+  padding: 2px 7px 0;
+}
+.wa-bubble.has-media .wa-time {
+  padding-right: 7px;
+}
 .wa-flag {
   display: inline-block;
   margin-top: 4px;

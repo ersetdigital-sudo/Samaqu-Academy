@@ -669,7 +669,7 @@ export function WaInboxView() {
                     ) : null}
 
                     {row.reply_text ? (
-                      <div className="wa-bubble out">
+                      <div className={`wa-bubble out${row.reply_media_url ? ' has-media' : ''}`}>
                         {row.reply_media_url ? (
                           adalahVideo(row.reply_media_url) ? (
                             <video className="wa-media-video" src={row.reply_media_url} controls preload="metadata" />
