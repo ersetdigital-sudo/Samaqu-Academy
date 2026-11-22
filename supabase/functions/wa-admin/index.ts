@@ -367,6 +367,23 @@ async function reply(sender: string, message: string, by: string | null) {
 
   const sent = await opsPost('/api/ops/wa-inbox', { target, message: text });
 
+  // Catat siapa yang mengetik balasan ini (dasar waktu balas pertama & review per admin).
+  // Pesan sudah terkirim, jadi kegagalan mencatat TIDAK boleh menggagalkan balasan: cukup dilog.
+  try {
+    await serviceFetch('wa_admin_replies', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        sender,
+        admin_email: by || 'tidak diketahui',
+        message: text,
+        sent_at: new Date().toISOString(),
+      }),
+    });
+  } catch (error) {
+    console.error('catat balasan admin gagal', errorMessage(error));
+  }
+
   // Tandai pesan masuk yang masih pending sebagai sudah dibalas manual,
   // supaya bot tidak membalas dobel.
   const now = new Date().toISOString();
