@@ -658,8 +658,12 @@ async function reply(sender: string, message: string, by: string | null, media?:
  * Cara mematikan darurat: hapus env WA_ADMIN_PROXY_SECRET.
  */
 const PROXY_SECRET = Deno.env.get('WA_ADMIN_PROXY_SECRET') || '';
-/** Tahap 1: BACA SAJA. Aksi kirim/ambil alih ditambahkan di tahap berikutnya. */
-const PROXY_ACTIONS = new Set(['conversations', 'messages', 'stats']);
+/**
+ * Aksi yang boleh lewat jalur panel. Tahap 1: baca (conversations, messages, stats). Tahap 2: reply, takeover, release
+ * (fungsi yang SAMA dengan yang dipakai inbox Academy, tidak ditulis ulang). Aksi lain (pelajaran AI, log bot,
+ * eskalasi) tetap tertutup.
+ */
+const PROXY_ACTIONS = new Set(['conversations', 'messages', 'stats', 'reply', 'takeover', 'release']);
 
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
