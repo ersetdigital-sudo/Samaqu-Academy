@@ -112,6 +112,52 @@ function lamaMenunggu(iso: string, now = Date.now()): string {
   return `${Math.floor(jam / 24)} hr`;
 }
 
+/** Foto yang dipilih admin untuk dikirim: sudah dikecilkan, siap diunggah server. */
+interface FotoDipilih {
+  data: string;
+  mime: string;
+  preview: string;
+}
+
+const FOTO_SISI_MAKS = 1600;
+
+/** Kecilkan foto (maks 1600px, JPEG) di browser supaya cepat terkirim dan jauh di bawah batas 5 MB. */
+function kecilkanFoto(file: File): Promise<FotoDipilih> {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      reject(new Error('Format foto harus JPG, PNG, atau WebP.'));
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const skala = Math.min(1, FOTO_SISI_MAKS / Math.max(img.naturalWidth, img.naturalHeight));
+      const lebar = Math.max(1, Math.round(img.naturalWidth * skala));
+      const tinggi = Math.max(1, Math.round(img.naturalHeight * skala));
+      const kanvas = document.createElement('canvas');
+      kanvas.width = lebar;
+      kanvas.height = tinggi;
+      const ctx = kanvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Browser tidak bisa memproses foto.'));
+        return;
+      }
+      // Latar putih supaya foto PNG transparan tidak jadi hitam saat jadi JPEG.
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, lebar, tinggi);
+      ctx.drawImage(img, 0, 0, lebar, tinggi);
+      const dataUrl = kanvas.toDataURL('image/jpeg', 0.85);
+      resolve({ data: dataUrl.split(',')[1] || '', mime: 'image/jpeg', preview: dataUrl });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Foto tidak bisa dibuka.'));
+    };
+    img.src = url;
+  });
+}
+
 /** Lampiran balasan berupa video (bukan foto)? Dilihat dari ekstensi di URL. */
 function adalahVideo(url: string): boolean {
   return /\.(mp4|mov|webm|m4v)(\?|#|$)/i.test(String(url || ''));
@@ -172,6 +218,8 @@ export function WaInboxView() {
   const [sending, setSending] = useState(false);
   const [handoverBusy, setHandoverBusy] = useState(false);
   const [draft, setDraft] = useState('');
+  const [photo, setPhoto] = useState<FotoDipilih | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'chat' | 'waiting' | 'log' | 'lessons'>('chat');
   const [waiting, setWaiting] = useState<WaWaitingCustomer[]>([]);
@@ -341,20 +389,33 @@ export function WaInboxView() {
 
   async function onSend() {
     const text = draft.trim();
-    if (!text || !selected || sending) return;
+    if ((!text && !photo) || !selected || sending) return;
     setSending(true);
-    const res = await sendReply(selected, text);
+    const res = await sendReply(selected, text, photo ? { data: photo.data, mime: photo.mime } : null);
     setSending(false);
     if (!res.ok) {
       setError(res.error || 'Gagal mengirim.');
       return;
     }
     setDraft('');
+    setPhoto(null);
     setError('');
     await openThread(selected);
     await refreshList();
     await loadEsc(selected);
     await loadWaitingList();
+  }
+
+  async function onPickPhoto(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setPhoto(await kecilkanFoto(file));
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Foto tidak bisa dipakai.');
+    }
   }
 
   async function onCloseEscalation(id: string) {
@@ -668,7 +729,7 @@ export function WaInboxView() {
                       </div>
                     ) : null}
 
-                    {row.reply_text ? (
+                    {row.reply_text || row.reply_media_url ? (
                       <div className={`wa-bubble out${row.reply_media_url ? ' has-media' : ''}`}>
                         {row.reply_media_url ? (
                           adalahVideo(row.reply_media_url) ? (
@@ -691,7 +752,7 @@ export function WaInboxView() {
                             </a>
                           )
                         ) : null}
-                        <div className="wa-text">{row.reply_text}</div>
+                        {row.reply_text ? <div className="wa-text">{row.reply_text}</div> : null}
                         <div className="wa-time">
                           <Centang
                             dibaca={
@@ -716,7 +777,41 @@ export function WaInboxView() {
               <div ref={endRef} />
             </div>
 
+            {photo ? (
+              <div className="wa-photo-preview" data-testid="wa-photo-preview">
+                <img src={photo.preview} alt="Foto yang akan dikirim" />
+                <span>Foto siap dikirim{draft.trim() ? ' dengan keterangan' : ''}</span>
+                <button
+                  type="button"
+                  className="wa-icb"
+                  title="Batalkan foto"
+                  onClick={() => setPhoto(null)}
+                  disabled={sending}
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
+            ) : null}
+
             <footer className="wa-composer">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(event) => void onPickPhoto(event)}
+              />
+              <button
+                className="wa-icb"
+                type="button"
+                title="Lampirkan foto"
+                onClick={() => fileRef.current?.click()}
+                disabled={sending}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m21.4 11.1-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a3.7 3.7 0 0 1 5.2 5.2l-8.5 8.5a1.8 1.8 0 0 1-2.6-2.6l7.8-7.8" />
+                </svg>
+              </button>
               <textarea
                 className="wa-input"
                 rows={1}
@@ -735,7 +830,7 @@ export function WaInboxView() {
                 type="button"
                 title="Kirim"
                 onClick={() => void onSend()}
-                disabled={sending || !draft.trim()}
+                disabled={sending || (!draft.trim() && !photo)}
               >
                 <Icon name="arrow-right" size={18} />
               </button>

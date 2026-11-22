@@ -106,8 +106,18 @@ export function loadMessages(sender: string) {
   return invoke<{ items: WaMessage[] }>('messages', { sender });
 }
 
-export function sendReply(sender: string, message: string) {
-  return invoke<{ target: string; answered?: number }>('reply', { sender, message });
+/** Foto balasan: base64 tanpa awalan data: dan tipe MIME (jpeg/png/webp). Server mengunggahnya lalu mengirim. */
+export interface WaOutgoingPhoto {
+  data: string;
+  mime: string;
+}
+
+export function sendReply(sender: string, message: string, media?: WaOutgoingPhoto | null) {
+  return invoke<{ target: string; answered?: number }>('reply', {
+    sender,
+    message,
+    ...(media ? { media } : {}),
+  });
 }
 
 /** Pertanyaan AI (eskalasi) yang masih menunggu untuk satu customer. */

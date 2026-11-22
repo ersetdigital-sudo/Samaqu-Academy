@@ -175,13 +175,20 @@ async function pendingBySender(): Promise<Map<string, PendingEntry> | null> {
   }
 }
 
-type AdminReplyRow = { id: string; sender: string; admin_email: string; message: string; sent_at: string };
+type AdminReplyRow = {
+  id: string;
+  sender: string;
+  admin_email: string;
+  message: string;
+  sent_at: string;
+  media_url?: string | null;
+};
 
 /** Balasan manual admin terbaru (tabel wa_admin_replies). Gagal dibaca = daftar kosong, tidak mengganggu. */
 async function adminRepliesRecent(limit = 600): Promise<AdminReplyRow[]> {
   try {
     const rows = await serviceFetch(
-      `wa_admin_replies?select=id,sender,admin_email,message,sent_at&order=sent_at.desc&limit=${limit}`,
+      `wa_admin_replies?select=id,sender,admin_email,message,sent_at,media_url&order=sent_at.desc&limit=${limit}`,
     );
     return Array.isArray(rows) ? rows : [];
   } catch (e) {
@@ -204,7 +211,7 @@ function noteActivity(entry: any, at: unknown, text: unknown, from: 'customer' |
 async function conversations() {
   const [rows, handovers, pend, adminRows] = await Promise.all([
     serviceFetch(
-      'wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,error&order=created_at.desc&limit=600',
+      'wa_inbox?select=id,sender,sender_name,message,status,created_at,replied_at,reply_text,reply_media_url,error&order=created_at.desc&limit=600',
     ),
     handoverSet(),
     pendingBySender(),
@@ -237,7 +244,9 @@ async function conversations() {
       map.set(sender, entry);
     }
     // Balasan kita (bot/manual) yang lebih baru dari pesan customer menjadi preview, seperti WhatsApp.
-    if (row.reply_text && row.replied_at) noteActivity(entry, row.replied_at, row.reply_text, 'kita');
+    if ((row.reply_text || row.reply_media_url) && row.replied_at) {
+      noteActivity(entry, row.replied_at, row.reply_text || 'Foto', 'kita');
+    }
     entry.total += 1;
     if (row.status === 'pending' || row.status === 'processing') entry.pending += 1;
     if (row.status === 'sent') entry.sent += 1;
@@ -247,7 +256,7 @@ async function conversations() {
   // Balasan manual admin juga ikut menentukan preview dan urutan.
   for (const reply of adminRows) {
     const entry = map.get(String(reply.sender || ''));
-    if (entry) noteActivity(entry, reply.sent_at, reply.message, 'kita');
+    if (entry) noteActivity(entry, reply.sent_at, reply.message || (reply.media_url ? 'Foto' : ''), 'kita');
   }
 
   // Antrean belum dibalas yang akurat + lama menunggu (pesan tertua yang belum dibalas).
@@ -321,7 +330,7 @@ async function messages(sender: string, limit = 100) {
   let admins: AdminReplyRow[] = [];
   try {
     const found = await serviceFetch(
-      `wa_admin_replies?select=id,sender,admin_email,message,sent_at&sender=eq.${encodeURIComponent(sender)}&order=sent_at.desc&limit=${limit}`,
+      `wa_admin_replies?select=id,sender,admin_email,message,sent_at,media_url&sender=eq.${encodeURIComponent(sender)}&order=sent_at.desc&limit=${limit}`,
     );
     admins = Array.isArray(found) ? found : [];
   } catch (e) {
@@ -333,12 +342,13 @@ async function messages(sender: string, limit = 100) {
   const used = new Set<string>();
   const base = list.map((row: any) => {
     let adminEmail: string | null = null;
-    if (row.error === 'dibalas manual' && row.reply_text && row.replied_at) {
+    if (row.error === 'dibalas manual' && (row.reply_text || row.reply_media_url) && row.replied_at) {
       const repliedMs = Date.parse(String(row.replied_at));
       const match = admins.find(
         (a) =>
           !used.has(a.id) &&
-          a.message === String(row.reply_text) &&
+          a.message === String(row.reply_text || '') &&
+          (a.media_url || null) === (row.reply_media_url || null) &&
           Math.abs(Date.parse(a.sent_at) - repliedMs) < 120_000,
       );
       if (match) {
@@ -360,6 +370,7 @@ async function messages(sender: string, limit = 100) {
       created_at: a.sent_at,
       replied_at: a.sent_at,
       reply_text: a.message,
+      reply_media_url: a.media_url || null,
       error: null,
       media_url: null,
       filename: null,
@@ -527,12 +538,63 @@ function lessonsDeps(user: { id: string; email?: string | null }): lessons.Lesso
   };
 }
 
-async function reply(sender: string, message: string, by: string | null) {
+type OutgoingMedia = { data: string; mime: string };
+
+const WA_OUT_BUCKET = 'wa-outgoing';
+const WA_OUT_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const WA_OUT_MAX_BYTES = 5 * 1024 * 1024;
+let outBucketReady = false;
+
+/**
+ * Unggah foto balasan admin ke bucket publik `wa-outgoing` (database Academy) dan kembalikan URL publiknya.
+ * URL itu yang dikirim ke jalur kirim SAMAQU (hanya menerima URL dari host yang diizinkan). Bucket dibuat
+ * otomatis kalau belum ada.
+ */
+async function uploadOutgoingMedia(media: OutgoingMedia): Promise<string> {
+  const ext = WA_OUT_EXT[media.mime];
+  if (!ext) throw new Error('Format foto harus JPG, PNG, atau WebP.');
+  const raw = String(media.data || '').replace(/^data:[^,]*,/, '');
+  let bytes: Uint8Array;
+  try {
+    bytes = Uint8Array.from(atob(raw), (char) => char.charCodeAt(0));
+  } catch {
+    throw new Error('Data foto tidak valid.');
+  }
+  if (!bytes.length || bytes.length > WA_OUT_MAX_BYTES) throw new Error('Ukuran foto maksimal 5 MB.');
+
+  const client = serviceClient();
+  if (!outBucketReady) {
+    const { error } = await client.storage.createBucket(WA_OUT_BUCKET, {
+      public: true,
+      fileSizeLimit: WA_OUT_MAX_BYTES,
+      allowedMimeTypes: Object.keys(WA_OUT_EXT),
+    });
+    if (error && !/already exists|duplicate/i.test(error.message)) {
+      throw new Error(`Penyimpanan foto belum siap: ${error.message}`);
+    }
+    outBucketReady = true;
+  }
+
+  const now = new Date();
+  const folder = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+  const { error: uploadError } = await client.storage
+    .from(WA_OUT_BUCKET)
+    .upload(path, bytes, { contentType: media.mime, upsert: false });
+  if (uploadError) throw new Error(`Gagal mengunggah foto: ${uploadError.message}`);
+  return client.storage.from(WA_OUT_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+async function reply(sender: string, message: string, by: string | null, media?: OutgoingMedia | null) {
   const target = norm(sender);
   const text = String(message || '').trim();
-  if (!target || !text) throw new Error('Nomor dan pesan wajib diisi.');
+  const hasMedia = Boolean(media && media.data);
+  if (!target || (!text && !hasMedia)) throw new Error('Nomor dan pesan wajib diisi.');
 
-  const sent = await opsPost('/api/ops/wa-inbox', { target, message: text });
+  // Foto diunggah dulu; kalau gagal, tidak ada yang terkirim.
+  const mediaUrl = hasMedia && media ? await uploadOutgoingMedia(media) : '';
+
+  const sent = await opsPost('/api/ops/wa-inbox', { target, message: text, ...(mediaUrl ? { url: mediaUrl } : {}) });
 
   // Catat siapa yang mengetik balasan ini (dasar waktu balas pertama & review per admin).
   // Pesan sudah terkirim, jadi kegagalan mencatat TIDAK boleh menggagalkan balasan: cukup dilog.
@@ -545,6 +607,7 @@ async function reply(sender: string, message: string, by: string | null) {
         admin_email: by || 'tidak diketahui',
         message: text,
         sent_at: new Date().toISOString(),
+        ...(mediaUrl ? { media_url: mediaUrl } : {}),
       }),
     });
   } catch (error) {
@@ -562,6 +625,7 @@ async function reply(sender: string, message: string, by: string | null) {
       reply_text: text,
       error: 'dibalas manual',
       updated_at: now,
+      ...(mediaUrl ? { reply_media_url: mediaUrl } : {}),
     }),
   });
 
@@ -572,7 +636,7 @@ async function reply(sender: string, message: string, by: string | null) {
   // membuat balasan terlihat gagal: cukup dicatat, dan eskalasi tetap bisa ditutup manual.
   let answered = 0;
   try {
-    answered = await escalations.markAnswered({ samaqu: serviceFetch }, sender, text);
+    answered = await escalations.markAnswered({ samaqu: serviceFetch }, sender, text || '[foto]');
   } catch (error) {
     console.error('tandai eskalasi terjawab gagal', errorMessage(error));
   }
@@ -606,7 +670,17 @@ Deno.serve(async (req) => {
     if (action === 'reply') {
       return json({
         ok: true,
-        ...(await reply(String(body.sender ?? ''), String(body.message ?? ''), auth.user.email ?? null)),
+        ...(await reply(
+          String(body.sender ?? ''),
+          String(body.message ?? ''),
+          auth.user.email ?? null,
+          body.media && typeof body.media === 'object'
+            ? {
+                data: String((body.media as Record<string, unknown>).data ?? ''),
+                mime: String((body.media as Record<string, unknown>).mime ?? ''),
+              }
+            : null,
+        )),
       });
     }
     if (action === 'escalations') {
