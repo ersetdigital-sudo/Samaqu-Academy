@@ -28,6 +28,19 @@ const persona = fs.readFileSync(path.join(waDir, "persona.md"), "utf8");
 const memory = fs.readFileSync(path.join(waDir, "memory.md"), "utf8");
 
 const dryRun = process.argv.includes("--dry-run");
+
+// PENGAMAN (23 Nov 2026): skrip ini MENIMPA aturan bot dan memori di produksi dari file repo, padahal produksi sudah
+// berbeda dari file: bot memakai aturan RINGKAS di ai_settings.behavior.systemInstructions (bukan persona.md panjang) dan
+// 16+ memori (juga 4 versi yang lebih baru) hanya ada di database. Menjalankannya akan membuang perbaikan di database.
+// Sumber kebenaran = DATABASE (tampil dan bisa diedit di Academy > Settings > AI dan Memory). Ubah aturan lewat
+// penggantian sempit + skrip cara balik (contoh: supabase/rollback/20261123_wa_cara_order_*.sql). Hanya jalan dengan --force.
+if (!dryRun && !process.argv.includes("--force")) {
+  console.error(
+    "DIBATALKAN: skrip ini menimpa aturan bot dan memori produksi dari file repo yang sudah usang.\n" +
+      "Database adalah sumber kebenaran. Lihat catatan di atas. Pakai --dry-run untuk melihat, atau --force bila benar-benar yakin.",
+  );
+  process.exit(1);
+}
 const projectRef = process.env.SUPABASE_PROJECT_REF || "rbjxjdgqtcwwbvuwtlpg";
 const managementToken = process.env.SUPABASE_MANAGEMENT_TOKEN || "";
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
