@@ -10,7 +10,7 @@ import {
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 import { bonusStockContext } from './cover-stock.ts';
-import { isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
+import { adminHoursWindows, isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
 import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
 import { RunTrace } from './trace.ts';
@@ -52,6 +52,24 @@ async function samaquPatch(pathname: string, body: unknown): Promise<void> {
     });
   } catch {
     // pengaman; jangan gagalkan run
+  }
+}
+
+/**
+ * Pesan yang MASUK di jam kerja admin (Senin-Sabtu 07.30-16.40 WIB) bukan urusan bot: admin yang menanganinya, dan balasan
+ * admin lewat HP tidak terekam, jadi tanpa ini bot membalas ulang chat yang sudah dijawab saat jam AI buka (kejadian 17 Nov).
+ * Ditandai `skipped` (catatan "masuk di jam kerja admin"); tidak dikirim ke model dan tidak membuat eskalasi. Hasilnya sama
+ * dengan saat auto-read Fonnte dimatikan di jam kerja admin, tapi auto-read boleh menyala seharian.
+ * Satu PATCH massal per rentang (maks. 3 hari ke belakang), jadi tumpukan ratusan pesan tidak memperlambat run.
+ * Tidak mengubah jadwal bot (`isWaOnline`). Gagal = diam (pesan tetap seperti semula), tidak pernah menggagalkan run.
+ */
+async function skipAdminHoursMessages(): Promise<void> {
+  const nowIso = new Date().toISOString();
+  for (const win of adminHoursWindows(Date.now(), 3)) {
+    await samaquPatch(
+      `wa_inbox?status=in.(pending,processing)&is_group=eq.false&created_at=gte.${encodeURIComponent(win.from)}&created_at=lt.${encodeURIComponent(win.to)}`,
+      { status: 'skipped', error: 'masuk di jam kerja admin', claimed_at: null, updated_at: nowIso },
+    );
   }
 }
 
@@ -626,6 +644,9 @@ Deno.serve(async (req) => {
         `wa_inbox?status=eq.processing&claimed_at=lt.${encodeURIComponent(staleBefore)}`,
         { status: 'pending', claimed_at: null, updated_at: new Date().toISOString() },
       );
+
+      // Pesan jam kerja admin (Sen-Sab 07.30-16.40) dilewati sebelum antrean diambil: urusan admin, bukan bot.
+      await skipAdminHoursMessages();
 
       // Jeda singkat; cron tetap menjadi fallback kalau trigger langsung gagal.
       await debounceNewest();
