@@ -7,15 +7,19 @@ import {
   buildAcademyVideoMap,
   buildOngkirText,
   buildProductText,
+  fetchJntStatus,
+  formatAcademyProductDetail,
 } from '../_shared/wa/tools-core.mjs';
 
 /**
  * MCP SAMAQU versi online (Streamable HTTP, tanpa sesi).
  *
- * Port dari `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool saat ini:
- * `cek_ongkir`, `cari_produk` (baca-saja) dan leads: `cek_lead_duplikat`, `daftar_lead`,
- * `opsi_lead` (baca) serta `catat_lead` (TULIS, PIC wajib diisi). Tool yang mengirim WA atau
- * membuat transaksi SENGAJA belum ada di sini.
+ * Port dari `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool saat ini (12):
+ * baca-saja: `cek_ongkir`, `cari_produk`, `cari_area_ongkir` (wilayah + kode pos), `cek_pesanan`,
+ * `cek_resi`, `info_series`, `info_bahan`, `detail_produk`, `cek_lead_duplikat`, `daftar_lead`,
+ * `opsi_lead`; satu-satunya yang MENULIS: `catat_lead` (PIC wajib diisi).
+ * SENGAJA tidak ada: kirim_wa, teruskan_admin, pesan_wa_masuk, lewati_wa (alur bot WA), serta
+ * catat_closing dan buat_draft_transaksi (butuh inbox_id WA dan catat_closing mengirim WA ke admin).
  *
  * Keamanan:
  * - Setiap permintaan wajib membawa token (`Authorization: Bearer <token>`, atau `x-api-key` /
@@ -199,6 +203,94 @@ async function findLeadsByKontak(kontak: string): Promise<any[]> {
   const needle = /^\d+$/.test(target) ? target.slice(-9) : target;
   const json = await opsFetch(`/api/ops/leads?search=${encodeURIComponent(needle || kontak)}&limit=200&options=0`);
   return ((json?.items || []) as any[]).filter((l) => normalizeKontak(l.kontak) === target);
+}
+
+/* ─────────────────────────── helper pesanan, produk, wilayah ─────────────────────────── */
+
+/** Nomor HP tanpa awalan negara/0, supaya 08xx = 628xx = 8xx. */
+const normPhone = (raw: unknown): string => String(raw || '').replace(/\D/g, '').replace(/^0+/, '').replace(/^62/, '');
+
+/** Kata kunci pencarian pesanan. Nomor HP murni dikirim tanpa awalan 0/62. */
+function searchTerm(raw: string): string {
+  const s = String(raw || '').trim();
+  const digits = s.replace(/\D/g, '');
+  const bareDigits = s.replace(/[\s+.\-()]/g, '') === digits;
+  return bareDigits && digits.length >= 8 ? normPhone(digits) : s;
+}
+
+const PESANAN_STATUS_LABEL: Record<string, string> = {
+  pending: 'Belum Bayar',
+  diproses: 'Lunas',
+  dikirim: 'Dikirim',
+  selesai: 'Selesai',
+  dibatalkan: 'Dibatalkan',
+};
+const RETUR_TYPE_LABEL: Record<string, string> = { tukar_size: 'Tukar Size', return: 'Retur' };
+const RETUR_STATUS_LABEL: Record<string, string> = {
+  diajukan: 'Diajukan',
+  disetujui: 'Disetujui',
+  barang_diterima: 'Barang diterima',
+  pengganti_dikirim: 'Pengganti dikirim',
+  selesai: 'Selesai',
+  ditolak: 'Ditolak',
+  dibatalkan: 'Dibatalkan',
+};
+
+/** Semua baris Product Knowledge Academy (tabel content_items, type=product). */
+async function academyProductRows(): Promise<any[]> {
+  const url = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (!url || !key) throw new Error('Database Academy tidak tersedia.');
+  const res = await fetch(`${url}/rest/v1/content_items?type=eq.product&select=data`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!res.ok) throw new Error(`Academy ${res.status}`);
+  return (await res.json()) as any[];
+}
+
+/** Nama wilayah dibandingkan tanpa tanda baca dan dengan "KAB." dibaca "KABUPATEN". */
+const normWilayah = (s: unknown): string =>
+  String(s || '')
+    .toUpperCase()
+    .replace(/\bKAB\.?(?=\s|$)/g, 'KABUPATEN')
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+let kotaCache: Array<{ province: string; city: string }> | null = null;
+async function semuaKota(): Promise<Array<{ province: string; city: string }>> {
+  if (kotaCache) return kotaCache;
+  const prov = await opsFetch('/api/ops/wilayah');
+  const provinces: string[] = prov?.provinces || [];
+  const lists = await Promise.all(
+    provinces.map(async (province) => {
+      const j = await opsFetch(`/api/ops/wilayah?province=${encodeURIComponent(province)}`);
+      return ((j?.cities || []) as string[]).map((city) => ({ province, city }));
+    }),
+  );
+  kotaCache = lists.flat();
+  return kotaCache;
+}
+
+/**
+ * Kunci pembanding: tanpa awalan Kota/Kab./Adm. dan tanpa spasi. Sistem menganggap "Kota Bogor",
+ * "Kab. Bogor", dan "Bogor" sebagai satu nama, dan "Sawah Lunto" = "Sawahlunto".
+ */
+const kunciWilayah = (s: unknown): string =>
+  normWilayah(s).replace(/^(KOTA ADM |KOTA |KABUPATEN |ADM )/, '').replace(/ /g, '');
+
+/** Cari satu entri dalam daftar nama: sama (versi kunci) lebih dulu, lalu yang memuat kata itu. */
+function cocokkan(input: string, names: string[]): { exact?: string; candidates: string[] } {
+  const q = kunciWilayah(input);
+  if (!q) return { candidates: [] };
+  const sama = names.filter((n) => kunciWilayah(n) === q);
+  if (sama.length === 1) return { exact: sama[0], candidates: sama };
+  if (sama.length > 1) return { candidates: sama };
+  const memuat = names.filter((n) => {
+    const k = kunciWilayah(n);
+    return k !== '' && (k.includes(q) || q.includes(k));
+  });
+  return { candidates: memuat };
 }
 
 /* ─────────────────────────── server MCP ─────────────────────────── */
@@ -478,6 +570,405 @@ function buildServer(): McpServer {
             }\n` +
             `• Follow-up: ${formatWaktu(saved.next_followup_at)}`,
         );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  /* ───── pesanan, resi, info produk, wilayah (semua baca-saja) ───── */
+
+  server.registerTool(
+    'cari_area_ongkir',
+    {
+      title: 'Cari kota, kecamatan, dan kode pos',
+      description:
+        'Cari ejaan wilayah yang dipakai sistem (data area J&T) dan kode pos. Tanpa isian: daftar provinsi. ' +
+        'Isi `provinsi`: daftar kota/kabupaten. Isi `kota`: daftar kecamatan. Isi `kota` + `kecamatan`: kode pos ' +
+        'kecamatan itu. Pakai sebelum cek_ongkir atau saat merapikan alamat supaya ejaan kota/kecamatan sama dengan sistem.',
+      inputSchema: {
+        provinsi: z.string().optional().describe('Nama provinsi, mis. Jawa Barat'),
+        kota: z.string().optional().describe('Kota/kabupaten, mis. Kota Depok, Kab. Bogor, Sawah Lunto'),
+        kecamatan: z.string().optional().describe('Kecamatan, mis. Sukmajaya (butuh `kota`)'),
+      },
+    },
+    async ({ provinsi, kota, kecamatan }) => {
+      try {
+        if (!provinsi && !kota) {
+          const j = await opsFetch('/api/ops/wilayah');
+          return text(`Provinsi:\n${((j?.provinces || []) as string[]).join(', ')}`);
+        }
+        if (provinsi && !kota) {
+          const prov = await opsFetch('/api/ops/wilayah');
+          const m = cocokkan(provinsi, (prov?.provinces || []) as string[]);
+          if (!m.exact) {
+            return text(
+              m.candidates.length
+                ? `Provinsi "${provinsi}" belum pasti. Mungkin: ${m.candidates.join(', ')}.`
+                : `Provinsi "${provinsi}" tidak dikenali.`,
+            );
+          }
+          const j = await opsFetch(`/api/ops/wilayah?province=${encodeURIComponent(m.exact)}`);
+          return text(`Kota/kabupaten di ${m.exact}:\n${((j?.cities || []) as string[]).join(', ')}`);
+        }
+
+        const kotaList = await semuaKota();
+        const pool = provinsi
+          ? kotaList.filter((k) => normWilayah(k.province) === normWilayah(provinsi))
+          : kotaList;
+        const mk = cocokkan(String(kota), pool.map((k) => k.city));
+        if (!mk.exact) {
+          if (!mk.candidates.length) {
+            return text(`Kota "${kota}" tidak dikenali di data area J&T. Coba nama lain (mis. "Kota Depok", "Kab. Bogor").`);
+          }
+          const lines = mk.candidates
+            .slice(0, 15)
+            .map((c) => `• ${c} (${pool.find((k) => k.city === c)?.province || '-'})`);
+          return text(`Nama "${kota}" cocok dengan beberapa kota/kabupaten. Pilih salah satu:\n${lines.join('\n')}`);
+        }
+        const city = mk.exact;
+        const province = pool.find((k) => k.city === city)?.province || '-';
+        const dj = await opsFetch(`/api/ops/wilayah?city=${encodeURIComponent(city)}`);
+        const districts: string[] = dj?.districts || [];
+        if (!kecamatan) {
+          return text(`Kecamatan di ${city} (${province}):\n${districts.join(', ') || '-'}`);
+        }
+        const md = cocokkan(kecamatan, districts);
+        if (!md.exact) {
+          return text(
+            md.candidates.length
+              ? `Kecamatan "${kecamatan}" belum pasti di ${city}. Mungkin: ${md.candidates.slice(0, 15).join(', ')}.`
+              : `Kecamatan "${kecamatan}" tidak ada di ${city}. Kecamatan yang ada: ${districts.join(', ') || '-'}.`,
+          );
+        }
+        const pj = await opsFetch(
+          `/api/ops/wilayah?city=${encodeURIComponent(city)}&district=${encodeURIComponent(md.exact)}`,
+        );
+        const codes: string[] = pj?.postal_codes || [];
+        return text(
+          `Provinsi: ${province}\nKota/Kabupaten: ${city}\nKecamatan: ${md.exact}\n` +
+            `Kode pos: ${codes.length ? codes.join(', ') : 'belum ada di data (jangan ditebak)'}`,
+        );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'cek_pesanan',
+    {
+      title: 'Cek pesanan, retur & status kirim (baca-saja)',
+      description:
+        'Cari pesanan SAMAQU berdasarkan nomor WhatsApp, nomor pesanan, nomor retur, atau nomor resi (resi masuk/keluar ' +
+        'retur). HANYA MEMBACA. Hasilnya berisi status pesanan, nomor resi, status pengiriman J&T, dan data retur/tukar ' +
+        'size kalau ada. Resi kosong berarti pesanan belum diserahkan ke J&T: jangan bilang sudah dikirim.',
+      inputSchema: {
+        cari: z.string().min(3).describe('Nomor WhatsApp (08xx/628xx), nomor pesanan (SMQ-/CYO-/OPS-), nomor retur (RTS-), atau nomor resi. Jangan nama saja.'),
+        limit: z.number().int().min(1).max(10).optional().describe('Jumlah pesanan maksimal (default 5)'),
+      },
+    },
+    async ({ cari, limit }) => {
+      try {
+        // WAJIB identitas unik: nama saja bisa cocok ke pesanan customer lain.
+        const raw = String(cari).trim();
+        const digits = raw.replace(/\D/g, '');
+        const isPhone = digits.length >= 8 && raw.replace(/[\s+.\-()]/g, '') === digits;
+        const isOrderNo = /^(SMQ|CYO|OPS)-/i.test(raw);
+        const isReturnNo = /^RTS-/i.test(raw);
+        const isAwb = /^JO[0-9A-Z]{6,}$/i.test(raw);
+        if (!isPhone && !isOrderNo && !isReturnNo && !isAwb) {
+          return text(
+            'Pencarian pesanan harus memakai nomor WhatsApp, nomor pesanan (SMQ-/CYO-/OPS-), nomor retur (RTS-), atau nomor resi. Jangan pakai nama saja. Tanya nomor HP customer dulu.',
+          );
+        }
+        const term = searchTerm(raw);
+        const qs = new URLSearchParams();
+        qs.set('search', term);
+        qs.set('limit', String(limit || 5));
+        qs.set('include_items', '1');
+        const [json, returJson] = await Promise.all([
+          opsFetch(`/api/ops/orders?${qs.toString()}`),
+          opsFetch('/api/ops/returns?limit=1000'),
+        ]);
+
+        const phone = isPhone ? normPhone(raw) : '';
+        const needle = term.toLowerCase();
+        const awbNeedle = raw.toUpperCase().replace(/\s+/g, '');
+        const orders = ((json?.orders || []) as any[]).filter((o) => {
+          if (isPhone) return normPhone(o.customer_whatsapp) === phone;
+          return [o.order_number, o.customer_name, o.awb_no]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(needle));
+        });
+        const returns = ((returJson?.items || []) as any[]).filter((r) => {
+          if (isPhone) return normPhone(r.customer_whatsapp) === phone;
+          const awbs = [r.shipping_in_awb, r.shipping_out_awb]
+            .filter(Boolean)
+            .map((v) => String(v).toUpperCase().replace(/\s+/g, ''));
+          if (awbNeedle && awbs.some((v) => v.includes(awbNeedle))) return true;
+          return [r.return_number, r.order_number, r.customer_name]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(needle));
+        });
+
+        if (!orders.length && !returns.length) {
+          return text(
+            `Tidak ada pesanan atau retur yang cocok dengan "${cari}". Minta nomor pesanan (OPS-...), nomor retur (RTS-...), nomor resi, atau nomor HP pemesan.`,
+          );
+        }
+
+        const trackingByAwb = new Map<string, string>();
+        await Promise.all(
+          orders
+            .filter((o) => o.awb_no)
+            .slice(0, 5)
+            .map(async (o) => {
+              const status = await fetchJntStatus(BASE_URL, o.awb_no);
+              if (status) trackingByAwb.set(String(o.awb_no), status);
+            }),
+        );
+
+        const blocks: string[] = [];
+        if (orders.length) {
+          const lines = orders.map((o) => {
+            const items = ((o.order_items || []) as any[])
+              .map(
+                (i) =>
+                  `${i.product_name || '-'}${i.series ? ` ${i.series}` : ''}${i.kain ? ` ${i.kain}` : ''}` +
+                  `${i.color && i.color !== 'default' ? ` ${i.color}` : ''}${i.size ? ` ${i.size}` : ''}` +
+                  ` x${i.quantity || 0} @ ${rupiah(i.price)}`,
+              )
+              .join(' · ');
+            const kirim =
+              [o.shipping_status, trackingByAwb.get(String(o.awb_no)) || o.tracking_status_text]
+                .filter(Boolean)
+                .join(' · ') || '-';
+            return (
+              `• ${o.order_number} · ${o.customer_name || '-'} · ${formatWaktu(o.created_at)}\n` +
+              `  Status pesanan: ${PESANAN_STATUS_LABEL[String(o.status || '')] || o.status || '-'}\n` +
+              `  Resi J&T: ${o.awb_no || 'belum ada'} · Status kirim: ${kirim}\n` +
+              `  Item: ${items || '-'} · Total: ${rupiah(o.total)}`
+            );
+          });
+          blocks.push(`${orders.length} pesanan ditemukan (baca-saja):\n${lines.join('\n')}`);
+        }
+        if (returns.length) {
+          const lines = returns.map((r) => {
+            const items = ((r.items || []) as any[])
+              .map(
+                (i) =>
+                  `${i.product_name || '-'}${i.color && i.color !== 'default' ? ` ${i.color}` : ''}` +
+                  `${i.size ? ` ${i.size}` : ''}${i.replacement_size ? ` → ${i.replacement_size}` : ''} x${i.qty || 0}`,
+              )
+              .join(' · ');
+            return (
+              `• ${r.return_number} · ${RETUR_TYPE_LABEL[String(r.type || '')] || r.type || '-'} · ` +
+              `${RETUR_STATUS_LABEL[String(r.status || '')] || r.status || '-'} · ${formatWaktu(r.created_at)}\n` +
+              `  Pesanan: ${r.order_number || '-'} · ${r.customer_name || '-'} · ${r.customer_whatsapp || '-'}\n` +
+              `  Resi masuk: ${r.shipping_in_awb || 'belum ada'} · Resi keluar: ${r.shipping_out_awb || 'belum ada'}\n` +
+              `  Pengganti diterima: ${r.replacement_delivered_at ? formatWaktu(r.replacement_delivered_at) : 'belum'}\n` +
+              `  Alasan: ${r.reason || '-'}\n  Item: ${items || '-'}`
+            );
+          });
+          blocks.push(`${returns.length} retur/tukar size ditemukan (baca-saja):\n${lines.join('\n')}`);
+        }
+        return text(blocks.join('\n\n'));
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'cek_resi',
+    {
+      title: 'Cek status resi J&T',
+      description:
+        'Cek status pelacakan J&T langsung dari nomor resi. Pakai kalau customer menyebut nomor resi atau cek_pesanan ' +
+        'tidak menemukan order-nya. Jangan menyuruh customer membuka situs J&T.',
+      inputSchema: { resi: z.string().min(8).describe('Nomor resi J&T, mis. JO0330311502') },
+    },
+    async ({ resi }) => {
+      try {
+        const awb = String(resi).trim().toUpperCase();
+        if (!/^[A-Z0-9]{8,30}$/.test(awb)) return failure('Nomor resi tidak valid. Minta nomor resi J&T yang benar.');
+        const status = await fetchJntStatus(BASE_URL, awb);
+        const link = `https://www.samaqu.id/id/cek-resi?awb=${encodeURIComponent(awb)}`;
+        if (!status) return text(`Resi ${awb} belum ditemukan di pelacakan J&T.\nCek SAMAQU: ${link}`);
+        return text(`Resi ${awb}: ${status}\nCek SAMAQU: ${link}`);
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'info_series',
+    {
+      title: 'Info series Thobe',
+      description:
+        'Ambil penjelasan dan foto resmi tiap series Thobe (Imron, Jiharkah, Nahawand, Bayati, Karim, Imalah). ' +
+        'Pakai saat customer tanya beda series atau ciri kerah/placket.',
+      inputSchema: { series: z.string().optional().describe('Nama series (opsional), mis. Imron / Bayati') },
+    },
+    async ({ series }) => {
+      try {
+        const rows = await academyProductRows();
+        const all = rows
+          .map((row) => row?.data)
+          .filter((d) => d && String(d.category || '').toLowerCase() === 'product series' && String(d.name || '').trim());
+        if (!all.length) return text('Data series belum ada di Product Knowledge.');
+        const q = String(series || '').trim().toLowerCase();
+        const picked = q
+          ? all.filter((d) => {
+              const name = String(d.name || '').toLowerCase();
+              return name.includes(q) || q.includes(name);
+            })
+          : all;
+        if (!picked.length) {
+          return text(`Series "${series}" tidak ditemukan. Series yang ada: ${all.map((d) => d.name).join(', ')}.`);
+        }
+        const body = picked
+          .map((d) =>
+            [
+              `**${d.name}**`,
+              d.collar ? `Kerah: ${d.collar}` : '',
+              d.placket ? `Placket: ${d.placket}` : '',
+              d.description ? `Deskripsi: ${d.description}` : '',
+              d.characteristics ? `Ciri: ${String(d.characteristics).replace(/\n/g, '; ')}` : '',
+              d.image ? `Foto: ${d.image}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          )
+          .join('\n\n');
+        return text(`${body}\n\nJelaskan bedanya dalam 2-3 kalimat pendek. Video series khusus admin, jangan dibagikan ke customer.`);
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'info_bahan',
+    {
+      title: 'Info bahan/kain',
+      description:
+        'Ambil penjelasan dan foto resmi tiap bahan/kain SAMAQU (mis. B-01, B-02, A-02). Pakai saat customer bertanya ' +
+        'jenis bahan atau karakter kain.',
+      inputSchema: { bahan: z.string().optional().describe('Nama atau kode bahan (opsional), mis. B-01') },
+    },
+    async ({ bahan }) => {
+      try {
+        const rows = await academyProductRows();
+        const all = rows
+          .map((row) => row?.data)
+          .filter((d) => d && String(d.category || '').toLowerCase() === 'fabric collection' && String(d.name || '').trim());
+        if (!all.length) return text('Data bahan belum ada di Product Knowledge.');
+        const q = String(bahan || '').trim().toLowerCase();
+        const picked = q
+          ? all.filter((d) => {
+              const name = String(d.name || '').toLowerCase();
+              const code = String(d.code || '').toLowerCase();
+              return name.includes(q) || code.includes(q) || (code && q.includes(code));
+            })
+          : all;
+        if (!picked.length) {
+          return text(`Bahan "${bahan}" tidak ditemukan. Bahan yang ada: ${all.map((d) => d.name).join(', ')}.`);
+        }
+        const body = picked
+          .map((d) =>
+            [
+              `**${d.name}**${d.code ? ` (${d.code})` : ''}`,
+              d.composition ? `Komposisi: ${d.composition}` : '',
+              d.gsm ? `GSM: ${d.gsm}` : '',
+              d.characteristics ? `Karakteristik: ${String(d.characteristics).replace(/\n/g, '; ')}` : '',
+              d.advantages ? `Keunggulan: ${String(d.advantages).replace(/\n/g, '; ')}` : '',
+              d.extra ? `Info tambahan: ${String(d.extra).replace(/\n/g, '; ')}` : '',
+              d.image ? `Foto: ${d.image}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          )
+          .join('\n\n');
+        return text(`${body}\n\nJelaskan singkat dalam 2-3 kalimat.`);
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'detail_produk',
+    {
+      title: 'Detail produk Academy',
+      description:
+        'Ambil detail produk dari Product Knowledge Academy: deskripsi, keunggulan, bahan, ukuran, dan cara menjelaskan ' +
+        'ke customer. Untuk harga/stok tetap pakai cari_produk.',
+      inputSchema: { produk: z.string().min(2).describe('Nama atau series produk, mis. Karim / Thobe Karim') },
+    },
+    async ({ produk }) => {
+      try {
+        // Ejaan katalog kadang beda (produk "Coffe", warna "Coffee").
+        const normName = (value: unknown) =>
+          String(value || '').toLowerCase().replace(/\bcoffe\b/g, 'coffee').replace(/\s+/g, ' ').trim();
+        const q = normName(produk);
+        if (!q) return failure('Nama produk wajib diisi.');
+        const map = buildAcademyProductMap(await academyProductRows());
+        // Kunci map = series/nama/kode. Skor per kata supaya kunci series saja ("kandora") tidak menang
+        // atas nama lengkap ("kandora coffe brown").
+        const normMap = new Map<string, any>();
+        for (const [key, value] of map as Map<string, any>) {
+          const name = normName(key);
+          if (name && !normMap.has(name)) normMap.set(name, value);
+        }
+        let found = normMap.get(q);
+        if (!found) {
+          const words = q.split(/\s+/).filter(Boolean);
+          let bestScore = 0;
+          let bestName = '';
+          let bestValue: any = null;
+          for (const [name, value] of normMap) {
+            const score = name.split(/\s+/).filter((w) => words.includes(w)).length;
+            if (score > bestScore || (score === bestScore && score > 0 && name.length > bestName.length)) {
+              bestScore = score;
+              bestName = name;
+              bestValue = value;
+            }
+          }
+          if (bestValue && bestScore >= Math.min(2, words.length)) found = bestValue;
+        }
+        if (found) return text(formatAcademyProductDetail(found));
+
+        // Cadangan: Product Knowledge belum punya entri ini, pakai katalog.
+        try {
+          const json = await opsFetch('/api/ops/products');
+          const match = ((json?.items || []) as any[]).find((p) => {
+            const name = normName(p.name);
+            return name.includes(q) || q.includes(name);
+          });
+          if (match) {
+            const colors = (Array.isArray(match.colors) ? match.colors : String(match.colors || '').split(/[,/]/))
+              .map((c: unknown) => String(c || '').trim())
+              .filter(Boolean)
+              .join(', ');
+            return text(
+              [
+                `${match.name} — ${match.category || '-'}`,
+                `Kain: ${match.jenis_kain?.name || match.kain || '-'}`,
+                colors ? `Warna: ${colors}` : '',
+                `Harga: ${rupiah(match.price)}`,
+                'Keunggulan/seri belum ada di Product Knowledge, sampaikan hanya fakta ini.',
+              ]
+                .filter(Boolean)
+                .join('\n'),
+            );
+          }
+        } catch {
+          // katalog opsional
+        }
+        return text(`Detail produk "${produk}" belum ada di Product Knowledge Academy.`);
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));
       }
