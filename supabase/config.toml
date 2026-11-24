@@ -15,3 +15,7 @@ verify_jwt = false
 
 [functions.admin-users]
 verify_jwt = false
+
+# MCP SAMAQU online: token Bearer diperiksa sendiri di dalam fungsi (hash di secret MCP_TOKENS).
+[functions.mcp-samaqu]
+verify_jwt = false
