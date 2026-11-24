@@ -12,15 +12,17 @@ import {
 /**
  * MCP SAMAQU versi online (Streamable HTTP, tanpa sesi).
  *
- * FASE 0 (uji coba): hanya dua tool baca-saja, `cek_ongkir` dan `cari_produk`, port dari
- * `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool yang menulis data atau
- * mengirim WA SENGAJA belum ada di sini.
+ * Port dari `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool saat ini:
+ * `cek_ongkir`, `cari_produk` (baca-saja) dan leads: `cek_lead_duplikat`, `daftar_lead`,
+ * `opsi_lead` (baca) serta `catat_lead` (TULIS, PIC wajib diisi). Tool yang mengirim WA atau
+ * membuat transaksi SENGAJA belum ada di sini.
  *
  * Keamanan:
  * - Setiap permintaan wajib membawa token (`Authorization: Bearer <token>`, atau `x-api-key` /
  *   `x-auth-token` karena Claude mengunci header Authorization). Yang disimpan di server
- *   hanya hash SHA-256 token (secret `MCP_TOKENS`, format `nama:<hash hex>,nama2:<hash hex>`), jadi
- *   token asli tidak bisa dibaca dari Supabase. Mencabut satu orang = menghapus satu entri.
+ *   hanya hash SHA-256 token: secret `MCP_TOKENS` (`nama:<hash>,nama2:<hash>`) dan/atau satu secret
+ *   per orang `MCP_TOKEN_<NAMA>=<hash>`, jadi token asli tidak bisa dibaca dari Supabase.
+ *   Mencabut satu orang = menghapus satu entri/secret.
  * - Akses data lewat API /api/ops/* situs SAMAQU dengan akun layanan `MCP_LOGIN_EMAIL`
  *   (akun bot terpisah), BUKAN akun orang.
  */
@@ -59,13 +61,23 @@ async function identify(req: Request): Promise<string | null> {
 
   const presented = await sha256Hex(match[1]);
   let owner: string | null = null;
-  // Format secret: `nama:hash,nama2:hash2` (teks polos, tanpa tanda kutip supaya aman di env-file).
+  // Dua bentuk secret (hanya HASH SHA-256, tanpa tanda kutip supaya aman di env-file):
+  //   MCP_TOKENS=nama:hash,nama2:hash2     (daftar)
+  //   MCP_TOKEN_<NAMA>=hash                (satu secret per orang: tambah/cabut tanpa menyentuh yang lain)
   // Semua entri diperiksa (tanpa berhenti dini) supaya waktu respons tidak membocorkan apa pun.
-  for (const entry of (Deno.env.get('MCP_TOKENS') || '').split(',')) {
-    const sep = entry.indexOf(':');
-    if (sep <= 0) continue;
-    const name = entry.slice(0, sep).trim();
-    const hash = entry.slice(sep + 1).trim().toLowerCase();
+  const candidates: Array<[string, string]> = [];
+  for (const [key, value] of Object.entries(Deno.env.toObject())) {
+    if (key === 'MCP_TOKENS') {
+      for (const entry of value.split(',')) {
+        const sep = entry.indexOf(':');
+        if (sep > 0) candidates.push([entry.slice(0, sep).trim(), entry.slice(sep + 1).trim().toLowerCase()]);
+      }
+    } else {
+      const single = key.match(/^MCP_TOKEN_(.+)$/);
+      if (single) candidates.push([single[1].toLowerCase(), value.trim().toLowerCase()]);
+    }
+  }
+  for (const [name, hash] of candidates) {
     if (name && /^[0-9a-f]{64}$/.test(hash) && safeEqual(presented, hash)) owner = name;
   }
   return owner;
@@ -107,18 +119,86 @@ async function accessToken(): Promise<string> {
   return login();
 }
 
-async function opsFetch(pathname: string, retry = true): Promise<any> {
+async function opsFetch(pathname: string, init: RequestInit = {}, retry = true): Promise<any> {
   const token = await accessToken();
   const res = await fetch(`${BASE_URL}${pathname}`, {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    ...init,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(init.headers || {}) },
   });
   if (res.status === 401 && retry) {
     session = null;
-    return opsFetch(pathname, false);
+    return opsFetch(pathname, init, false);
   }
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new Error(body?.error || `Permintaan ke ${pathname} gagal (HTTP ${res.status})`);
   return body;
+}
+
+/* ─────────────────────────── helper leads ─────────────────────────── */
+
+// Port dari tools/mcp-samaqu/index.mjs supaya perilakunya identik.
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+const pad = (n: number) => String(n).padStart(2, '0');
+const rupiah = (n: unknown) => 'Rp' + Number(n || 0).toLocaleString('id-ID');
+
+function wibParts(date = new Date()) {
+  const w = new Date(date.getTime() + WIB_OFFSET_MS);
+  return { y: w.getUTCFullYear(), m: w.getUTCMonth() + 1, d: w.getUTCDate(), h: w.getUTCHours(), min: w.getUTCMinutes() };
+}
+const wibToday = () => {
+  const p = wibParts();
+  return `${p.y}-${pad(p.m)}-${pad(p.d)}`;
+};
+const wibClockNow = () => {
+  const p = wibParts();
+  return `${pad(p.h)}.${pad(p.min)}`;
+};
+const defaultFollowupIso = () => {
+  const p = wibParts();
+  return new Date(Date.UTC(p.y, p.m - 1, p.d + 1, 10 - 7, 0, 0)).toISOString();
+};
+function wibInputToIso(value: string | undefined): string | null {
+  if (!value) return null;
+  const m = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2})[:.](\d{2})/);
+  if (!m) return null;
+  return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00+07:00`).toISOString();
+}
+
+function formatTanggal(value: unknown): string {
+  const raw = String(value || '');
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00+07:00` : raw;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return raw || '-';
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta',
+  }).format(d);
+}
+
+function formatWaktu(iso: unknown): string {
+  if (!iso) return '-';
+  const d = new Date(String(iso));
+  if (Number.isNaN(d.getTime())) return '-';
+  const jam = new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta',
+  }).format(d).replace(':', '.');
+  return `${formatTanggal(d.toISOString())} ${jam}`;
+}
+
+function normalizeKontak(raw: unknown): string {
+  const s = String(raw || '').trim().toLowerCase().replace(/^[=@"'\s]+|[@"'\s]+$/g, '');
+  if (!s) return '';
+  if (/[a-z]/.test(s.replace(/^@/, ''))) return s.replace(/^@+/, '');
+  const digits = s.replace(/\D/g, '');
+  const n = digits.replace(/^0+/, '');
+  if (n.startsWith('62') && n[2] === '8') return n.slice(2);
+  return n || digits;
+}
+
+async function findLeadsByKontak(kontak: string): Promise<any[]> {
+  const target = normalizeKontak(kontak);
+  const needle = /^\d+$/.test(target) ? target.slice(-9) : target;
+  const json = await opsFetch(`/api/ops/leads?search=${encodeURIComponent(needle || kontak)}&limit=200&options=0`);
+  return ((json?.items || []) as any[]).filter((l) => normalizeKontak(l.kontak) === target);
 }
 
 /* ─────────────────────────── server MCP ─────────────────────────── */
@@ -218,6 +298,185 @@ function buildServer(): McpServer {
             academyVideos,
             academyProducts,
           }),
+        );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  /* ───── leads ───── */
+
+  server.registerTool(
+    'cek_lead_duplikat',
+    {
+      title: 'Cek lead duplikat',
+      description:
+        'Cek apakah nomor HP / username IG sudah pernah tercatat sebagai lead. Nomor dinormalisasi ' +
+        '(08xx = 628xx = 8xx), jadi format berbeda tetap terdeteksi.',
+      inputSchema: { kontak: z.string().min(3).describe('Nomor HP atau username IG yang mau dicek') },
+    },
+    async ({ kontak }) => {
+      try {
+        const items = await findLeadsByKontak(kontak);
+        if (items.length === 0) return text(`Tidak ada lead dengan kontak ${kontak}.`);
+        return text(
+          `Sudah ada ${items.length} lead dengan kontak itu:\n` +
+            items
+              .map(
+                (l) =>
+                  `• ${formatTanggal(l.tanggal)} · ${l.kontak} · ${l.sumber || '-'} · ${
+                    l.status === 'closing' ? 'Closing' : 'Belum Closing'
+                  }${l.pic ? ` · PIC ${l.pic}` : ''}`,
+              )
+              .join('\n'),
+        );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'daftar_lead',
+    {
+      title: 'Daftar lead',
+      description: 'Lihat lead terbaru dari menu Leads /ops, bisa difilter tanggal dan kontak.',
+      inputSchema: {
+        mulai: z.string().optional().describe('Tanggal awal YYYY-MM-DD'),
+        sampai: z.string().optional().describe('Tanggal akhir YYYY-MM-DD'),
+        cari: z.string().optional().describe('Cari berdasarkan potongan nomor/kontak'),
+        limit: z.number().int().min(1).max(100).optional().describe('Jumlah baris (default 20)'),
+      },
+    },
+    async ({ mulai, sampai, cari, limit }) => {
+      try {
+        const qs = new URLSearchParams();
+        qs.set('limit', String(limit || 20));
+        qs.set('options', '0');
+        if (mulai) qs.set('start', mulai);
+        if (sampai) qs.set('end', sampai);
+        if (cari) qs.set('search', cari);
+        const json = await opsFetch(`/api/ops/leads?${qs.toString()}`);
+        const items: any[] = json?.items || [];
+        if (items.length === 0) return text('Tidak ada lead pada filter itu.');
+        return text(
+          `${items.length} lead (total ${json?.count ?? items.length}):\n` +
+            items
+              .map(
+                (l) =>
+                  `• ${formatTanggal(l.tanggal)} ${l.jam || ''} · ${l.kontak} · ${l.sumber || '-'} · ${l.pic || '-'} · ${
+                    l.status === 'closing' ? 'Closing' : 'Belum Closing'
+                  }`,
+              )
+              .join('\n'),
+        );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'opsi_lead',
+    {
+      title: 'Pilihan PIC & produk',
+      description: 'Ambil daftar sumber, PIC/penanggung jawab, dan nama produk katalog untuk mengisi form lead.',
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const [leadJson, productJson] = await Promise.all([
+          opsFetch('/api/ops/leads?limit=1&options=1'),
+          opsFetch('/api/ops/products'),
+        ]);
+        const pics: string[] = leadJson?.options?.pics || [];
+        const products = [...new Set(((productJson?.items || []) as any[]).map((p) => p.name).filter(Boolean))];
+        return text(
+          `Sumber: Website, IG, WA, Meta ads\n` +
+            `PIC: ${pics.length ? pics.join(', ') : '-'}\n` +
+            `Produk: ${products.length ? products.join(', ') : '-'}`,
+        );
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'catat_lead',
+    {
+      title: 'Catat lead baru',
+      description:
+        'Simpan lead baru ke menu Leads dashboard /ops. Nomor duplikat ditolak server (sama seperti form). ' +
+        'Lead otomatis masuk jadwal Follow-up Center: default besok 10.00 WIB. ' +
+        'PIC WAJIB diisi dengan nama depan admin yang mengerjakan lead ini (mis. Lea atau Surya); kalau user ' +
+        'belum menyebut nama PIC, TANYAKAN dulu, jangan menebak (akun MCP ini bukan orang). ' +
+        'Pakai kering=true untuk uji tanpa menyimpan.',
+      inputSchema: {
+        kontak: z.string().min(3).describe('No HP atau username IG, mis. 081234567890 atau @username'),
+        pic: z.string().min(2).describe('PIC / penanggung jawab = nama depan admin, mis. Lea atau Surya. WAJIB, tanyakan ke user kalau belum disebut.'),
+        tanggal: z.string().optional().describe('Tanggal lead masuk, format YYYY-MM-DD. Kosong = hari ini (WIB)'),
+        jam: z.string().optional().describe('Jam lead masuk, mis. 10.00. Kosong = jam sekarang (WIB)'),
+        sumber: z.enum(['Website', 'IG', 'WA', 'Meta ads']).optional().describe('Sumber lead. Default Website'),
+        produk: z.string().optional().describe('Produk yang diminati, boleh nama bebas'),
+        status: z.enum(['belum_closing', 'closing']).optional().describe('Status lead, default belum_closing'),
+        nominal: z.number().optional().describe('Nominal transaksi (hanya dipakai kalau status closing)'),
+        catatan: z.string().optional().describe('Catatan tambahan'),
+        followup_wib: z.string().optional().describe('Jadwal follow-up pertama waktu WIB, format YYYY-MM-DDTHH:mm. Kosong = besok 10.00 WIB'),
+        kering: z.boolean().optional().describe('true = hanya validasi & cek duplikat, tidak menyimpan'),
+      },
+    },
+    async (input) => {
+      try {
+        const status = input.status || 'belum_closing';
+        const rawKontak = input.kontak.trim();
+        const digits = rawKontak.replace(/\D/g, '');
+        const kontak =
+          digits.length >= 8
+            ? digits.startsWith('62')
+              ? `0${digits.slice(2)}`
+              : digits.startsWith('0')
+                ? digits
+                : `0${digits}`
+            : rawKontak;
+        const row = {
+          tanggal: input.tanggal || wibToday(),
+          jam: input.jam || wibClockNow(),
+          kontak,
+          sumber: input.sumber || 'Website',
+          status,
+          nominal: status === 'closing' ? Number(input.nominal) || 0 : 0,
+          catatan: (input.catatan || '').trim(),
+          produk: input.produk?.trim() || null,
+          pic: input.pic.trim(),
+          next_followup_at: (input.followup_wib && wibInputToIso(input.followup_wib)) || defaultFollowupIso(),
+        };
+
+        if (input.kering) {
+          const dup = await findLeadsByKontak(row.kontak);
+          return text(
+            `DRY-RUN (tidak disimpan):\n` +
+              `• ${formatTanggal(row.tanggal)} ${row.jam} · ${row.kontak} · ${row.sumber}\n` +
+              `• PIC: ${row.pic} · Produk: ${row.produk || '-'} · ${status === 'closing' ? 'Closing ' + rupiah(row.nominal) : 'Belum Closing'}\n` +
+              `• Follow-up: ${formatWaktu(row.next_followup_at)}\n` +
+              `• Duplikat: ${dup.length ? `ADA (${dup.length} lead)` : 'tidak ada'}`,
+          );
+        }
+
+        const json = await opsFetch('/api/ops/leads', {
+          method: 'POST',
+          body: JSON.stringify({ rows: [row], blockDuplicates: true }),
+        });
+        const saved = json?.items?.[0];
+        if (!saved) return failure('Lead gagal disimpan.');
+        return text(
+          `Lead tersimpan.\n` +
+            `• ${formatTanggal(saved.tanggal)} ${saved.jam || '-'} · ${saved.kontak} · ${saved.sumber || '-'}\n` +
+            `• PIC: ${saved.pic || '-'} · Produk: ${saved.produk || '-'} · ${
+              saved.status === 'closing' ? 'Closing ' + rupiah(saved.nominal) : 'Belum Closing'
+            }\n` +
+            `• Follow-up: ${formatWaktu(saved.next_followup_at)}`,
         );
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));
