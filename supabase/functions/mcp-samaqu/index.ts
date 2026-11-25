@@ -309,10 +309,14 @@ async function stokCover(): Promise<Map<string, number> | null> {
     if (!items.length) return null;
     const m = new Map<string, number>();
     for (const v of items) {
+      // PENTING: pakai `stock_efektif` (hitungan database, sama dengan checkout). `stock` adalah stok MENTAH per
+      // baris dan bernilai 0 untuk varian yang stoknya dihitung dari komponen (cover), jadi menyesatkan.
+      const sumber =
+        v.stock_efektif && typeof v.stock_efektif === 'object' ? v.stock_efektif : v.stock;
       const stok =
-        v.stock && typeof v.stock === 'object'
-          ? Object.values(v.stock as Record<string, unknown>).reduce<number>((a, n) => a + (Number(n) || 0), 0)
-          : Number(v.stock) || 0;
+        sumber && typeof sumber === 'object'
+          ? Object.values(sumber as Record<string, unknown>).reduce<number>((a, n) => a + (Number(n) || 0), 0)
+          : Number(sumber) || 0;
       const key = String(v.color);
       m.set(key, (m.get(key) || 0) + stok);
     }
