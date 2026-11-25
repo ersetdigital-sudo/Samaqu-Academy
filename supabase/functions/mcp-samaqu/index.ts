@@ -16,8 +16,8 @@ import {
  *
  * Port dari `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool saat ini (12):
  * baca-saja: `cek_ongkir`, `cari_produk`, `cari_area_ongkir` (wilayah + kode pos), `cek_pesanan`,
- * `cek_resi`, `info_series`, `info_bahan`, `detail_produk`, `cek_lead_duplikat`, `daftar_lead`,
- * `opsi_lead`; satu-satunya yang MENULIS: `catat_lead` (PIC wajib diisi).
+ * `cek_resi`, `info_series`, `info_bahan`, `detail_produk`, `rekomendasi_size` (tabel TB x BB),
+ * `cek_lead_duplikat`, `daftar_lead`, `opsi_lead`; satu-satunya yang MENULIS: `catat_lead` (PIC wajib diisi).
  * SENGAJA tidak ada: kirim_wa, teruskan_admin, pesan_wa_masuk, lewati_wa (alur bot WA), serta
  * catat_closing dan buat_draft_transaksi (butuh inbox_id WA dan catat_closing mengirim WA ke admin).
  *
@@ -291,6 +291,59 @@ function cocokkan(input: string, names: string[]): { exact?: string; candidates:
     return k !== '' && (k.includes(q) || q.includes(k));
   });
   return { candidates: memuat };
+}
+
+/* ─────────────────────────── tabel size Thobe/Kandora ─────────────────────────── */
+
+// Sumber: gambar resmi "Rekomendasi Size Thobe" (6 Nov 2026), sama dengan tabel di
+// Samaqu-Academy/supabase/functions/_shared/wa/memory.md. Kolom BB 45..120 per 5 kg.
+const SIZE_BB = [45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120];
+const SIZE_TB = [160, 165, 170, 175, 180, 185];
+const BB_85_UP_TINGGI = ['L', 'L/XL', 'XL', 'XL/2XL', '2XL', '2XL', '2XL/3XL', '3XL']; // TB 170-185
+const BB_85_UP_PENDEK = ['L', 'L/XL', 'XL', 'XL/2XL', '2XL', '2XL/3XL', '3XL', '3XL']; // TB 160-165
+const SIZE_GRID: Record<number, string[]> = {
+  185: ['M/L', 'M/L', 'M/L', 'L', 'L', 'L', 'L', 'L', ...BB_85_UP_TINGGI],
+  180: ['M', 'M', 'M', 'M', 'M', 'M/L', 'L', 'L', ...BB_85_UP_TINGGI],
+  175: ['M', 'M', 'M', 'M', 'M', 'M/L', 'L', 'L', ...BB_85_UP_TINGGI],
+  170: ['S/M', 'S/M', 'S', 'M', 'M', 'M', 'M/L', 'L', ...BB_85_UP_TINGGI],
+  165: ['S', 'S', 'S', 'S/M', 'M', 'M', 'M/L', 'L', ...BB_85_UP_PENDEK],
+  160: ['XS', 'XS/S', 'S', 'S/M', 'M', 'M', 'L', 'L', ...BB_85_UP_PENDEK],
+};
+const SIZE_URUT = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+// Size chart baju (cm): Bahu / Lebar dada / Panjang. Thobe dan Kandora sama.
+const SIZE_CM: Record<string, string> = {
+  XS: '39/48/137', S: '41/50/140', M: '43/53/142', L: '45/56/144', XL: '48/59/147', '2XL': '50/62/147', '3XL': '52/65/147',
+};
+
+/** Nilai grid terdekat di atas dan di bawah: [bawah, atas]; angka pas ada di grid -> keduanya sama. */
+function bracket(value: number, grid: number[]): [number, number] {
+  const lo = Math.max(...grid.filter((g) => g <= value), grid[0]);
+  const hi = Math.min(...grid.filter((g) => g >= value), grid[grid.length - 1]);
+  return [lo, hi];
+}
+
+type HasilSize = {
+  cells: Array<{ tb: number; bb: number; value: string }>;
+  sizes: string[];
+  luarTabel: boolean;
+};
+
+function hitungSize(tbMin: number, tbMax: number, bbMin: number, bbMax: number): HasilSize {
+  const luarTabel = tbMin < SIZE_TB[0] || tbMax > SIZE_TB[SIZE_TB.length - 1] || bbMin < SIZE_BB[0] || bbMax > SIZE_BB[SIZE_BB.length - 1];
+  const [tbLo] = bracket(tbMin, SIZE_TB);
+  const [, tbHi] = bracket(tbMax, SIZE_TB);
+  const [bbLo] = bracket(bbMin, SIZE_BB);
+  const [, bbHi] = bracket(bbMax, SIZE_BB);
+  const cells: HasilSize['cells'] = [];
+  for (const tb of SIZE_TB.filter((t) => t >= tbLo && t <= tbHi)) {
+    SIZE_BB.forEach((bb, idx) => {
+      if (bb >= bbLo && bb <= bbHi) cells.push({ tb, bb, value: SIZE_GRID[tb][idx] });
+    });
+  }
+  const set = new Set<string>();
+  for (const c of cells) for (const s of c.value.split('/')) set.add(s);
+  const sizes = [...set].sort((a, b) => SIZE_URUT.indexOf(a) - SIZE_URUT.indexOf(b));
+  return { cells, sizes, luarTabel };
 }
 
 /* ─────────────────────────── server MCP ─────────────────────────── */
@@ -969,6 +1022,71 @@ function buildServer(): McpServer {
           // katalog opsional
         }
         return text(`Detail produk "${produk}" belum ada di Product Knowledge Academy.`);
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'rekomendasi_size',
+    {
+      title: 'Rekomendasi size Thobe/Kandora dari TB dan BB',
+      description:
+        'Rekomendasi ukuran Thobe/Kandora dari tinggi badan (TB, cm) dan berat badan (BB, kg), dibaca sel per sel dari ' +
+        'tabel resmi SAMAQU. PAKAI setiap kali customer menyebut TB/BB atau menanya size. Boleh rentang ' +
+        '(mis. TB 168-169, BB 83-84): isi tb dan tb_sampai, bb dan bb_sampai. Hasil: satu size, atau dua size kalau selnya ' +
+        'M/L dan sejenisnya (lalu tanya customer suka pas atau longgar). Tabel ini hanya untuk Thobe dan Kandora; Koko, Vest, ' +
+        'dan ukuran anak tidak tercakup. Jangan menebak size sendiri.',
+      inputSchema: {
+        tb: z.number().min(100).max(230).describe('Tinggi badan (cm). Kalau rentang, isi batas bawahnya'),
+        bb: z.number().min(20).max(200).describe('Berat badan (kg). Kalau rentang, isi batas bawahnya'),
+        tb_sampai: z.number().min(100).max(230).optional().describe('Batas atas rentang TB, opsional'),
+        bb_sampai: z.number().min(20).max(200).optional().describe('Batas atas rentang BB, opsional'),
+      },
+    },
+    ({ tb, bb, tb_sampai, bb_sampai }) => {
+      try {
+        const tbMin = Math.min(tb, tb_sampai ?? tb);
+        const tbMax = Math.max(tb, tb_sampai ?? tb);
+        const bbMin = Math.min(bb, bb_sampai ?? bb);
+        const bbMax = Math.max(bb, bb_sampai ?? bb);
+        const r = hitungSize(tbMin, tbMax, bbMin, bbMax);
+        const tbTeks = tbMin === tbMax ? `${tbMin}` : `${tbMin}-${tbMax}`;
+        const bbTeks = bbMin === bbMax ? `${bbMin}` : `${bbMin}-${bbMax}`;
+        const baris: string[] = [`Rekomendasi size Thobe/Kandora untuk TB ${tbTeks} cm, BB ${bbTeks} kg:`];
+        baris.push(
+          'Sel tabel yang dipakai: ' +
+            r.cells.map((c) => `TB ${c.tb}/BB ${c.bb} = ${c.value}`).join('; '),
+        );
+
+        const semuaSama = r.cells.length > 0 && r.cells.every((c) => c.value === r.cells[0].value);
+        if (semuaSama && r.sizes.length === 1) {
+          baris.push(`HASIL: ${r.sizes[0]} (semua sel yang dipakai sama). Jawab langsung satu size.`);
+        } else if (r.sizes.length === 1) {
+          baris.push(`HASIL: ${r.sizes[0]}. Jawab langsung satu size.`);
+        } else {
+          const kecil = r.sizes[0];
+          const besar = r.sizes[r.sizes.length - 1];
+          baris.push(
+            `HASIL: antara ${r.sizes.join(', ')} (selnya berbeda atau dua size). Tanya customer SEKALI: pas di badan (${kecil}) ` +
+              `atau agak longgar (${besar})? Lalu berikan satu size. Kalau customer bingung, pilih ${besar} ` +
+              `(lebih nyaman, panjang bisa dipotong di tailor).`,
+          );
+        }
+
+        if (r.luarTabel) {
+          baris.push('CATATAN: TB atau BB di luar rentang tabel (TB 160-185, BB 45-120). Ini hanya perkiraan dari sel terdekat; minta admin mengecek, jangan dijanjikan pasti.');
+        }
+        if (r.sizes.includes('3XL')) baris.push('CATATAN: 3XL belum tersedia. Sampaikan jujur dan teruskan ke admin.');
+        if (r.sizes.includes('2XL')) baris.push('CATATAN: stok 2XL (di database tertulis XXL) sangat sedikit. Cek cari_produk dulu sebelum menjanjikan.');
+        baris.push(
+          'Ukuran sama untuk semua series (Imron, Jiharkah, Nahawand, Bayati, Karim, Imalah). Size chart baju (cm, Bahu/Lebar dada/Panjang): ' +
+            r.sizes.map((s) => `${s} ${SIZE_CM[s]}`).join(', ') +
+            '. Sebut angka cm hanya kalau customer menanya detail.',
+        );
+        baris.push('Kependekan: ada lipatan cadangan sekitar 7 cm di bawah. Kepanjangan: bisa dipotong di tailor. Tukar ukuran boleh, ongkir kirim balik ditanggung customer.');
+        return text(baris.join('\n'));
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));
       }
