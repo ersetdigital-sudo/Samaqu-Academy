@@ -1101,7 +1101,7 @@ function buildServer(): McpServer {
           if (!stok) {
             lines.push('PROMO free cover + hanger: stok cover TIDAK TERBACA. Jangan menjanjikan; tanya admin.');
           } else if ((stok.get(cover) ?? 0) > 0) {
-            lines.push(`PROMO free cover + hanger: BERHAK (customer baru dan stok ${cover} ada). Boleh disebut satu kali, jangan mengubah harga baris cover menjadi Rp0 (gratisnya berupa diskon yang diisi admin saat review).`);
+            lines.push(`PROMO free cover + hanger: BERHAK (customer baru dan stok ${cover} ada). Boleh disebut satu kali, hanya 1 set per pesanan walau thobe yang dibeli lebih dari satu, dan jangan mengubah harga baris cover menjadi Rp0 (gratisnya berupa diskon yang diisi admin saat review).`);
           } else {
             lines.push(`PROMO free cover + hanger: ${cover} sedang HABIS. Jangan menawarkan atau menyebut bonus cover; kalau ditanya, jawab jujur sedang kosong.`);
           }
