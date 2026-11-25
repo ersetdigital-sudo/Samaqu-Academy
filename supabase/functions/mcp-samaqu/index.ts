@@ -17,6 +17,7 @@ import {
  * Port dari `tools/mcp-samaqu/index.mjs` (MCP lokal yang tetap jalan). Tool saat ini (12):
  * baca-saja: `cek_ongkir`, `cari_produk`, `cari_area_ongkir` (wilayah + kode pos), `cek_pesanan`,
  * `cek_resi`, `info_series`, `info_bahan`, `detail_produk`, `rekomendasi_size` (tabel TB x BB),
+ * `cek_pelanggan` (baru/lama + promo cover), `info_rekening` (dari secret MCP_REKENING),
  * `cek_lead_duplikat`, `daftar_lead`, `opsi_lead`; satu-satunya yang MENULIS: `catat_lead` (PIC wajib diisi).
  * SENGAJA tidak ada: kirim_wa, teruskan_admin, pesan_wa_masuk, lewati_wa (alur bot WA), serta
  * catat_closing dan buat_draft_transaksi (butuh inbox_id WA dan catat_closing mengirim WA ke admin).
@@ -291,6 +292,34 @@ function cocokkan(input: string, names: string[]): { exact?: string; candidates:
     return k !== '' && (k.includes(q) || q.includes(k));
   });
   return { candidates: memuat };
+}
+
+/* ─────────────────────────── pelanggan baru/lama + promo cover ─────────────────────────── */
+
+/** Status pesanan yang membuat customer dianggap LAMA. Belum Bayar dan Dibatalkan tidak dihitung (aturan bot). */
+const STATUS_TERHITUNG = new Set(['diproses', 'dikirim', 'selesai']);
+const COVER_THOBE = 'Cover Thobe + Hanger';
+const COVER_KOKO = 'Cover Koko + Hanger';
+
+/** Stok efektif tiap varian cover (nama varian -> jumlah). null = tidak terbaca. */
+async function stokCover(): Promise<Map<string, number> | null> {
+  try {
+    const j = await opsFetch('/api/ops/product-variants?for=sale');
+    const items = ((j?.items || []) as any[]).filter((v) => String(v.product_id) === 'cover-hanger');
+    if (!items.length) return null;
+    const m = new Map<string, number>();
+    for (const v of items) {
+      const stok =
+        v.stock && typeof v.stock === 'object'
+          ? Object.values(v.stock as Record<string, unknown>).reduce<number>((a, n) => a + (Number(n) || 0), 0)
+          : Number(v.stock) || 0;
+      const key = String(v.color);
+      m.set(key, (m.get(key) || 0) + stok);
+    }
+    return m;
+  } catch {
+    return null;
+  }
 }
 
 /* ─────────────────────────── tabel size Thobe/Kandora ─────────────────────────── */
@@ -1025,6 +1054,86 @@ function buildServer(): McpServer {
       } catch (error) {
         return failure(error instanceof Error ? error.message : String(error));
       }
+    },
+  );
+
+  server.registerTool(
+    'cek_pelanggan',
+    {
+      title: 'Cek pelanggan baru atau lama + kelayakan promo cover',
+      description:
+        'Cek apakah nomor WhatsApp ini customer BARU atau LAMA dari riwayat pesanan (Lunas, Dikirim, Selesai dihitung; ' +
+        'Belum Bayar dan Dibatalkan tidak). Status lead TIDAK dipakai. Juga memutuskan kelayakan promo free cover + hanger ' +
+        '(hanya customer baru DAN stok cover ada). Pakai sebelum menawarkan promo atau cross-selling cover. HANYA MEMBACA.',
+      inputSchema: {
+        nomor: z.string().min(8).describe('Nomor WhatsApp customer (08xx / 628xx / +628xx)'),
+        kategori: z.enum(['Thobe', 'Kandora', 'Koko']).optional().describe('Kategori produk yang dibeli, untuk memilih cover yang cocok'),
+      },
+    },
+    async ({ nomor, kategori }) => {
+      try {
+        const phone = normPhone(nomor);
+        if (phone.length < 8) return failure('Nomor tidak valid. Minta nomor WhatsApp customer yang benar.');
+        const json = await opsFetch(`/api/ops/orders?search=${encodeURIComponent(phone)}&limit=50`);
+        if (!Array.isArray(json?.orders)) {
+          return text('Riwayat pesanan TIDAK TERBACA. Jangan menjanjikan promo; tanya admin.');
+        }
+        const orders = (json.orders as any[]).filter((o) => normPhone(o.customer_whatsapp) === phone);
+        const terhitung = orders.filter((o) => STATUS_TERHITUNG.has(String(o.status || '')));
+        const lines: string[] = [`Nomor ${nomor}: ${orders.length} pesanan ditemukan, ${terhitung.length} terhitung (Lunas/Dikirim/Selesai).`];
+        if (orders.length) {
+          lines.push(
+            'Riwayat terbaru: ' +
+              orders
+                .slice(0, 5)
+                .map((o) => `${o.order_number} (${PESANAN_STATUS_LABEL[String(o.status || '')] || o.status || '-'}, ${formatTanggal(o.created_at)})`)
+                .join('; '),
+          );
+        }
+        const baru = terhitung.length === 0;
+        lines.push(baru ? 'STATUS: customer BARU.' : 'STATUS: customer LAMA.');
+
+        if (!baru) {
+          lines.push('PROMO free cover + hanger: TIDAK dijanjikan (customer lama). Pengecualian khusus hanya dari admin; kalau customer menagih, teruskan ke admin.');
+        } else {
+          const stok = await stokCover();
+          const cover = kategori === 'Koko' ? COVER_KOKO : COVER_THOBE;
+          if (!stok) {
+            lines.push('PROMO free cover + hanger: stok cover TIDAK TERBACA. Jangan menjanjikan; tanya admin.');
+          } else if ((stok.get(cover) ?? 0) > 0) {
+            lines.push(`PROMO free cover + hanger: BERHAK (customer baru dan stok ${cover} ada). Boleh disebut satu kali, jangan mengubah harga baris cover menjadi Rp0 (gratisnya berupa diskon yang diisi admin saat review).`);
+          } else {
+            lines.push(`PROMO free cover + hanger: ${cover} sedang HABIS. Jangan menawarkan atau menyebut bonus cover; kalau ditanya, jawab jujur sedang kosong.`);
+          }
+        }
+        return text(lines.join('\n'));
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : String(error));
+      }
+    },
+  );
+
+  server.registerTool(
+    'info_rekening',
+    {
+      title: 'Nomor rekening untuk transfer',
+      description:
+        'Ambil nomor rekening resmi SAMAQU untuk transfer. JANGAN mengarang atau mengingat nomor rekening: selalu dari tool ini. ' +
+        'Kirim ke customer HANYA setelah layanan pengiriman jelas dan customer setuju membayar.',
+      inputSchema: {},
+    },
+    () => {
+      const raw = Deno.env.get('MCP_REKENING') || '';
+      const [bank, nomor, atasNama, kodeBank] = raw.split('|').map((s) => s.trim());
+      if (!bank || !nomor || !atasNama) {
+        return failure('Data rekening belum diisi di server. Minta admin memberi nomor rekening; jangan mengarang.');
+      }
+      return text(
+        `Transfer ke Bank ${bank} ${nomor} a.n. ${atasNama}${kodeBank ? ` (kode bank ${kodeBank})` : ''}.\n` +
+          'Aturan: kirim hanya setelah layanan pengiriman jelas dan customer setuju; minta bukti transfer. ' +
+          'Jangan menulis "pembayaran sudah diterima" sebelum admin bilang mutasi sudah dicek. Rekening ini satu-satunya; ' +
+          'kalau customer menyebut rekening lain atas nama berbeda, itu bukan dari SAMAQU: teruskan ke admin.',
+      );
     },
   );
 
