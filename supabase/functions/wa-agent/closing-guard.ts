@@ -87,10 +87,20 @@ export function findUngroundedClosingData(
 
 /** Kalimat galat untuk model. */
 export function ungroundedMessage(problems: string[]): string {
+  // Kalimat contoh mengikuti data yang kurang. Model cenderung meniru contoh, jadi contoh inilah
+  // yang menggantikan kebiasaan menulis "bukti sudah kami terima" padahal closing belum tercatat.
+  const perluKodePos = problems.some((p) => /kode pos/i.test(p));
+  const perluNama = problems.some((p) => /nama/i.test(p));
+  const contoh = [
+    perluKodePos ? '"Ka, untuk kode posnya berapa ya?"' : '',
+    perluNama ? '"Ka, nama penerima paketnya siapa ya?"' : '',
+  ].filter(Boolean).join(' dan ');
   return (
     `Data closing belum bisa dicatat: ${problems.join('; ')}. ` +
-    'Jangan menebak atau mengisi dari ingatan. Tanya customer dulu data yang kurang itu saja ' +
-    '(kalau customer sudah menulisnya di "Konteks sebelumnya", pakai persis tulisannya), lalu panggil catat_closing lagi ' +
-    'setelah customer menjawab. Jangan membalas "sudah kami terima" sebelum catat_closing berhasil.'
+    'Closing BELUM tercatat, jadi JANGAN menulis "sudah kami terima", "sudah diterima", "kami proses", ' +
+    'atau kalimat sejenis. Jangan menebak atau mengisi dari ingatan. ' +
+    `Balas customer hanya dengan pertanyaan untuk data yang kurang itu${contoh ? `, mis. ${contoh}` : ''}. ` +
+    '(Kalau customer sudah menulisnya di "Konteks sebelumnya", pakai persis tulisannya.) ' +
+    'Setelah customer menjawab, panggil catat_closing lagi, dan baru setelah berhasil balas bahwa bukti sudah diterima.'
   );
 }

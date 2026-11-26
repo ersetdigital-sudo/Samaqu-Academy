@@ -74,6 +74,17 @@ test('10. dua masalah sekaligus dilaporkan keduanya', () => {
   assert.match(msg, /nama penerima/);
   assert.match(msg, /Jangan menebak/);
 });
+test('10b. pesan galat melarang "sudah diterima" dan memberi kalimat contoh sesuai data yang kurang', () => {
+  const kodePos = ungroundedMessage(findUngroundedClosingData({ nama: 'Budi Santoso', kode_pos: '20124' }, ALAMAT));
+  assert.match(kodePos, /JANGAN menulis "sudah kami terima"/);
+  assert.match(kodePos, /kode posnya berapa/);
+  assert.doesNotMatch(kodePos, /nama penerima paketnya siapa/);
+  const nama = ungroundedMessage(findUngroundedClosingData({ nama: '-', kode_pos: '20124' }, ALAMAT_POS));
+  assert.match(nama, /nama penerima paketnya siapa/);
+  assert.doesNotMatch(nama, /kode posnya berapa/);
+  const dua = ungroundedMessage(findUngroundedClosingData({ nama: '-', kode_pos: '99999' }, ALAMAT));
+  assert.match(dua, /kode posnya berapa.*dan.*nama penerima paketnya siapa/);
+});
 
 // ── fail-open ──
 test('11. teks customer kosong/tidak ada => TIDAK ada yang ditolak (fail-open)', () => {
