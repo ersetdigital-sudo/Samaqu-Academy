@@ -1463,6 +1463,12 @@
   align-items: start;
 }
 
+/* Daftar menempel di bawah topbar (60px) selama detail di-scroll. */
+.sop-side {
+  position: sticky;
+  top: 76px;
+}
+
 .sop-side .search {
   max-width: none;
   min-width: 0;
@@ -1478,9 +1484,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: calc(100vh - 290px);
+  max-height: calc(100vh - 190px);
   overflow-y: auto;
   padding: 2px;
+  /* Tetap bisa di-scroll, tanpa batang scroll. */
+  scrollbar-width: none;
+}
+
+.sop-list::-webkit-scrollbar {
+  display: none;
 }
 
 .sop-item {
@@ -1547,11 +1559,21 @@
   padding: 28px;
 }
 
+/* Kepala kartu (judul, Edit, menu) menempel di bawah topbar saat langkah di-scroll.
+   Margin negatif menutup padding kartu supaya latarnya penuh selebar kartu. */
 .sop-detail-head {
+  position: sticky;
+  top: 60px;
+  z-index: 5;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
+  margin: -28px -28px 0;
+  padding: 22px 28px 14px;
+  border-bottom: 1px solid var(--b);
+  border-radius: var(--r) var(--r) 0 0;
+  background: var(--w);
 }
 
 .sop-detail-head h2 {
@@ -1699,11 +1721,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .sop-side {
+    position: static;
+  }
+
   .sop-list {
     max-height: 320px;
   }
 
   .sop-detail {
     padding: 20px;
+  }
+
+  .sop-detail-head {
+    margin: -20px -20px 0;
+    padding: 16px 20px 12px;
   }
 }

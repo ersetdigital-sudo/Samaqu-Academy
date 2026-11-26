@@ -23,18 +23,28 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ label: 'Overview', href: '/', icon: 'layout-dashboard' }],
   },
   {
-    label: 'Learning & Service',
+    label: 'Belajar',
     items: [
       { label: 'Learning Center', href: '/learning', icon: 'graduation-cap' },
       { label: 'Communication Guidelines', href: '/guidelines', icon: 'book-heart' },
+      { label: 'Chat Scenario', href: '/simulator', icon: 'messages-square' },
+    ],
+  },
+  {
+    label: 'Operasional',
+    items: [
       { label: 'Job Desk', href: '/jobdesk', icon: 'briefcase' },
       { label: 'SOP', href: '/sop', icon: 'shield-check' },
       { label: 'Label Chat', href: '/labels', icon: 'tag' },
       { label: 'Chat Flow', href: '/flow', icon: 'route' },
+    ],
+  },
+  {
+    label: 'Pengetahuan',
+    items: [
       { label: 'Script Library', href: '/scripts', icon: 'message-square-text' },
       { label: 'Product Knowledge', href: '/products', icon: 'shirt' },
       { label: 'Problem Solving', href: '/problems', icon: 'life-buoy' },
-      { label: 'Chat Scenario', href: '/simulator', icon: 'messages-square' },
     ],
   },
   {
