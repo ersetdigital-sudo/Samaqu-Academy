@@ -138,6 +138,18 @@ test('readPromoStatus: gagal = null (perilaku lama), field kosong = bonus tetap 
   assert.equal(s?.ongkirLuar, false);
 });
 
+test('draft: baris cover-hanger dari bot ditandai berbayar, produk lain tidak berubah', async () => {
+  const closing = await import('../supabase/functions/wa-agent/closing.ts');
+  const out = closing.draftItems([
+    { product_id: 'thobe-x', color: 'Putih', size: 'm', quantity: 1 },
+    { product_id: 'cover-hanger', color: 'Cover Thobe + Hanger', size: 'ALL SIZE', quantity: 1, price: 35000 },
+  ]);
+  assert.equal(out[0].cover_berbayar, undefined);
+  assert.equal(out[1].cover_berbayar, true);
+  assert.equal(out[1].price, 35000);
+  assert.equal(out[0].size, 'M');
+});
+
 let gagal = 0;
 for (const [name, fn] of cases) {
   try {

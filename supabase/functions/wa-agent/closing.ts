@@ -33,7 +33,7 @@ export interface ClosingContext {
 
 type DraftResult = 'saved' | 'duplicate' | 'failed';
 
-function draftItems(items: any[]) {
+export function draftItems(items: any[]) {
   return items.map((item: any) => ({
     product_id: String(item?.product_id || '').trim(),
     product_name: String(item?.product_name || '').trim() || undefined,
@@ -41,6 +41,9 @@ function draftItems(items: any[]) {
     size: String(item?.size || '').toUpperCase().replace(/^2XL$/, 'XXL'),
     quantity: Math.max(1, Number(item?.quantity) || 1),
     ...(Number(item?.price) > 0 ? { price: Number(item.price) } : {}),
+    // Cover + Hanger yang dikirim bot = DIBELI customer (tawaran berbayar). Bonus gratis selalu ditambah server, bukan bot.
+    // Tanda ini mencegah draft memberi diskon promo gratis cover pada baris yang customer bayar.
+    ...(String(item?.product_id || '').trim() === 'cover-hanger' ? { cover_berbayar: true } : {}),
   }));
 }
 
