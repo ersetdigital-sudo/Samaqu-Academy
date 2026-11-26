@@ -138,8 +138,20 @@ export function buildProductText({ produkJson, varianJson, cari, kategori, limit
   const kat = String(kategori || "").trim().toLowerCase();
   const max = Number(limit) || 5;
 
-  const products = (produkJson?.items || []).filter((p) => {
-    if (!p.is_published) return false;
+  const allItems = produkJson?.items || [];
+  const publishedIds = new Set(allItems.filter((p) => p.is_published).map((p) => String(p.id)));
+  // Koko model Lengan Pendek = baris turunan yang sengaja tidak dipublikasikan (tidak jadi kartu
+  // sendiri di website). Bot tetap harus melihatnya supaya bisa menjual lengan pendek, jadi baris
+  // `<id-induk>-lengan-pendek` ikut tampil HANYA kalau induknya dipublikasikan. Produk lain yang
+  // disembunyikan (mis. Koko lama) tetap tidak tampil.
+  const isPendekOfPublished = (p) => {
+    const id = String(p.id || "");
+    const suffix = "-lengan-pendek";
+    return id.endsWith(suffix) && publishedIds.has(id.slice(0, -suffix.length));
+  };
+
+  const products = allItems.filter((p) => {
+    if (!p.is_published && !isPendekOfPublished(p)) return false;
     if (kat && String(p.category || "").toLowerCase() !== kat) return false;
     if (!q) return true;
     const hay = [p.name, p.series, p.category, p.jenis_kain?.name, p.colors]
