@@ -89,6 +89,9 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [editingKey, setEditingKey] = useState(!profile?.hasApiKey);
+  // Form terkunci (hanya baca) setelah profil punya model tersimpan; klik Edit untuk mengubah. Profil kosong
+  // (belum pernah disimpan) langsung terbuka supaya bisa diisi pertama kali.
+  const [editing, setEditing] = useState(() => !profile?.defaultModel?.trim());
   const [busy, setBusy] = useState<Busy>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [retry, setRetry] = useState<{ kind: 'save' | 'activate'; id: ProviderProfileId } | null>(null);
@@ -103,6 +106,7 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
     setApiKey('');
     setShowKey(false);
     setEditingKey(!profile.hasApiKey);
+    setEditing(!profile.defaultModel.trim());
     setResult(null);
     setRetry(null);
     setModels([]);
@@ -136,6 +140,7 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
     }
     setRetry(null);
     setResult({ ok: true, message: response.data.message ?? success });
+    if (kind === 'save') setEditing(false);
     onUpdate(response.data);
     showToast(success);
     return true;
@@ -304,6 +309,22 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
   const hiddenCount = models.length - chatModels.length;
   const shownModels = chatModels.filter((item) => !needle || item.id.toLowerCase().includes(needle)).slice(0, 80);
   const anyBusy = busy !== null;
+  const locked = !editing;
+  const lockStyle = locked ? { background: 'var(--gl2)' } : undefined;
+  /** Batal hanya bermakna kalau ada isi tersimpan untuk dikembalikan. */
+  const canCancel = Boolean(profile.defaultModel.trim());
+
+  const cancelEdit = () => {
+    setForm(formFrom(profile));
+    setApiKey('');
+    setShowKey(false);
+    setEditingKey(!profile.hasApiKey);
+    setResult(null);
+    setRetry(null);
+    setModels([]);
+    setFilter('');
+    setEditing(false);
+  };
 
   return (
     <div className="grid" style={{ gap: 16 }}>
@@ -407,6 +428,8 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
               className="inp"
               value={form.baseUrl}
               onChange={(event) => patch({ baseUrl: event.target.value })}
+              readOnly={locked}
+              style={lockStyle}
               placeholder={preset.baseUrl || 'https://api.contoh.com/v1'}
               spellCheck={false}
               autoComplete="off"
@@ -427,12 +450,12 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
                     Terenkripsi
                   </span>
                 </div>
-                <button className="btn sm" onClick={() => setEditingKey(true)} disabled={anyBusy}>
+                <button className="btn sm" onClick={() => setEditingKey(true)} disabled={anyBusy || locked}>
                   <Icon name="pencil" />
                   Ganti API Key
                 </button>
                 {!profile.isActive ? (
-                  <button className="btn sm" onClick={removeKey} disabled={anyBusy}>
+                  <button className="btn sm" onClick={removeKey} disabled={anyBusy || locked}>
                     <Icon name="trash-2" />
                     Hapus
                   </button>
@@ -447,6 +470,8 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
                     type={showKey ? 'text' : 'password'}
                     value={apiKey}
                     onChange={(event) => setApiKey(event.target.value)}
+                    readOnly={locked}
+                    style={lockStyle}
                     placeholder={`Masukkan API Key ${profile.label}`}
                     autoComplete="new-password"
                     spellCheck={false}
@@ -485,6 +510,8 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
               className="inp"
               value={form.defaultModel}
               onChange={(event) => patch({ defaultModel: event.target.value })}
+              readOnly={locked}
+              style={lockStyle}
               placeholder={preset.modelHints[0] ?? 'id model'}
               spellCheck={false}
               autoComplete="off"
@@ -498,6 +525,7 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
                     type="button"
                     className={`btn sm${form.defaultModel === hint ? ' p' : ''}`}
                     onClick={() => patch({ defaultModel: hint })}
+                    disabled={locked}
                   >
                     {hint}
                   </button>
@@ -509,7 +537,7 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
         </div>
 
         <div className="row wrap mt">
-          <button className="btn" onClick={() => void loadModels()} disabled={anyBusy || !(profile.hasApiKey || apiKey.trim())}>
+          <button className="btn" onClick={() => void loadModels()} disabled={locked || anyBusy || !(profile.hasApiKey || apiKey.trim())}>
             <Icon name="refresh-cw" />
             {busy === 'models' ? 'Memuat…' : 'Muat daftar model'}
           </button>
@@ -534,6 +562,7 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
                   aria-selected={form.defaultModel === item.id}
                   className={`ai-model-item${form.defaultModel === item.id ? ' on' : ''}`}
                   onClick={() => patch({ defaultModel: item.id })}
+                  disabled={locked}
                 >
                   {item.id}
                 </button>
@@ -562,6 +591,8 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
                 className="inp"
                 value={form.featureModels[feature] ?? ''}
                 onChange={(event) => patch({ featureModels: { ...form.featureModels, [feature]: event.target.value } })}
+                readOnly={locked}
+                style={lockStyle}
                 placeholder={`Ikuti default (${form.defaultModel || '-'})`}
                 spellCheck={false}
               />
@@ -578,27 +609,42 @@ export function ProfilesPanel({ payload, onUpdate }: ProfilesPanelProps) {
             <label className="flab" htmlFor="prof-price-in">
               Input / 1 juta token
             </label>
-            <input id="prof-price-in" className="inp" inputMode="decimal" value={form.inputPer1M} onChange={(event) => patch({ inputPer1M: event.target.value })} placeholder="0" />
+            <input id="prof-price-in" className="inp" inputMode="decimal" value={form.inputPer1M} onChange={(event) => patch({ inputPer1M: event.target.value })} readOnly={locked} style={lockStyle} placeholder="0" />
           </div>
           <div>
             <label className="flab" htmlFor="prof-price-out">
               Output / 1 juta token
             </label>
-            <input id="prof-price-out" className="inp" inputMode="decimal" value={form.outputPer1M} onChange={(event) => patch({ outputPer1M: event.target.value })} placeholder="0" />
+            <input id="prof-price-out" className="inp" inputMode="decimal" value={form.outputPer1M} onChange={(event) => patch({ outputPer1M: event.target.value })} readOnly={locked} style={lockStyle} placeholder="0" />
           </div>
           <div>
             <label className="flab" htmlFor="prof-price-cur">
               Mata uang
             </label>
-            <input id="prof-price-cur" className="inp" value={form.currency} onChange={(event) => patch({ currency: event.target.value })} placeholder="USD" />
+            <input id="prof-price-cur" className="inp" value={form.currency} onChange={(event) => patch({ currency: event.target.value })} readOnly={locked} style={lockStyle} placeholder="USD" />
           </div>
         </div>
 
         <div className="row wrap mt2">
-          <button className="btn p" onClick={() => void save()} disabled={anyBusy}>
-            <Icon name="save" />
-            {busy === 'save' ? (profile.isActive ? 'Menguji & menyimpan…' : 'Menyimpan…') : 'Simpan'}
-          </button>
+          {locked ? (
+            <button className="btn p" onClick={() => setEditing(true)} disabled={anyBusy}>
+              <Icon name="pencil" />
+              Edit
+            </button>
+          ) : (
+            <>
+              <button className="btn p" onClick={() => void save()} disabled={anyBusy}>
+                <Icon name="save" />
+                {busy === 'save' ? (profile.isActive ? 'Menguji & menyimpan…' : 'Menyimpan…') : 'Simpan'}
+              </button>
+              {canCancel ? (
+                <button className="btn" onClick={cancelEdit} disabled={anyBusy}>
+                  <Icon name="x" />
+                  Batal
+                </button>
+              ) : null}
+            </>
+          )}
           <button className="btn" onClick={() => void test()} disabled={anyBusy || !(profile.hasApiKey || apiKey.trim())}>
             <Icon name="play" />
             {busy === 'test' ? 'Menguji…' : 'Tes model'}

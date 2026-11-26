@@ -36,6 +36,10 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  // Terkunci (hanya baca) sampai klik Edit: mencegah ketikan atau Simpan tidak sengaja menimpa persona.
+  const [editing, setEditing] = useState(false);
+  const locked = !editing;
+  const lockStyle = locked ? { background: 'var(--gl2)' } : undefined;
 
   useEffect(() => {
     setForm(formOf(settings.behavior));
@@ -54,7 +58,14 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
       return;
     }
     onUpdate(result.data);
+    setEditing(false);
     showToast('Perilaku AI berhasil disimpan');
+  };
+
+  const cancelEdit = () => {
+    setForm(formOf(settings.behavior));
+    setPreview(null);
+    setEditing(false);
   };
 
   const reset = () => {
@@ -103,6 +114,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               className="inp"
               value={form.assistantName}
               onChange={(event) => patch('assistantName', event.target.value)}
+              readOnly={locked}
+              style={lockStyle}
             />
           </div>
           <div>
@@ -114,6 +127,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               className="inp"
               value={form.language}
               onChange={(event) => patch('language', event.target.value)}
+              disabled={locked}
+              style={lockStyle}
             >
               <option value="id">Bahasa Indonesia</option>
               <option value="en">English</option>
@@ -128,6 +143,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               className="inp"
               value={form.character}
               onChange={(event) => patch('character', event.target.value)}
+              readOnly={locked}
+              style={lockStyle}
             />
           </div>
           <div className="full">
@@ -140,6 +157,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               rows={12}
               value={form.systemInstructions}
               onChange={(event) => patch('systemInstructions', event.target.value)}
+              readOnly={locked}
+              style={lockStyle}
             />
             <p className="xs muted mt1">
               Instruksi ini menjadi dasar perilaku AI. Aturan knowledge dan memory ditambahkan
@@ -155,6 +174,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               className="inp"
               value={form.responseLength}
               onChange={(event) => patch('responseLength', event.target.value as ResponseLength)}
+              disabled={locked}
+              style={lockStyle}
             >
               <option value="pendek">Pendek</option>
               <option value="sedang">Sedang</option>
@@ -174,6 +195,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               step={50}
               value={form.maxTokens}
               onChange={(event) => patch('maxTokens', Number(event.target.value))}
+              readOnly={locked}
+              style={lockStyle}
             />
           </div>
           <div className="full">
@@ -188,6 +211,7 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               step={0.05}
               value={form.temperature}
               onChange={(event) => patch('temperature', Number(event.target.value))}
+              disabled={locked}
               style={{ width: '100%' }}
             />
             <p className="xs muted mt1">
@@ -204,6 +228,8 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               rows={3}
               value={form.knowledgeRules}
               onChange={(event) => patch('knowledgeRules', event.target.value)}
+              readOnly={locked}
+              style={lockStyle}
             />
           </div>
           <div className="full">
@@ -216,19 +242,37 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
               rows={3}
               value={form.memoryRules}
               onChange={(event) => patch('memoryRules', event.target.value)}
+              readOnly={locked}
+              style={lockStyle}
             />
           </div>
         </div>
 
         <div className="row wrap mt2">
-          <button className="btn p" onClick={() => void save()} disabled={saving}>
-            <Icon name="save" />
-            {saving ? 'Menyimpan…' : 'Simpan'}
-          </button>
-          <button className="btn" onClick={reset}>
-            <Icon name="rotate-ccw" />
-            Kembalikan ke Default
-          </button>
+          {locked ? (
+            <>
+              <button className="btn p" onClick={() => setEditing(true)}>
+                <Icon name="pencil" />
+                Edit
+              </button>
+              <span className="xs muted">Terkunci. Klik Edit untuk mengubah.</span>
+            </>
+          ) : (
+            <>
+              <button className="btn p" onClick={() => void save()} disabled={saving}>
+                <Icon name="save" />
+                {saving ? 'Menyimpan…' : 'Simpan'}
+              </button>
+              <button className="btn" onClick={cancelEdit} disabled={saving}>
+                <Icon name="x" />
+                Batal
+              </button>
+              <button className="btn" onClick={reset} disabled={saving}>
+                <Icon name="rotate-ccw" />
+                Kembalikan ke Default
+              </button>
+            </>
+          )}
         </div>
       </div>
 
