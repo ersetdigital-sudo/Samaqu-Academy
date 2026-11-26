@@ -263,7 +263,7 @@ export function buildOngkirText({ rows, kota, kecamatan, berat_gram, configured 
     // Promo ongkir (hanya ada kalau admin menyalakannya): sebut tarif J&T asli dan yang dibayar customer.
     if (r.promoLabel && typeof r.payCost === "number") {
       const bayar = r.payCost <= 0 ? "Rp0 (gratis ongkir)" : rupiah(r.payCost);
-      return `• ${nama} — tarif J&T ${rupiah(r.cost)}, customer bayar ${bayar} (${r.promoLabel}, hemat ${rupiah(r.discount)})${etd}`;
+      return `• ${nama} — tarif J&T ${rupiah(r.cost)}, customer bayar ${bayar} (${String(r.promoLabel).includes("Rp") ? r.promoLabel : `${r.promoLabel}, hemat ${rupiah(r.discount)}`})${etd}`;
     }
     return `• ${nama} — ${rupiah(r.cost)}${etd}`;
   });

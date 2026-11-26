@@ -75,7 +75,7 @@ export function buildRekap(input: RekapInput): RekapOutput {
   if (!service) {
     const options = input.services.map(
       (s) =>
-        `J&T ${s.name} ${rupiah(ongkirBayar(s))}${s.promoLabel ? ` (${s.promoLabel}, hemat ${rupiah(s.discount)})` : ''}${s.etd ? ` (${s.etd})` : ''}, total ${rupiah(subtotal + ongkirBayar(s))}`,
+        `J&T ${s.name} ${rupiah(ongkirBayar(s))}${s.promoLabel ? ` (${s.promoLabel.includes('Rp') ? s.promoLabel : `${s.promoLabel}, hemat ${rupiah(s.discount)}`})` : ''}${s.etd ? ` (${s.etd})` : ''}, total ${rupiah(subtotal + ongkirBayar(s))}`,
     );
     return {
       final: false,

@@ -93,13 +93,29 @@ test('ON: rekap memakai ongkir setelah promo, tarif asli dicoret, total benar', 
   assert.match(pilih.customerText, /J&T ECO Rp4\.800 .*total Rp903\.800/);
 });
 
+test('label baru "Hemat ongkir Rp..." tidak ditulis ganda (rekap dan cek_ongkir)', () => {
+  const layanan = [
+    { name: 'EZ', cost: 11000, etd: '2-4 hari', payCost: 6600, discount: 4400, promoLabel: 'Hemat ongkir Rp4.400' },
+    { name: 'ECO', cost: 72000, payCost: 52000, discount: 20000, promoLabel: 'Hemat ongkir Rp20.000' },
+  ];
+  const pilih = baru.buildRekap({ lines, services: layanan });
+  assert.doesNotMatch(pilih.customerText, /hemat Rp4\.400/);
+  assert.match(pilih.customerText, /J&T EZ Rp6\.600 \(Hemat ongkir Rp4\.400\)/);
+  const teks = baruCore.buildOngkirText({ rows: [{ service: 'EZ', cost: 72000, payCost: 52000, discount: 20000, promoLabel: 'Hemat ongkir Rp20.000' }], kota: 'Depok', kecamatan: 'Sukmajaya', berat_gram: 1000 });
+  assert.doesNotMatch(teks, /hemat Rp20\.000\)/);
+  assert.match(teks, /customer bayar Rp52\.000 \(Hemat ongkir Rp20\.000\)/);
+  const gratis = baru.buildRekap({ lines, services: [{ name: 'EZ', cost: 9000, payCost: 0, discount: 9000, promoLabel: 'Gratis ongkir' }], chosenService: 'EZ' });
+  assert.match(gratis.customerText, /GRATIS \(Gratis ongkir\)/);
+});
+
 test('STATUS PROMO: hanya yang aktif; tidak terbaca = perilaku lama', () => {
   const tak = promo.promoStatusContext(null);
   assert.match(tak, /TIDAK ADA yang berlaku/);
   assert.match(tak, /Free Cover Hanger .*BERLAKU/);
-  const semua = promo.promoStatusContext({ today: '2026-11-26', ongkirJabodetabek: true, ongkirLuar: true, ongkirLuarPersen: 40, fchBot: false });
-  assert.match(semua, /Free ongkir Jabodetabek: BERLAKU/);
-  assert.match(semua, /dipotong 40%/);
+  const semua = promo.promoStatusContext({ today: '2026-11-27', ongkirJabodetabek: true, ongkirLuar: true, ongkirLuarPersen: 40, ongkirJaboMax: 20000, ongkirLuarMax: 40000, fchBot: false });
+  assert.match(semua, /Gratis ongkir Jabodetabek s\.d\. Rp20\.000: BERLAKU/);
+  assert.match(semua, /Diskon ongkir 40% s\.d\. Rp40\.000 untuk luar Jabodetabek: BERLAKU/);
+  assert.match(semua, /maksimal Rp40\.000 per order/);
   assert.match(semua, /Free Cover Hanger .*TIDAK BERLAKU/);
   assert.doesNotMatch(semua, /TIDAK ADA yang berlaku/);
 });
@@ -117,6 +133,7 @@ test('bonus cover bot: ON = blok lama persis (parameter bawaan), OFF = bonus dil
 test('readPromoStatus: gagal = null (perilaku lama), field kosong = bonus tetap nyala', async () => {
   assert.equal(await promo.readPromoStatus(async () => { throw new Error('x'); }), null);
   const s = await promo.readPromoStatus(async () => ({ today: '2026-11-26', ongkirJabodetabek: false, ongkirLuar: false }));
+  assert.equal(s?.ongkirJaboMax, 0);
   assert.equal(s?.fchBot, true);
   assert.equal(s?.ongkirLuar, false);
 });
