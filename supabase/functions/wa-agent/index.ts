@@ -12,6 +12,7 @@ import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 import { bonusStockContext } from './cover-stock.ts';
 import { adminHoursWindows, isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
+import { customerTextFrom } from './closing-guard.ts';
 import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
 import { RunTrace } from './trace.ts';
 import { planRound } from './run-budget.ts';
@@ -758,6 +759,8 @@ Deno.serve(async (req) => {
     // Pesan bergambar (bukti transfer) dari batch ini + riwayatnya: dipakai catat_closing supaya
     // bukti yang dikirim SEBELUM data alamat lengkap tetap bisa dirujuk.
     ctx.proofs = collectProofs(items);
+    // Tulisan customer untuk pagar closing: kode pos/nama yang tidak pernah ia tulis ditolak catat_closing.
+    ctx.customerText = customerTextFrom(items);
 
     const question = items.map((item) => String(item.message || '')).join('\n').slice(0, 2000);
     ctx.adLead = looksLikeAdLead(question);

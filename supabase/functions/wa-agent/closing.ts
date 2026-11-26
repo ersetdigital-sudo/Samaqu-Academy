@@ -6,6 +6,7 @@ import {
   POTONG_PANJANG_LABEL,
 } from '../_shared/wa/closing-core.mjs';
 import { coverForCategory } from './cover-stock.ts';
+import { findUngroundedClosingData, ungroundedMessage } from './closing-guard.ts';
 
 /**
  * Satu langkah closing: catat closing → simpan draft Perlu Review → kabari admin.
@@ -26,6 +27,8 @@ export interface ClosingDeps {
 export interface ClosingContext {
   dry: boolean;
   service?: any;
+  /** Teks yang ditulis customer (batch + riwayat). Kosong/tidak ada = pagar kode pos/nama dilewati (fail-open). */
+  customerText?: string;
 }
 
 type DraftResult = 'saved' | 'duplicate' | 'failed';
@@ -160,6 +163,9 @@ export async function runClosing(
       text: `product_id kosong untuk "${missingId?.product_name || missingId?.size || 'item'}". Ambil id produk dari hasil cari_produk (bagian "id:..."), jangan dikarang.`,
     };
   }
+  // Kode pos dan nama harus tulisan customer, bukan tebakan model (lihat closing-guard.ts).
+  const ungrounded = findUngroundedClosingData(args, ctx.customerText || '');
+  if (ungrounded.length) return { isError: true, text: ungroundedMessage(ungrounded) };
   const nomor = normalizePhone(args.nomor);
   const nominal = Math.round(Number(args.nominal) || 0);
   const inboxId = String(args.inbox_id || '').trim();

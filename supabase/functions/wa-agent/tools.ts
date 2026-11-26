@@ -507,6 +507,8 @@ export interface ToolContext {
   service?: any;
   /** Pesan bergambar (bukti transfer) dari batch + riwayatnya; dipakai untuk membetulkan inbox_id closing. */
   proofs?: ProofIndex;
+  /** Teks tulisan customer (batch + riwayat), untuk pagar kode pos/nama di catat_closing. */
+  customerText?: string;
 }
 
 export interface ToolResult {
