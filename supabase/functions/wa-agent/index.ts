@@ -1,5 +1,13 @@
 import { errorMessage, json, serviceClient } from '../_shared/http.ts';
-import { apiKeyFor, estimateCost, loadSettings, logUsage, priceForModel } from '../_shared/settings.ts';
+import {
+  apiKeyFor,
+  estimateCost,
+  loadSettings,
+  logUsage,
+  priceForModel,
+  reasoningEffortFor,
+  resolveWaModel,
+} from '../_shared/settings.ts';
 import { mergeBehavior } from '../_shared/prompts.ts';
 import { WA_AGENT_RULES } from '../_shared/prompts.ts';
 import {
@@ -847,6 +855,10 @@ Deno.serve(async (req) => {
       },
     ];
 
+    // Model bot WA: feature_models.wa bila diisi, kalau tidak default_model (perilaku lama).
+    const waModel = resolveWaModel(row);
+    const waReasoningEffort = reasoningEffortFor(waModel);
+
     const usedTools: string[] = [];
     let answer = '';
     let rounds = 0;
@@ -872,7 +884,7 @@ Deno.serve(async (req) => {
       const result = await mimoChatWithTools({
         apiKey,
         baseUrl: row.base_url,
-        model: row.default_model,
+        model: waModel,
         messages,
         tools: WA_TOOLS,
         temperature: behavior.temperature,
@@ -880,6 +892,7 @@ Deno.serve(async (req) => {
         // dan dulu terpotong tepat sebelum `</tool_call>` sehingga tidak pernah dieksekusi.
         maxTokens: Math.min(behavior.maxTokens || 900, 1500),
         thinking: 'disabled',
+        reasoningEffort: waReasoningEffort,
         // Batas waktu panggilan AI: maksimal 90 detik (sama dengan default di _shared/mimo.ts), tapi dipotong
         // oleh sisa anggaran run (lihat run-budget.ts) supaya satu panggilan lambat tidak membawa run melewati
         // batas Supabase. Dulu 45 detik di-hardcode dan memotong run yang wajar; angka 90 tetap batas atasnya.
@@ -894,11 +907,11 @@ Deno.serve(async (req) => {
         userId: null,
         userEmail: null,
         feature: 'wa',
-        model: row.default_model,
+        model: waModel,
         usage: result.usage,
         status: 'success',
         latencyMs: Date.now() - startedAt,
-        estimatedCost: estimateCost(result.usage, priceForModel(row.default_model) || row.pricing),
+        estimatedCost: estimateCost(result.usage, priceForModel(waModel) || row.pricing),
       });
 
       // Provider kadang mengirim panggilan tool sebagai TEKS di `content`. Jalankan

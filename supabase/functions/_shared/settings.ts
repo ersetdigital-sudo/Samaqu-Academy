@@ -157,7 +157,26 @@ export function estimateCost(usage: TokenUsage, pricing: AiPricing | null): numb
 export const MODEL_PRICING: Record<string, AiPricing> = {
   'mimo-v2.6-pro': { inputPer1M: 0.435, outputPer1M: 0.87, cachePer1M: 0.0036, currency: 'USD' },
   'mimo-v2.6-flash': { inputPer1M: 0.14, outputPer1M: 0.28, cachePer1M: 0.0028, currency: 'USD' },
+  // Daftar harga Command Code (tanpa tarif jam sibuk 2x pada 01-04 dan 06-10 UTC, Senin-Jumat).
+  'deepseek-v4.1-flash': { inputPer1M: 0.15, outputPer1M: 0.60, cachePer1M: 0.003, currency: 'USD' },
 };
+
+/**
+ * Model bot WhatsApp: `feature_models.wa` kalau diisi, kalau tidak `default_model`. Dengan begitu bot bisa
+ * pindah model tanpa mengubah model fitur Academy lain (asisten, reviewer, simulator) yang memakai default_model.
+ */
+export function resolveWaModel(row: Pick<AiSettingsRow, 'default_model' | 'feature_models'>): string {
+  const specific = row.feature_models?.wa;
+  return (specific && String(specific).trim()) || row.default_model;
+}
+
+/**
+ * `reasoning_effort` yang dikirim untuk sebuah model. Hanya DeepSeek V4.1 Flash yang punya sakelar "off"
+ * (MiMo, GPT-6 Luna, dan GLM menolak atau mengabaikannya), jadi model lain TIDAK mengirim apa pun.
+ */
+export function reasoningEffortFor(model: string | null | undefined): 'off' | undefined {
+  return /^deepseek\//i.test(String(model || '').trim()) ? 'off' : undefined;
+}
 
 /** Harga sesuai model yang benar-benar dipanggil; null = pakai harga di settings. */
 export function priceForModel(model: string | null | undefined): AiPricing | null {

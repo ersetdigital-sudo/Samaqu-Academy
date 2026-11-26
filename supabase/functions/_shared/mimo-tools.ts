@@ -37,6 +37,12 @@ export interface MimoToolChatOptions {
   temperature?: number;
   maxTokens?: number;
   thinking?: ThinkingMode;
+  /**
+   * Tingkat berpikir lewat parameter `reasoning_effort` (mis. 'off' untuk DeepSeek V4.1 Flash di gateway
+   * Command Code). Opsional: kalau tidak diisi, body request TIDAK berubah dari sebelumnya. Kalau diisi,
+   * `thinking` tidak ikut dikirim (gateway mengabaikannya, dan kombinasi keduanya belum teruji).
+   */
+  reasoningEffort?: 'off' | 'low' | 'medium' | 'high';
   timeoutMs?: number;
   /**
    * Kalau provider menolak request (400) dan pesan berisi gambar, coba sekali lagi
@@ -149,7 +155,9 @@ export async function mimoChatWithTools(options: MimoToolChatOptions): Promise<M
           tool_choice: 'auto',
           temperature: options.temperature ?? 0.4,
           max_completion_tokens: options.maxTokens ?? 700,
-          thinking: { type: options.thinking ?? 'disabled' },
+          ...(options.reasoningEffort
+            ? { reasoning_effort: options.reasoningEffort }
+            : { thinking: { type: options.thinking ?? 'disabled' } }),
           stream: false,
         }),
         signal: controller.signal,
