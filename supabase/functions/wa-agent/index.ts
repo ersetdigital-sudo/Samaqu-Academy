@@ -18,6 +18,7 @@ import {
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { executeTool, opsFetch, WA_TOOLS, type ToolContext } from './tools.ts';
 import { bonusStockContext } from './cover-stock.ts';
+import { promoStatusContext, readPromoStatus } from './promo-status.ts';
 import { adminHoursWindows, isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
 import { customerTextFrom } from './closing-guard.ts';
@@ -776,15 +777,18 @@ Deno.serve(async (req) => {
     const memory = await memoryContext(service);
     // Stok bonus dibaca ulang tiap run dari produk (bukan kuota promo), supaya bot
     // tidak pernah menawarkan cover yang sudah habis walau memory/persona tidak dibaca.
-    const bonusStock = await bonusStockContext();
+    // Status promo hari ini (saklar + tanggal dari menu Promo): dibaca ulang tiap run, bukan ditulis di persona.
+    const promoStatus = await readPromoStatus(opsFetch);
+    const bonusStock = await bonusStockContext(promoStatus ? promoStatus.fchBot : true);
 
     const system = [
       behavior.systemInstructions,
       memory ? `MEMORI ORGANISASI (sudah disetujui):\n${memory}` : '',
+      promoStatusContext(promoStatus),
       bonusStock,
       // proof_url tidak perlu dikirim model: server mengisinya dari pesan bukti, dan
       // URL bertanda tangan yang panjang membuat markup kepotong.
-      'ATURAN TEKNIS: closing cukup SATU panggilan catat_closing (sekaligus membuat draft Perlu Review dan mengabari admin; tool buat_draft_transaksi sudah tidak ada). Isi nomor, nominal, inbox_id pesan bukti, items (product_id dari cari_produk, color, size, quantity), nama, alamat lengkap, kecamatan, kota, provinsi, kode_pos, pesanan, kurir, ongkir. Jangan sertakan proof_url atau free_cover_hanger — server yang mengisi.',
+      'ATURAN TEKNIS: closing cukup SATU panggilan catat_closing (sekaligus membuat draft Perlu Review dan mengabari admin; tool buat_draft_transaksi sudah tidak ada). Isi nomor, nominal, inbox_id pesan bukti, items (product_id dari cari_produk, color, size, quantity), nama, alamat lengkap, kecamatan, kota, provinsi, kode_pos, pesanan, kurir, ongkir (dan ongkir_asli kalau rekap_pesanan menyebutnya). Jangan sertakan proof_url atau free_cover_hanger — server yang mengisi.',
       'ATURAN PRIVASI PESANAN: cek_pesanan hanya boleh dipanggil dengan nomor HP customer ini, nomor pesanan, atau nomor resi. Jangan pernah menyebut pesanan/resi yang bukan hasil pencarian nomor customer ini. Kalau belum ada nomor HP/nomor pesanan, tanya dulu — jangan menebak.',
       'ATURAN ONGKIR: saat memanggil cek_ongkir atau rekap_pesanan, kirim `items` (product_id dari cari_produk, size, quantity) untuk SEMUA barang. Berat dihitung server dari berat varian per ukuran, lalu berat produk; kalau kosong fallback 1000 g. Jangan mengirim berat_gram hasil hitungan sendiri.',
       'ALUR REKENING: sebelum mengirim nomor rekening, WAJIB panggil rekap_pesanan (inbox_id, items, kota, kecamatan, nama, alamat, layanan kalau sudah dipilih). Tool itu sudah memutuskan baris Bonus dan menyusun teks lengkap: kirim TEKS UNTUK CUSTOMER persis lewat kirim_wa, jangan menambah baris bonus, mengubah angka, atau membuat "invoice" kedua. Setelah customer setuju, kirim rekening saja (tanpa mengulang rincian). Kalau rekap berbeda dari hitungan customer, jelaskan dan tunggu persetujuan.',

@@ -12,7 +12,8 @@ import { normalizePhone, POTONG_PANJANG_LABEL } from '../_shared/wa/closing-core
 import { runClosing } from './closing.ts';
 import { resolveProofInboxId, type ProofIndex } from './history.ts';
 import { coverForCategory, readCoverStock } from './cover-stock.ts';
-import { buildRekap, type RekapLine, type RekapService } from './rekap-format.ts';
+import { buildRekap, ongkirBayar, pickService, type RekapLine, type RekapService } from './rekap-format.ts';
+import { readPromoStatus } from './promo-status.ts';
 import { checkPhotoPairing } from './media-pairing.ts';
 import { formatAdminHandoff } from './admin-handoff-format.ts';
 
@@ -322,7 +323,8 @@ export const WA_TOOLS: MimoToolDefinition[] = [
           kode_pos: { type: 'string', description: 'Kode pos' },
           pesanan: { type: 'string', description: 'Rincian pesanan; tiap baris WAJIB memuat nominal dari tool, mis. "Thobe Mint Karim size S x1 - Rp374.000". Salin baris Bonus dari rekap kalau ada.' },
           kurir: { type: 'string', description: 'Kurir, mis. J&T EZ' },
-          ongkir: { type: 'integer', description: 'Ongkir' },
+          ongkir: { type: 'integer', description: 'Ongkir yang dibayar customer (setelah promo ongkir kalau ada)' },
+          ongkir_asli: { type: 'integer', description: 'Tarif J&T asli sebelum promo ongkir. Isi HANYA kalau rekap_pesanan menyebut ongkir_asli (promo ongkir berlaku); kalau tidak, kosongkan.' },
           potong_panjang: {
             type: 'string',
             description:
@@ -575,6 +577,9 @@ async function isFirstPurchase(nomor: string): Promise<boolean | null> {
  */
 async function decideBonus(covers: Set<string>, nomor: string): Promise<{ cover: string | null; reason: string }> {
   if (!covers.size) return { cover: null, reason: 'produk tidak termasuk promo cover' };
+  // Saklar "Free Cover Hanger (khusus bot)" di menu Promo: mati / di luar tanggal = tanpa bonus. Tidak terbaca = perilaku lama (lanjut).
+  const promoStatus = await readPromoStatus(opsFetch);
+  if (promoStatus && promoStatus.fchBot === false) return { cover: null, reason: 'promo free cover hanger bot sedang tidak berlaku (pengaturan admin)' };
   if (!nomor) return { cover: null, reason: 'nomor customer tidak diketahui' };
   const [stock, first] = await Promise.all([readCoverStock(), isFirstPurchase(nomor)]);
   if (first === null) return { cover: null, reason: 'riwayat pesanan tidak terbaca' };
@@ -771,6 +776,10 @@ export async function executeTool(
             name: String(s.service || 'Reguler').replace(/^j&t\s*/i, '').trim(),
             cost: Number(s.cost) || 0,
             etd: s.etd ? String(s.etd) : undefined,
+            // Promo ongkir (hanya ada kalau sedang berlaku; dihitung server website).
+            ...(s.promoLabel && typeof s.payCost === 'number'
+              ? { payCost: Number(s.payCost) || 0, discount: Number(s.discount) || 0, promoLabel: String(s.promoLabel) }
+              : {}),
           }),
         );
         if (!services.length) {
@@ -802,6 +811,13 @@ export async function executeTool(
             rekap.customerText,
             '-----',
             `CATATAN INTERNAL (jangan dikirim): bonus ${bonus.cover ? 'YA' : 'TIDAK'} — ${bonus.reason}.`,
+            (() => {
+              // Promo ongkir: catat_closing perlu tahu tarif J&T asli (`ongkir_asli`) di samping ongkir yang dibayar.
+              const chosen = rekap.final ? pickService(services, String(args.layanan || '')) : null;
+              return chosen?.promoLabel
+                ? `Untuk catat_closing: ongkir = ${ongkirBayar(chosen)}, ongkir_asli = ${chosen.cost} (promo ongkir: ${chosen.promoLabel}).`
+                : '';
+            })(),
             rekap.final
               ? 'Rekening baru dikirim setelah customer menyetujui rekap ini.'
               : 'Layanan belum dipilih: tunggu pilihan customer, lalu panggil rekap_pesanan lagi dengan `layanan`.',

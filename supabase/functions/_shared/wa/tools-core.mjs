@@ -257,8 +257,15 @@ export function buildOngkirText({ rows, kota, kecamatan, berat_gram, configured 
   if (!Array.isArray(rows) || !rows.length) {
     return `Tidak ada layanan J&T untuk ${kecamatan}, ${kota} (${berat_gram} g).`;
   }
-  const lines = rows.map(
-    (r) => `• ${r.service || r.serviceCode} — ${rupiah(r.cost)}${r.etd ? ` — ${r.etd}` : ""}`,
-  );
+  const lines = rows.map((r) => {
+    const nama = r.service || r.serviceCode;
+    const etd = r.etd ? ` — ${r.etd}` : "";
+    // Promo ongkir (hanya ada kalau admin menyalakannya): sebut tarif J&T asli dan yang dibayar customer.
+    if (r.promoLabel && typeof r.payCost === "number") {
+      const bayar = r.payCost <= 0 ? "Rp0 (gratis ongkir)" : rupiah(r.payCost);
+      return `• ${nama} — tarif J&T ${rupiah(r.cost)}, customer bayar ${bayar} (${r.promoLabel}, hemat ${rupiah(r.discount)})${etd}`;
+    }
+    return `• ${nama} — ${rupiah(r.cost)}${etd}`;
+  });
   return `Ongkir J&T Depok → ${kecamatan}, ${kota} · ${berat_gram} g\n${lines.join("\n")}`;
 }

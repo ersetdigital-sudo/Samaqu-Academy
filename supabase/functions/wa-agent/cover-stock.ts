@@ -87,7 +87,15 @@ export function coverForCategory(category: unknown): string | null {
 }
 
 /** Blok STATUS BONUS untuk prompt. Kalau stok tidak terbaca, bonus dilarang. */
-export async function bonusStockContext(): Promise<string> {
+export async function bonusStockContext(fchBot: boolean = true): Promise<string> {
+  // Saklar "Free Cover Hanger (khusus bot)" mati / di luar tanggal: bonus tidak boleh disebut sama sekali.
+  if (!fchBot) {
+    return [
+      'STATUS BONUS (pengaturan admin):',
+      '- Promo free cover + hanger sedang TIDAK berlaku.',
+      '- Jangan menawarkan atau menulis bonus free cover + hanger di balasan ini. Kalau ditanya, jawab promonya sedang tidak ada.',
+    ].join('\n');
+  }
   const stock = await readCoverStock();
   if (!stock) {
     return [

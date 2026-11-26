@@ -14,8 +14,13 @@ export interface RekapLine {
 
 export interface RekapService {
   name: string; // mis. "EZ"
+  /** Tarif J&T asli. */
   cost: number;
   etd?: string;
+  /** Promo ongkir (hanya ada kalau sedang berlaku): ongkir yang dibayar customer, potongan, dan label. */
+  payCost?: number;
+  discount?: number;
+  promoLabel?: string;
 }
 
 export interface RekapInput {
@@ -38,6 +43,9 @@ export interface RekapOutput {
 }
 
 export const rupiah = (value: unknown) => 'Rp' + Number(value || 0).toLocaleString('id-ID');
+
+/** Ongkir yang ditagih untuk satu layanan: setelah promo kalau ada, kalau tidak tarif J&T. */
+export const ongkirBayar = (service: RekapService) => (service.promoLabel && typeof service.payCost === 'number' ? service.payCost : service.cost);
 
 /** Cocokkan pilihan customer ("ez", "J&T EZ", "reguler") ke salah satu layanan. */
 export function pickService(services: RekapService[], chosen?: string): RekapService | null {
@@ -66,7 +74,8 @@ export function buildRekap(input: RekapInput): RekapOutput {
   // Belum ada layanan yang jelas: tampilkan pilihan + total masing-masing, tanya pilih.
   if (!service) {
     const options = input.services.map(
-      (s) => `J&T ${s.name} ${rupiah(s.cost)}${s.etd ? ` (${s.etd})` : ''}, total ${rupiah(subtotal + s.cost)}`,
+      (s) =>
+        `J&T ${s.name} ${rupiah(ongkirBayar(s))}${s.promoLabel ? ` (${s.promoLabel}, hemat ${rupiah(s.discount)})` : ''}${s.etd ? ` (${s.etd})` : ''}, total ${rupiah(subtotal + ongkirBayar(s))}`,
     );
     return {
       final: false,
@@ -79,8 +88,10 @@ export function buildRekap(input: RekapInput): RekapOutput {
     'Siap Ka, ini rekap pesanannya:',
     [
       ...items,
-      `Ongkir J&T ${service.name}${service.etd ? ` (${service.etd})` : ''} ${rupiah(service.cost)}`,
-      `Total ${rupiah(subtotal + service.cost)}`,
+      service.promoLabel
+        ? `Ongkir J&T ${service.name}${service.etd ? ` (${service.etd})` : ''} ~${rupiah(service.cost)}~ ${ongkirBayar(service) <= 0 ? 'GRATIS' : rupiah(ongkirBayar(service))} (${service.promoLabel})`
+        : `Ongkir J&T ${service.name}${service.etd ? ` (${service.etd})` : ''} ${rupiah(service.cost)}`,
+      `Total ${rupiah(subtotal + ongkirBayar(service))}`,
     ].join('\n'),
   ];
   if (shipTo) blocks.push(shipTo);

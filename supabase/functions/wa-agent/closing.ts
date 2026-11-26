@@ -75,6 +75,10 @@ async function saveDraft(
     source: 'whatsapp',
     created_at: new Date().toISOString(),
     shipping_cost: Math.max(0, Number(args.ongkir) || 0),
+    // Promo ongkir: tarif J&T asli (server website menghitung ulang promonya di draft_create). Tanpa promo, field tidak ikut.
+    ...(Number(args.ongkir_asli) > Math.max(0, Number(args.ongkir) || 0)
+      ? { shipping_cost_original: Math.round(Number(args.ongkir_asli)) }
+      : {}),
     shipping_method: String(args.kurir || '').trim(),
     discount: 0,
     payment_status: 'paid',
