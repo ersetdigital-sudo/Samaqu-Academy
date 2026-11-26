@@ -73,6 +73,26 @@ const ASKED_TO_PAY = /\b(bsi|bca|bri|bni|mandiri|cimb|permata)\b[\s:.\-]*(no\.?\
 /** Balasan bot yang mengakui menerima bukti: "Bukti transfer Rp… sudah kami terima", "Pembayaran … sudah kami terima". */
 const ACKED_PROOF = /(bukti\s+(transfer|pembayaran)[^\n]{0,70}?terima|pembayaran[^\n]{0,50}?sudah[^\n]{0,20}?terima)/i;
 
+/**
+ * Isyarat bayar dari CUSTOMER di sekitar gambar (kasus 26 Nov 2026: bukti dikirim sebelum bot pernah mengirim
+ * rekening, disusul "Kak udah ya"). Sengaja ketat supaya pertanyaan biasa ("sudah ada ukuran M?") tidak ikut:
+ * (a) pesan pendek yang isinya hanya "udah/sudah (ya/kak/min/tf/transfer/bayar...)", (b) "sudah/udah tf/transfer/
+ * bayar/lunas", (c) "tf/transfer udah/sudah", (d) pesan pendek "ini buktinya / bukti tf".
+ */
+const PAID_CUE = [
+  /^(?:(?:kak|ka|kk|min|admin)\s+)?(?:udah|udh|sudah|sdh)(?:\s+(?:ya|yaa|yah|nih|dong|kak|ka|min|tf|transfer|trf|bayar|dibayar|lunas))*[\s.!]*$/i,
+  /\b(?:udah|udh|sudah|sdh)\s+(?:tf|transfer|trf|bayar|dibayar|lunas)\b/i,
+  /\b(?:tf|transfer|trf)(?:\s*nya)?\s+(?:udah|udh|sudah|sdh)\b/i,
+  /^(?:ini\s+|nih\s+)?bukti(?:nya)?(?:\s+(?:tf|transfer|bayar|pembayaran))?[\s.!]*$/i,
+];
+/** Isyarat bayar hanya dihitung kalau ditulis sedekat ini dengan gambarnya (sebelum atau sesudah). */
+export const SAFETY_CUE_WINDOW_MS = 10 * 60 * 1000;
+
+export function isPaidCue(message: string | null | undefined): boolean {
+  const text = String(message || '').trim();
+  return text.length > 0 && text.length <= 80 && PAID_CUE.some((pattern) => pattern.test(text));
+}
+
 const ts = (value: string | null | undefined): number => {
   const parsed = Date.parse(String(value || ''));
   return Number.isFinite(parsed) ? parsed : NaN;
@@ -83,7 +103,8 @@ const ts = (value: string | null | undefined): number => {
  * Syarat sebuah gambar dihitung bukti transfer:
  *  - dari nomor pribadi (bukan grup), sudah dibalas bot (`status = sent` + `reply_text`), dan
  *  - bot sebelumnya (24 jam) sudah mengirim rekening/meminta transfer, ATAU balasan atas gambar itu
- *    sendiri menyebut "bukti transfer/pembayaran ... diterima".
+ *    sendiri menyebut "bukti transfer/pembayaran ... diterima", ATAU customer menulis isyarat bayar
+ *    ("udah ya", "sudah tf", "ini buktinya") dalam 10 menit dari gambar itu (bukti duluan).
  * Gambar yang dilewati (`skipped`, diambil alih admin) TIDAK dihitung: admin yang menanganinya.
  */
 export function findUnclosedProofs(input: SafetyInput): UnclosedProof[] {
@@ -113,7 +134,16 @@ export function findUnclosedProofs(input: SafetyInput): UnclosedProof[] {
     );
     const asked = prior.some((other) => ASKED_TO_PAY.test(String(other.reply_text || '')));
     const acked = ACKED_PROOF.test(String(row.reply_text || ''));
-    if (!asked && !acked) continue;
+    // Bukti duluan: customer menulis isyarat bayar ("Kak udah ya") dalam 10 menit dari gambar, walau bot belum
+    // pernah mengirim rekening sebelum gambar itu.
+    const cued = rows.some(
+      (other) =>
+        other.id !== row.id &&
+        normalizePhone(other.sender) === sender &&
+        Math.abs(ts(other.created_at) - at) <= SAFETY_CUE_WINDOW_MS &&
+        isPaidCue(other.message),
+    );
+    if (!asked && !acked && !cued) continue;
 
     // Sudah tercakup? (closing/draft/order/kasus untuk nomor yang sama, dibuat sekitar/ setelah bukti)
     const since = at - SAFETY_GRACE_MS;
@@ -138,7 +168,11 @@ export function findUnclosedProofs(input: SafetyInput): UnclosedProof[] {
       sender: String(row.sender),
       senderName: String(row.sender_name || '').trim(),
       proofAt: row.created_at,
-      basis: asked ? 'bot sudah mengirim rekening' : 'bot mengakui menerima bukti',
+      basis: asked
+        ? 'bot sudah mengirim rekening'
+        : acked
+          ? 'bot mengakui menerima bukti'
+          : 'customer menulis isyarat sudah bayar di sekitar gambar',
     });
   }
   return [...bySender.values()];
