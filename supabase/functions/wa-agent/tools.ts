@@ -14,6 +14,7 @@ import { resolveProofInboxId, type ProofIndex } from './history.ts';
 import { coverForCategory, readCoverStock } from './cover-stock.ts';
 import { buildRekap, type RekapLine, type RekapService } from './rekap-format.ts';
 import { checkPhotoPairing } from './media-pairing.ts';
+import { formatAdminHandoff } from './admin-handoff-format.ts';
 
 /**
  * Tool bot WhatsApp server SAMAQU.
@@ -1311,7 +1312,9 @@ export async function executeTool(
         const head = ['*CS WA — perlu admin*', `Nama: ${nama || '-'}`, nomor ? `No: ${nomor}` : '']
           .filter(Boolean)
           .join('\n');
-        const isi = `${head}\n\n${pesan}`;
+        // Dirapikan jadi bagian bertajuk + butir (bot sering menulis satu paragraf panjang); teks asli tetap
+        // dikirim ke Perlu Review (`summary` di bawah) dan jadi cadangan kalau perapi tidak menghasilkan isi.
+        const isi = `${head}\n\n${formatAdminHandoff(pesan) || pesan}`;
         if (ctx.dry) {
           ctx.outbox.push({ nomor: ADMIN_WA, pesan: isi });
           return { text: `DRY: diteruskan ke admin ${ADMIN_WA} (tidak dikirim).` };
