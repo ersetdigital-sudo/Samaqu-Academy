@@ -21,6 +21,7 @@ import { bonusStockContext } from './cover-stock.ts';
 import { adminHoursWindows, isWaOnline, waktuSekarangWib } from '../_shared/wa/schedule.mjs';
 import { collectProofs, historyText } from './history.ts';
 import { customerTextFrom } from './closing-guard.ts';
+import { ATURAN_BUKTI_DULUAN } from './bukti-duluan.ts';
 import { caseText, findUnclosedProofs, SAFETY_LOOKBACK_MS } from './safety-net.ts';
 import { RunTrace } from './trace.ts';
 import { planRound } from './run-budget.ts';
@@ -788,6 +789,7 @@ Deno.serve(async (req) => {
       'ATURAN ONGKIR: saat memanggil cek_ongkir atau rekap_pesanan, kirim `items` (product_id dari cari_produk, size, quantity) untuk SEMUA barang. Berat dihitung server dari berat varian per ukuran, lalu berat produk; kalau kosong fallback 1000 g. Jangan mengirim berat_gram hasil hitungan sendiri.',
       'ALUR REKENING: sebelum mengirim nomor rekening, WAJIB panggil rekap_pesanan (inbox_id, items, kota, kecamatan, nama, alamat, layanan kalau sudah dipilih). Tool itu sudah memutuskan baris Bonus dan menyusun teks lengkap: kirim TEKS UNTUK CUSTOMER persis lewat kirim_wa, jangan menambah baris bonus, mengubah angka, atau membuat "invoice" kedua. Setelah customer setuju, kirim rekening saja (tanpa mengulang rincian). Kalau rekap berbeda dari hitungan customer, jelaskan dan tunggu persetujuan.',
       'ATURAN KONTEKS & CLOSING LANJUTAN: baca "Konteks sebelumnya" dulu. Jawaban singkat customer (angka seperti "10230", atau "Iya", "yg ini") hampir selalu menjawab pertanyaan TERAKHIR kami di konteks itu: jangan tanya balik "maksudnya apa". Kalau customer sudah mengirim bukti transfer SEBELUMNYA (baris "lampiran gambar, inbox_id: …") dan data pesanan + alamat sekarang sudah lengkap, panggil catat_closing dengan inbox_id lampiran itu; nominal ambil dari balasan kami sebelumnya (mis. "Bukti transfer Rp408.000"). JANGAN menulis "langsung kami proses" atau "data sudah lengkap" sebelum catat_closing berhasil.',
+      ATURAN_BUKTI_DULUAN,
       WA_AGENT_RULES,
       // Waktu SENGAJA di paling akhir: cache prompt mencocokkan dari depan, jadi bagian
       // yang berubah tiap menit harus ditaruh paling belakang. Dulu baris ini paling atas,
