@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Icon } from '@/components/ui/Icon';
 import { Note } from '@/components/ui/Note';
@@ -29,6 +29,59 @@ function formOf(behavior: AiBehavior): AiBehavior {
   return { ...behavior };
 }
 
+interface OutlineItem {
+  title: string;
+  index: number;
+  level: number;
+}
+
+/** Judul bagian di teks instruksi ("# ..." dan "## ...") untuk daftar loncat di tampilan layar penuh. */
+function outlineOf(text: string): OutlineItem[] {
+  const items: OutlineItem[] = [];
+  const pattern = /^(#{1,2}) (.+)$/gm;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    items.push({ title: match[2].trim(), index: match.index, level: match[1].length });
+  }
+  return items;
+}
+
+/**
+ * Gulung textarea ke posisi karakter tertentu. textarea tidak punya API "gulung ke indeks", jadi tinggi baris dihitung
+ * dengan salinan tak terlihat yang memakai lebar dan font yang sama (baris panjang yang terlipat ikut terhitung).
+ */
+function scrollToIndex(textarea: HTMLTextAreaElement, index: number) {
+  const style = getComputedStyle(textarea);
+  const mirror = document.createElement('div');
+  Object.assign(mirror.style, {
+    position: 'absolute',
+    visibility: 'hidden',
+    top: '0',
+    left: '-9999px',
+    boxSizing: style.boxSizing,
+    width: style.width,
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing,
+    padding: style.padding,
+    border: style.border,
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'break-word',
+  });
+  mirror.textContent = textarea.value.slice(0, index);
+  const marker = document.createElement('span');
+  marker.textContent = '.';
+  mirror.appendChild(marker);
+  document.body.appendChild(mirror);
+  const top = marker.offsetTop;
+  document.body.removeChild(mirror);
+  textarea.scrollTop = Math.max(0, top - 8);
+  textarea.focus({ preventScroll: true });
+  textarea.setSelectionRange(index, index);
+}
+
 export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) {
   const { showToast } = useToast();
   const [form, setForm] = useState<AiBehavior>(formOf(settings.behavior));
@@ -40,6 +93,23 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
   const [editing, setEditing] = useState(false);
   const locked = !editing;
   const lockStyle = locked ? { background: 'var(--gl2)' } : undefined;
+  // Tampilan layar penuh untuk membaca/mengedit System instructions yang panjang (teks yang sama dengan kotak biasa).
+  const [sysFull, setSysFull] = useState(false);
+  const fullRef = useRef<HTMLTextAreaElement | null>(null);
+  const outline = useMemo(() => outlineOf(form.systemInstructions), [form.systemInstructions]);
+
+  useEffect(() => {
+    if (!sysFull) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSysFull(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [sysFull]);
 
   useEffect(() => {
     setForm(formOf(settings.behavior));
@@ -148,12 +218,20 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
             />
           </div>
           <div className="full">
-            <label className="flab" htmlFor="ai-system">
-              System instructions
-            </label>
+            <div className="row ai-sys-bar">
+              <label className="flab" htmlFor="ai-system">
+                System instructions
+              </label>
+              <span className="xs muted">
+                {form.systemInstructions.length.toLocaleString('id-ID')} karakter · {outline.length} bagian
+              </span>
+              <button className="btn sm" type="button" onClick={() => setSysFull(true)}>
+                <Icon name="maximize-2" size={14} /> Layar penuh
+              </button>
+            </div>
             <textarea
               id="ai-system"
-              className="inp"
+              className="inp ai-sys-ta"
               rows={12}
               value={form.systemInstructions}
               onChange={(event) => patch('systemInstructions', event.target.value)}
@@ -333,6 +411,55 @@ export function BehaviorTab({ settings, defaults, onUpdate }: BehaviorTabProps) 
           </div>
         ) : null}
       </div>
+
+      {sysFull ? (
+        <div
+          className="modal on"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSysFull(false);
+          }}
+        >
+          <div className="mbox ai-sys-box" role="dialog" aria-modal="true" aria-label="System instructions layar penuh">
+            <div className="row sp">
+              <div>
+                <h2>System instructions</h2>
+                <p className="xs muted mt1">
+                  {form.systemInstructions.length.toLocaleString('id-ID')} karakter · {outline.length} bagian
+                  {locked ? ' · hanya baca (tutup lalu klik Edit untuk mengubah)' : ''}
+                </p>
+              </div>
+              <button className="btn sm" type="button" onClick={() => setSysFull(false)}>
+                <Icon name="x" size={14} /> Tutup
+              </button>
+            </div>
+            <div className="ai-sys-body">
+              <nav className="ai-sys-nav" aria-label="Daftar bagian">
+                {outline.map((item) => (
+                  <button
+                    key={`${item.index}-${item.title}`}
+                    type="button"
+                    className={`ai-sys-nav-item l${item.level}`}
+                    onClick={() => {
+                      if (fullRef.current) scrollToIndex(fullRef.current, item.index);
+                    }}
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </nav>
+              <textarea
+                ref={fullRef}
+                className="inp ai-sys-full-ta"
+                value={form.systemInstructions}
+                onChange={(event) => patch('systemInstructions', event.target.value)}
+                readOnly={locked}
+                style={lockStyle}
+                aria-label="System instructions"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
