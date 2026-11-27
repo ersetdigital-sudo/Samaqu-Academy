@@ -40,6 +40,10 @@ export interface Material extends BaseContent {
   levelId?: number | null;
   /** Materi wajib (kolom content_items.is_required) — memengaruhi progres dan kunci level. */
   isRequired?: boolean;
+  /** `draft` = disembunyikan dari admin biasa (hanya owner yang melihat, dengan lencana Draft). Kosong = tayang. */
+  status?: 'draft';
+  /** true = tidak boleh ikut dibaca asisten AI Academy (mis. materi training internal). */
+  excludeFromAi?: boolean;
 }
 
 /** Satu level jalur belajar (tabel learning_levels). */

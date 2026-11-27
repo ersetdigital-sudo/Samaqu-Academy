@@ -51,6 +51,17 @@ export const MATERIAL_FIELDS: RecordField[] = [
     hint: 'Materi wajib menentukan progres level dan kunci level berikutnya.',
   },
   {
+    key: 'status',
+    label: 'Status Tayang',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'published', label: 'Tayang (terlihat oleh admin)' },
+      { value: 'draft', label: 'Draft (disembunyikan dari admin)' },
+    ],
+    hint: 'Draft hanya terlihat oleh owner. Ubah ke Tayang setelah materi disetujui.',
+  },
+  {
     key: 'durationMinutes',
     label: 'Estimasi Waktu (menit)',
     type: 'number',

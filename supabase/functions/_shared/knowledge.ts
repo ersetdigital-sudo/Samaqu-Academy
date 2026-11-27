@@ -59,7 +59,9 @@ export async function buildAiContext(
       .limit(300),
   ]);
 
+  // Materi training yang ditandai excludeFromAi (mis. Panduan Admin) atau masih draft tidak boleh dibaca asisten.
   const docs = ((contentResult.data ?? []) as ContentRow[])
+    .filter((row) => row.data?.excludeFromAi !== true && row.data?.status !== 'draft')
     .map(toDoc)
     .filter(Boolean) as KnowledgeDoc[];
   const memoryDocs = ((memoryResult.data ?? []) as MemoryRow[]).map(toMemoryDoc);

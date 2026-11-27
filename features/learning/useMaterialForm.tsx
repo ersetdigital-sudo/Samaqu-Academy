@@ -29,7 +29,11 @@ export function useMaterialForm() {
         : field,
     );
     const initial = material
-      ? { ...material, isRequired: material.isRequired === false ? 'false' : 'true' }
+      ? {
+          ...material,
+          isRequired: material.isRequired === false ? 'false' : 'true',
+          status: material.status === 'draft' ? 'draft' : 'published',
+        }
       : defaults ?? {};
     openModal(
       <RecordForm
@@ -45,6 +49,7 @@ export function useMaterialForm() {
           durationMinutes: 10,
           levelId: String(snapshot.levels[0]?.id ?? 1),
           isRequired: 'true',
+          status: 'published',
           sortOrder: nextSortOrder,
         }}
         submitLabel={material ? 'Simpan Perubahan' : 'Tambahkan'}
@@ -62,6 +67,9 @@ export function useMaterialForm() {
             videoDuration: String(values.videoDuration ?? '').trim(),
             levelId: values.levelId ? Number(values.levelId) : null,
             isRequired: values.isRequired !== 'false',
+            // Status draft dan tanda "jangan dibaca AI" ikut tersimpan (formulir ini membangun ulang objek materi).
+            ...(values.status === 'draft' ? { status: 'draft' as const } : {}),
+            ...(material?.excludeFromAi ? { excludeFromAi: true } : {}),
             sortOrder: Number(values.sortOrder) || nextSortOrder,
             sample: false,
             updatedAt: Date.now(),

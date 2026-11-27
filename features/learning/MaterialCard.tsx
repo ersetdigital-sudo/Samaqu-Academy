@@ -113,6 +113,7 @@ export function MaterialCard({
           <span className="row wrap" style={{ gap: 6 }}>
             <span className="tag">{material.category}</span>
             {material.isRequired !== false ? <span className="tag gr">Wajib</span> : null}
+            {material.status === 'draft' ? <span className="tag yl">Draft</span> : null}
           </span>
           {locked ? (
             <span className="tag">

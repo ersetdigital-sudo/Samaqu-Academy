@@ -28,6 +28,7 @@ import {
 import { APPEND_COLLECTIONS, sortCollections } from '@/lib/data/collections';
 import { createSeedSnapshot } from '@/lib/data/seed';
 import { useAuth } from './AuthProvider';
+import { useRole } from './RoleProvider';
 import { useToast } from './ToastProvider';
 
 interface DataContextValue {
@@ -67,8 +68,19 @@ const progressErrorMessage = 'Gagal menyimpan progres ke Supabase.';
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [snapshot, setSnapshot] = useState<AcademySnapshot>(() => createSeedSnapshot());
-  const snapshotRef = useRef(snapshot);
+  const { canManage } = useRole();
+  const [fullSnapshot, setSnapshot] = useState<AcademySnapshot>(() => createSeedSnapshot());
+  // Materi berstatus draft hanya terlihat oleh owner; admin biasa tidak melihatnya di mana pun (daftar, progres, ringkasan).
+  const snapshot = useMemo<AcademySnapshot>(() => {
+    if (canManage) return fullSnapshot;
+    const materials = fullSnapshot.content.materials;
+    if (!materials.some((material) => material.status === 'draft')) return fullSnapshot;
+    return {
+      ...fullSnapshot,
+      content: { ...fullSnapshot.content, materials: materials.filter((material) => material.status !== 'draft') },
+    };
+  }, [canManage, fullSnapshot]);
+  const snapshotRef = useRef(fullSnapshot);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
